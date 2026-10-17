@@ -48,7 +48,7 @@ img{max-width:100%}[hidden]{display:none!important}
 .pw{display:flex;align-items:center;gap:6px}.pw input{flex:1}
 .lines{display:flex;flex-direction:column;gap:8px}
 .line{display:grid;gap:6px;align-items:center}
-.line.tr{grid-template-columns:minmax(0,1fr) 4.2em auto auto}
+.line.tr{grid-template-columns:minmax(0,1fr) 5.2em 0 auto}
 .line.tr .trLib{grid-column:1/-1;grid-row:2}
 .line.mt{grid-template-columns:minmax(0,1fr) 4.2em auto auto}
 .line select,.line input{padding:8px 8px;font-size:15px}
@@ -561,13 +561,19 @@ function prodSelect(id,cur,onlyStock){
 }
 function attach(d){return`<div class="field"><span class="lbl">Justificatif (photo ou PDF)</span><div class="att" id="attBox">${attView(d.justificatif)}</div>${assets?`<input type="file" id="attFile" accept="image/*,application/pdf">`:""}<input type="hidden" id="justificatif" name="justificatif" value="${esc(d.justificatif||"")}"></div>`}
 function attView(id){if(!id)return`<span class="hint">Aucun fichier.</span>`;setTimeout(hydrateAtt,0);return`<span data-att="${esc(id)}" class="hint">Chargement du fichier…</span><button type="button" class="linkbtn" data-act="att-clear">Retirer</button>`}
+/* Durées : accepte 1h30, 1h, 35min, 0h35, 1:30, 1,5 */
+function parseDuree(v){v=String(v??"").trim().toLowerCase().replace(/\s/g,"");if(!v)return 0;
+  let m=v.match(/^(\d+)(?:h|:)(\d{1,2})?(?:min|mn|m)?$/);if(m)return Math.round((Number(m[1])+(m[2]?Number(m[2])/60:0))*10000)/10000;
+  m=v.match(/^(\d+)(?:min|mn|m)$/);if(m)return Math.round(Number(m[1])/60*10000)/10000;
+  return n(v)}
+function fmtDuree(h){h=n(h);if(!h)return"";const t=Math.round(h*60);const H=Math.floor(t/60),M=t%60;return H?(H+"h"+(M?String(M).padStart(2,"0"):"")):(M+"min")}
 function trLine(t){t=t||{};const opts=Object.keys(TRAVAUX);const known=opts.includes(t.nom);
-  return`<div class="line tr"><select class="trNom" aria-label="Travail">${opts.map(o=>`<option${(known?t.nom:"Autre")===o?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="trLib" placeholder="Quel travail ?" value="${esc(known?(t.lib||""):(t.nom||""))}" aria-label="Quel travail ?"${known&&t.nom!=="Autre"?" hidden":""}><input class="trH" inputmode="decimal" value="${t.heures===undefined?"":String(t.heures).replace(".",",")}" aria-label="Heures"><span class="u">h</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+  return`<div class="line tr"><select class="trNom" aria-label="Travail">${opts.map(o=>`<option${(known?t.nom:"Autre")===o?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="trLib" placeholder="Quel travail ?" value="${esc(known?(t.lib||""):(t.nom||""))}" aria-label="Quel travail ?"${known&&t.nom!=="Autre"?" hidden":""}><input class="trH" value="${t.heures===undefined?"":fmtDuree(t.heures)}" placeholder="1h30" aria-label="Durée"><span class="u"></span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function prixU(x){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:x<1?4:2}).format(x).replace(/\u202f/g,"\u00a0")}
 function mtLine(m){m=m||{};const list=[...S.matieres].sort((a,b)=>(a.nom||"").localeCompare(b.nom||""));
   return`<div class="line mt"><select class="mtId" aria-label="Matière"><option value="">Choisir…</option>${list.map(x=>`<option value="${esc(x.id)}" data-prix="${n(x.prix)}"${x.id===m.id?" selected":""}>${esc(x.nom)} (${prixU(n(x.prix))}/${esc(x.unite||"unité")})</option>`).join("")}${m.id&&!list.some(x=>x.id===m.id)?`<option value="${esc(m.id)}" data-prix="${n(m.prix)}" selected>${esc(m.nom||"Matière supprimée")}</option>`:""}</select><input class="mtQ" inputmode="decimal" value="${m.qte===undefined?"1":String(m.qte).replace(".",",")}" aria-label="Quantité"><span class="u">${esc((S.matieres.find(x=>x.id===m.id)||{}).unite||"×")}</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function readLines(){
-  const travaux=[...document.querySelectorAll("#trLines .line")].map(l=>{const nom=l.querySelector(".trNom").value;const lib=l.querySelector(".trLib").value.trim();return{nom:nom==="Autre"&&lib?lib:nom,lib:nom==="Autre"?"":lib,heures:n(l.querySelector(".trH").value)}}).filter(x=>x.heures>0);
+  const travaux=[...document.querySelectorAll("#trLines .line")].map(l=>{const nom=l.querySelector(".trNom").value;const lib=l.querySelector(".trLib").value.trim();return{nom:nom==="Autre"&&lib?lib:nom,lib:nom==="Autre"?"":lib,heures:parseDuree(l.querySelector(".trH").value)}}).filter(x=>x.heures>0);
   const matieres=[...document.querySelectorAll("#mtLines .line")].map(l=>{const sel=l.querySelector(".mtId");const o=sel.selectedOptions[0];const mm=S.matieres.find(x=>x.id===sel.value);return{id:sel.value,nom:mm?mm.nom:(o?o.textContent:""),prix:mm?n(mm.prix):n(o&&o.dataset.prix),qte:n(l.querySelector(".mtQ").value)}}).filter(x=>x.id&&x.qte>0);
   return{travaux,matieres};
 }
@@ -581,7 +587,7 @@ function fVente(d){
   <fieldset><legend>Fiche de création</legend>
     <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
     <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||"Standard"))}</div>
-    <div class="field"><span class="lbl">Travaux réalisés (temps)</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
+    <div class="field"><span class="lbl">Travaux réalisés (temps)</span><span class="hint">Écris le temps comme tu le dis : 1h30, 35min, 2h, 0h45.</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
   </fieldset>
   <div class="preview" id="pvVente"></div>
@@ -719,7 +725,7 @@ function livePreview(){
     box.innerHTML=`<span>${esc(designation(p))}${sq===null?"":` · <b>${sq}</b> en stock`}</span>
       ${pc.forfait&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}<span${pc.prix===null?" hidden":""}>${pc.forfait?"Forfait pose":"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>
       <span>Prix plancher <b class="num">${eur(pp.plancher)}</b> · coef. ${String(pc.coef).replace(".",",")}</span>
-      <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${String(r2(pp.heures)).replace(".",",")} h ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
+      <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
       ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
       ${net&&net<pp.plancher?`<span class="chip bad" style="align-self:flex-start">Sous le prix plancher</span>`:""}
       <span>Total à payer : <b class="num">${eur(tot)}</b>${n(d.avanceMontant)&&d.avanceType!=="Aucune"?` · reste ${eur(Math.max(0,tot-n(d.avanceMontant)))}`:""}</span>`;
@@ -864,10 +870,10 @@ document.addEventListener("change",e=>{
     const pk=$("#packaging");if(pk&&isPrestation(p))pk.value="Aucun";
     if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseH1)}));
     else if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
-    else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=String(h).replace(".",",")}}
+    else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=fmtDuree(h)}}
   if(e.target.id==="attFile"&&e.target.files[0])uploadFile(e.target.files[0]);
   else if(e.target.classList&&e.target.classList.contains("mtId")){const m=S.matieres.find(x=>x.id===e.target.value);const u=e.target.closest(".line").querySelector(".u");if(u)u.textContent=m&&m.unite?m.unite:"×";livePreview()}
-  else if(e.target.classList&&e.target.classList.contains("trNom")){const ln=e.target.closest(".line");ln.querySelector(".trLib").hidden=e.target.value!=="Autre";const h=ln.querySelector(".trH");h.value=String(TRAVAUX[e.target.value]??"").replace(".",",");livePreview()}
+  else if(e.target.classList&&e.target.classList.contains("trNom")){const ln=e.target.closest(".line");ln.querySelector(".trLib").hidden=e.target.value!=="Autre";const h=ln.querySelector(".trH");h.value=fmtDuree(TRAVAUX[e.target.value]??0);livePreview()}
   else if(e.target.closest("#form"))livePreview();
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet()});
@@ -1015,17 +1021,20 @@ function pFacture(id){
   const v=S.ventes.find(x=>x.id===id);if(!v)return pageHead("Facture")+`<div class="empty">Vente introuvable.</div>`;
   const s=soc();const p=prod(v.produitId);const q=Math.max(1,n(v.quantite)||1);const tot=venteTotal(v);
   const av=v.avanceType&&v.avanceType!=="Aucune"?n(v.avanceMontant):0;const paid=v.statut==="Payée";
-  const des=(v.designation||designation(p)||"")+(v.couleurSpe&&v.couleurSpe!=="Naturelle"?" · couleur "+v.couleurSpe:"");
+  const des=(v.designation||designation(p)||"");
+  const perso=(Array.isArray(v.travaux)?v.travaux:[]).map(t=>t.nom).filter(x=>x&&x!=="Préparation de base"&&x!=="Pose");
+  const persoTxt=[v.couleurSpe&&v.couleurSpe!=="Naturelle"?"couleur "+v.couleurSpe:"",...perso.map(x=>x.toLowerCase())].filter(Boolean);
+  const nature=p&&isPrestation(p)?"Prestation de services":"Vente de biens";
   const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";
   return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <button class="linkbtn back" data-act="page" data-p="factures">‹ Factures</button>
     <button class="btn" style="width:auto" data-act="print">Imprimer / PDF</button></div>
   <article class="invoice">
    <header class="inv-h"><div><div class="inv-brand">${esc(s.denomination)}</div><div class="inv-small">${esc(s.forme)} au capital de ${eur(n(s.capital))}<br>${esc(s.adresse)}<br>${esc(s.cpVille)}<br>SIREN ${esc(s.siren)} · RCS ${esc(s.villeRcs)}${s.tvaIntra?"<br>TVA "+esc(s.tvaIntra):""}<br>${esc(s.email)}${s.site?" · "+esc(s.site):""}</div></div>
-    <div class="inv-meta"><div class="inv-title">Facture</div><div>N° <b>${esc(v.numero||"(non numérotée)")}</b></div><div>Date : ${dfr(v.date)}</div>${paid?`<div>Payée le ${dfr(v.dateEncaissement||v.date)}</div>`:""}</div></header>
+    <div class="inv-meta"><div class="inv-title">Facture</div><div>N° <b>${esc(v.numero||"(non numérotée)")}</b></div><div>Date : ${dfr(v.date)}</div><div class="inv-small">${nature}</div>${paid?`<div>Payée le ${dfr(v.dateEncaissement||v.date)}${v.paiement?" · "+esc(v.paiement.toLowerCase()):""}</div>`:""}</div></header>
    <section class="inv-client"><div class="inv-small">Facturé à</div><div><b>${esc(v.client)}</b><br>${esc(v.adresse||"")}${v.adresse?"<br>":""}${esc(v.ville||"")}</div></section>
    <table class="inv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
-    <tbody><tr><td>${esc(des)}${p?`<div class="inv-small code">${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
+    <tbody><tr><td>${esc(des)}${persoTxt.length?`<div class="inv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="inv-small code">${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
     ${n(v.remise)?`<tr><td>Remise</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
     ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody>
     <tfoot><tr><td colspan="3" class="r"><b>Total${s.tva==="Oui"?" TTC":""}</b></td><td class="r num"><b>${eur(tot)}</b></td></tr>
