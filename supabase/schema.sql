@@ -52,3 +52,15 @@ drop policy if exists justificatifs_membres on storage.objects;
 create policy justificatifs_membres on storage.objects for all to authenticated
   using (bucket_id = 'justificatifs' and public.est_membre())
   with check (bucket_id = 'justificatifs' and public.est_membre());
+
+-- matières premières (ajout du 17/10/2026)
+create table if not exists public.matieres (
+  id text primary key default gen_random_uuid()::text,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  updated_by uuid default auth.uid()
+);
+alter table public.matieres enable row level security;
+create policy membres_tout on public.matieres for all to authenticated using ((select public.est_membre())) with check ((select public.est_membre()));
+alter table public.matieres replica identity full;
+alter publication supabase_realtime add table public.matieres;
