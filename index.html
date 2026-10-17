@@ -149,6 +149,44 @@ details.more>div{display:flex;flex-direction:column;gap:12px}
 .months button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:5px 9px;cursor:pointer;text-transform:capitalize}
 .months button[aria-pressed="true"]{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
 @media (max-width:360px){.three{grid-template-columns:1fr 1fr}.money-big{font-size:34px}}
+.pagehead{display:flex}
+.back{padding-left:0}
+.ptitle{font-size:26px}
+h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:9px 12px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+.tbl thead th{border-top:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.tbl .r{text-align:right}.tbl .cap{text-transform:capitalize}.tbl .muted{color:var(--muted)}
+.tbl tr.grp td{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--soft)}
+.tbl tr.sub td{font-weight:600}.tbl tr.tot td{font-weight:600;font-size:15px}
+.tbl .pos{color:var(--ok)}.tbl tr.neg td:last-child{color:var(--bad)}
+.tbl input.inv{width:4.5em;text-align:right;padding:6px 8px}
+.kv-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.kvline{display:flex;justify-content:space-between;gap:10px}
+.gauge{position:relative;height:10px;border-radius:999px;background:var(--soft);overflow:hidden}
+.gfill{height:100%;background:var(--ok)}.gfill.warn{background:var(--warn)}.gfill.bad{background:var(--bad)}
+.gmark{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.5}
+.line.rf{grid-template-columns:minmax(0,1fr) 5em 4em auto}
+.line.rm2{grid-template-columns:minmax(0,1fr) 6em auto}
+.line.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.invoice{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:18px;font-size:13px;line-height:1.5}
+.inv-h{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.inv-brand{font-family:var(--display);font-size:26px;letter-spacing:.3em;font-weight:600}
+.inv-small{font-size:11.5px;color:#5e4c42}
+.inv-meta{text-align:right}.inv-title{font-family:var(--display);font-size:24px;font-weight:600}
+.inv-tbl{width:100%;border-collapse:collapse}
+.inv-tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5e4c42;border-bottom:1px solid #111;padding:6px 4px;text-align:left}
+.inv-tbl td{padding:8px 4px;border-bottom:1px solid #e3ddd6}.inv-tbl tfoot td{border-bottom:0}
+.inv-tbl .r{text-align:right}.inv-tbl .num{white-space:nowrap}
+.inv-f{border-top:1px solid #e3ddd6;padding-top:10px;font-size:12px}.inv-f p{margin:2px 0}
+@media print{
+  header.top,nav.tabs,.noprint,.toast,body::before{display:none!important}
+  html,body{background:#fff!important}
+  main{padding:0!important}.wrap{max-width:none;padding:0!important}
+  .invoice{border:0;padding:0}
+  @page{margin:16mm}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -212,7 +250,7 @@ const TRAVAUX={"Préparation de base":1.5,"Coloration":1.5,"Décoloration":2,"Li
 function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle (Tissage)")return 0;if(["Demi-tête (Half Wig)","Ponytail (Queue de cheval)"].includes(p.construction))return 0.5;return 1.5}
 
 /* ---------- état ---------- */
-const S={produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
+const S={referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -233,7 +271,7 @@ function initials(s){s=String(s||"").trim();if(!s)return"";const i=s.indexOf(" "
 /* ---------- codes produits (même règle que le classeur) ---------- */
 function baseCode(p){
   if(!p.modele)return"";
-  const mod=MODEL_CODES[p.modele]||initials(p.modele);
+  const mod=codeModele(p.modele)||initials(p.modele);
   if(isPrestation(p))return"PR-"+mod;
   const parts=[mod];
   const cons=(T_CODES[p.construction]||"")+(p.longueur?String(p.longueur):"");
@@ -243,7 +281,7 @@ function baseCode(p){
   if(lace)parts.push(lace);
   const de=n(p.densite);if(de)parts.push(String(Math.round(de<10?de*100:de)));
   if(p.cheveux)parts.push(T_CODES[p.cheveux]||initials(p.cheveux));
-  if(p.couleur)parts.push(COLOR_CODES[p.couleur]||initials(p.couleur));
+  if(p.couleur)parts.push(codeCouleur(p.couleur)||initials(p.couleur));
   return parts.join("-");
 }
 function codeFor(p,selfId,oldCode){
@@ -316,7 +354,7 @@ function coefVente(p,couleurSpe,niveau,collection){
   if(!p)return 0;const b=(cat,v)=>(BONUS[cat]&&BONUS[cat][v])||0;const de=n(p.densite);
   return r2(n(S.reglages.coefBase||1.6)+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
     +palier(PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
-    +b("Couleur spéciale",couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
+    +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function prixConseille(p,pp,couleurSpe,niveau,collection){
   if(!p||!pp)return null;const c=coefVente(p,couleurSpe,niveau,collection);
@@ -358,6 +396,9 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
+  v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
   v.innerHTML=fn();
 }
@@ -402,8 +443,24 @@ function vAccueil(){
     </div>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>Réglages des prix</h2>
-    <div class="list"><button class="row" data-act="reglages"><span class="t">Taux horaire, transport, packaging, marge</span><span class="v">›</span><span class="s">Servent au calcul du prix plancher dans une vente.</span></button></div>
+    <h2>Gestion</h2>
+    <div class="list">
+      <button class="row" data-act="page" data-p="factures"><span class="t">Factures</span><span class="v">›</span><span class="s">Toutes les factures clientes, à imprimer ou en PDF.</span></button>
+      <button class="row" data-act="page" data-p="resultat"><span class="t">Résultat de l'exercice</span><span class="v">›</span><span class="s">Chiffre d'affaires, charges, bénéfice et impôt estimé.</span></button>
+      <button class="row" data-act="page" data-p="tresorerie"><span class="t">Trésorerie</span><span class="v">›</span><span class="s">Entrées, sorties et solde mois par mois.</span></button>
+      <button class="row" data-act="page" data-p="tva"><span class="t">Franchise de TVA</span><span class="v">›</span><span class="s">Où vous en êtes par rapport aux seuils.</span></button>
+      <button class="row" data-act="page" data-p="inventaire"><span class="t">Inventaire</span><span class="v">›</span><span class="s">Compter le stock et corriger les écarts.</span></button>
+      <button class="row" data-act="page" data-p="controles"><span class="t">Contrôles</span><span class="v">${(()=>{const c=controles();const w=c.filter(x=>x.lvl!=="info").length;return c.length?`<span class="chip ${w?"warn":""}">${c.length}</span>`:`<span class="chip ok">0</span>`})()}</span><span class="s">Ce qui manque ou paraît anormal.</span></button>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2>Réglages</h2>
+    <div class="list">
+      <button class="row" data-act="page" data-p="societe"><span class="t">Société</span><span class="v">›</span><span class="s">SIREN, adresse, exercice : utilisés sur les factures.</span></button>
+      <button class="row" data-act="reglages"><span class="t">Réglages des prix</span><span class="v">›</span><span class="s">Taux horaire, transport, packaging, marge, coefficient.</span></button>
+      <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Couleurs et modèles, avec leurs codes et bonus.</span></button>
+      <button class="row" data-act="export-xlsx"><span class="t">Exporter pour Excel</span><span class="v">↓</span><span class="s">Un fichier .xlsx avec tout, pour un comptable.</span></button>
+    </div>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
     <h2>Compte</h2>
@@ -429,7 +486,7 @@ function vVentes(){
 function exChip(d){return d.excel==="nouveau"?`<span class="chip warn">pas dans Excel</span>`:d.excel==="modifié"?`<span class="chip warn">modifié, à reporter</span>`:""}
 function vMatieres(){
   const list=[...S.matieres].sort((a,b)=>(a.nom||"").localeCompare(b.nom||""));
-  const rows=list.map(m=>`<button class="row" data-act="edit" data-col="matieres" data-id="${esc(m.id)}"><span class="t">${esc(m.nom)}</span><span class="v num">${eur(n(m.prix))}</span><span class="s">par ${esc(m.unite||"unité")}${m.fournisseur?" · "+esc(m.fournisseur):""}</span></button>`).join("");
+  const rows=list.map(m=>`<button class="row" data-act="edit" data-col="matieres" data-id="${esc(m.id)}"><span class="t">${esc(m.nom)}</span><span class="v num">${prixU(n(m.prix))} / ${esc(m.unite||"unité")}</span><span class="s">${n(m.contenance)>1?eur(n(m.prixCond))+" les "+n(m.contenance)+" "+esc(m.unite||""):""}${m.fournisseur?" · "+esc(m.fournisseur):""}</span></button>`).join("");
   return`${banner()}${filterBar("stockFilter","matieres",[["dispo","Disponibles"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]])}
   ${loadingOr("matieres",`<div class="list">${rows||`<div class="empty">Aucune matière. Touche « + » puis « Matière » pour ajouter un tube de coloration, un oxydant, de la colle…</div>`}</div>`)}
   <p class="note">Les matières choisies dans une vente s'ajoutent au prix de revient de la perruque.</p>`;
@@ -479,8 +536,12 @@ const FORMS={
   matieres:{title:"Matière première",fields:fMatiere}
 };
 function fMatiere(d){
-  return`${F("nom","Nom",inp("nom",d.nom,'placeholder="ex. Coloration noire (tube)" required'))}
-  <div class="two">${F("prix","Prix par unité (€)",money("prix",d.prix))}${F("unite","Unité",inp("unite",d.unite||"unité",'placeholder="tube, flacon, ml…"'))}</div>
+  const pc=d.prixCond!==undefined?d.prixCond:d.prix;const ct=d.contenance||1;
+  return`${F("nom","Nom",inp("nom",d.nom,'placeholder="ex. Oxydant 20 vol." required'))}
+  <div class="two">${F("prixCond","Prix payé (€)",money("prixCond",pc),"Prix du flacon, du tube, du pot…")}${F("contenance","Contenance",money("contenance",ct),"ex. 1000 pour un flacon de 1 L en ml")}</div>
+  ${F("unite","Unité utilisée",inp("unite",d.unite||"unité",'list="dlUnite" placeholder="ml, g, tube, unité…"'),"L'unité dans laquelle tu notes ce que tu utilises.")}
+  <datalist id="dlUnite"><option value="ml"><option value="g"><option value="unité"><option value="tube"><option value="cm"></datalist>
+  <div class="preview" id="pvMat"></div>
   ${F("fournisseur","Fournisseur",inp("fournisseur",d.fournisseur))}
   <p class="note">Ce prix sert au calcul du prix de revient dans la fiche de création. L'achat lui-même se saisit en « Dépense », catégorie « Produits de travail ».</p>`;
 }
@@ -500,8 +561,9 @@ function attach(d){return`<div class="field"><span class="lbl">Justificatif (pho
 function attView(id){if(!id)return`<span class="hint">Aucun fichier.</span>`;setTimeout(hydrateAtt,0);return`<span data-att="${esc(id)}" class="hint">Chargement du fichier…</span><button type="button" class="linkbtn" data-act="att-clear">Retirer</button>`}
 function trLine(t){t=t||{};const opts=Object.keys(TRAVAUX);const known=opts.includes(t.nom);
   return`<div class="line tr"><select class="trNom" aria-label="Travail">${opts.map(o=>`<option${(known?t.nom:"Autre")===o?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="trLib" placeholder="Quel travail ?" value="${esc(known?(t.lib||""):(t.nom||""))}" aria-label="Quel travail ?"${known&&t.nom!=="Autre"?" hidden":""}><input class="trH" inputmode="decimal" value="${t.heures===undefined?"":String(t.heures).replace(".",",")}" aria-label="Heures"><span class="u">h</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+function prixU(x){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:x<1?4:2}).format(x).replace(/\u202f/g,"\u00a0")}
 function mtLine(m){m=m||{};const list=[...S.matieres].sort((a,b)=>(a.nom||"").localeCompare(b.nom||""));
-  return`<div class="line mt"><select class="mtId" aria-label="Matière"><option value="">Choisir…</option>${list.map(x=>`<option value="${esc(x.id)}" data-prix="${n(x.prix)}"${x.id===m.id?" selected":""}>${esc(x.nom)} (${eur(n(x.prix))}/${esc(x.unite||"unité")})</option>`).join("")}${m.id&&!list.some(x=>x.id===m.id)?`<option value="${esc(m.id)}" data-prix="${n(m.prix)}" selected>${esc(m.nom||"Matière supprimée")}</option>`:""}</select><input class="mtQ" inputmode="decimal" value="${m.qte===undefined?"1":String(m.qte).replace(".",",")}" aria-label="Quantité"><span class="u">×</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+  return`<div class="line mt"><select class="mtId" aria-label="Matière"><option value="">Choisir…</option>${list.map(x=>`<option value="${esc(x.id)}" data-prix="${n(x.prix)}"${x.id===m.id?" selected":""}>${esc(x.nom)} (${prixU(n(x.prix))}/${esc(x.unite||"unité")})</option>`).join("")}${m.id&&!list.some(x=>x.id===m.id)?`<option value="${esc(m.id)}" data-prix="${n(m.prix)}" selected>${esc(m.nom||"Matière supprimée")}</option>`:""}</select><input class="mtQ" inputmode="decimal" value="${m.qte===undefined?"1":String(m.qte).replace(".",",")}" aria-label="Quantité"><span class="u">${esc((S.matieres.find(x=>x.id===m.id)||{}).unite||"×")}</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function readLines(){
   const travaux=[...document.querySelectorAll("#trLines .line")].map(l=>{const nom=l.querySelector(".trNom").value;const lib=l.querySelector(".trLib").value.trim();return{nom:nom==="Autre"&&lib?lib:nom,lib:nom==="Autre"?"":lib,heures:n(l.querySelector(".trH").value)}}).filter(x=>x.heures>0);
   const matieres=[...document.querySelectorAll("#mtLines .line")].map(l=>{const sel=l.querySelector(".mtId");const o=sel.selectedOptions[0];const mm=S.matieres.find(x=>x.id===sel.value);return{id:sel.value,nom:mm?mm.nom:(o?o.textContent:""),prix:mm?n(mm.prix):n(o&&o.dataset.prix),qte:n(l.querySelector(".mtQ").value)}}).filter(x=>x.id&&x.qte>0);
@@ -515,7 +577,7 @@ function fVente(d){
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <fieldset><legend>Fiche de création</legend>
-    <div class="two">${F("couleurSpe","Couleur obtenue",sel("couleurSpe",Object.keys(BONUS["Couleur spéciale"]),d.couleurSpe||"Naturelle"),"Naturelle si pas de changement de couleur.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
+    <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
     <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||"Standard"))}</div>
     <div class="field"><span class="lbl">Travaux réalisés (temps)</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
@@ -561,7 +623,7 @@ function fDepense(d){
   <p class="note">Un abonnement (domiciliation, téléphone…) se met dans « Abonnement », pas ici.</p>`;
 }
 function fProduit(d){
-  const models=Object.keys(MODEL_CODES),colors=Object.keys(COLOR_CODES);
+  const models=refModeles().map(m=>m.nom),colors=refCouleurs().map(c=>c.nom);
   return`${F("modele","Modèle",inp("modele",d.modele,'list="dlMod" autocomplete="off" required'),"Choisis dans la liste ou écris un nouveau modèle.")}
   <datalist id="dlMod">${models.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
   ${F("construction","Construction",sel("construction",L.constructions,d.construction,"—"))}
@@ -600,7 +662,7 @@ function fAbo(d){
   <div class="two">${F("jour","Jour du prélèvement",inp("jour",d.jour,'inputmode="numeric"'))}${F("moyen","Moyen",sel("moyen",L.paiements,d.moyen||"Carte bancaire"))}</div>
   <div class="two">${F("debut","Début",dateI("debut",d.debut||today()))}${F("fin","Fin (si arrêté)",dateI("fin",d.fin))}</div>`;
 }
-const NUMERIC=new Set(["prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite"]);
+const NUMERIC=new Set(["prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite"]);
 let current=null;
 function openChooser(){
   const sh=$("#sheet");
@@ -625,6 +687,7 @@ function openForm(col,id){
   <div class="wrap"><form class="f" id="form" novalidate>${FORMS[col].fields(d)}
   <p class="err" id="formErr" hidden></p>
   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  ${id&&col==="ventes"?`<button class="btn ghost" type="button" data-act="facture" data-id="${esc(id)}">Voir la facture${d.numero?" "+esc(d.numero):""}</button>`:""}
   ${id&&!ro?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
   ${id?`<p class="note" id="byline">${d.excel==="ok"?"Déjà dans le classeur Excel.":"Pas encore reporté dans le classeur Excel."}</p>`:""}
   </form></div>`;
@@ -659,6 +722,8 @@ function livePreview(){
       ${net&&net<pp.plancher?`<span class="chip bad" style="align-self:flex-start">Sous le prix plancher</span>`:""}
       <span>Total à payer : <b class="num">${eur(tot)}</b>${n(d.avanceMontant)&&d.avanceType!=="Aucune"?` · reste ${eur(Math.max(0,tot-n(d.avanceMontant)))}`:""}</span>`;
   }
+  if(c==="matieres"){const ct=n(d.contenance)||1;const pu=n(d.prixCond)/ct;
+    $("#pvMat").innerHTML=n(d.prixCond)?`<span>Soit <b>${prixU(pu)}</b> par ${esc(d.unite||"unité")}</span>${ct>1?`<span>Exemple : 100 ${esc(d.unite||"unités")} = ${eur(pu*100)}</span>`:""}`:`<span>Indique le prix payé et la contenance.</span>`}
   if(c==="achats"){
     const tot=achatTotal(d);const q=n(d.quantite);
     $("#pvAchat").innerHTML=`<span>Coût total <b class="num">${eur(tot)}</b>${q?` · ${eur(tot/q)} par pièce`:""}</span>`;
@@ -672,7 +737,7 @@ function validate(col,d){
   if(col==="produits"){if(!d.modele)e.push("le modèle")}
   if(col==="financement"){if(!n(d.montant))e.push("le montant")}
   if(col==="mouvements"){if(!d.produitId)e.push("le produit");if(!n(d.quantite))e.push("la quantité")}
-  if(col==="matieres"){if(!d.nom)e.push("le nom");if(!n(d.prix))e.push("le prix")}
+  if(col==="matieres"){if(!d.nom)e.push("le nom");if(!n(d.prixCond))e.push("le prix payé")}
   if(col==="abonnements"){if(!d.fournisseur)e.push("le fournisseur");if(!n(d.montant))e.push("le montant");if(!d.debut)e.push("la date de début")}
   if(d.date===""&&"date"in d)e.push("la date");
   return e.length?"Il manque "+e.join(", ")+".":"";
@@ -682,7 +747,11 @@ async function save(){
   const err=validate(col,d);const eb=$("#formErr");
   if(err){eb.textContent=err;eb.hidden=false;return}
   if(col==="produits"){d.type=n(d.prixAchat)===0?"Prestation":"Marchandise";d.code=codeFor(d,id,orig.code);if(n(d.densite)>=10)d.densite=n(d.densite)/100}
-  if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement=""}
+  if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
+    const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date)}
+  if(col==="matieres"){d.contenance=n(d.contenance)||1;d.prix=Math.round(n(d.prixCond)/d.contenance*10000)/10000}
+  if(col==="achats"&&!orig.ref)d.ref=nextRef("achats","A-",5);
+  if(col==="depenses"&&!orig.ref)d.ref=nextRef("depenses","D-",5);
   const body={...orig,...d};delete body.id;
   body.excel=orig.excel==="ok"?"modifié":(orig.excel||"nouveau");
   body.modifieLe=new Date().toISOString();if(!orig.id){body.creeLe=body.modifieLe;if(myId)body.par=myId}
@@ -752,8 +821,15 @@ async function uploadFile(file){
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act],[data-tab]");if(!b)return;
   const a=b.dataset.act;
-  if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.q="";window.scrollTo(0,0);render();return}
-  if(a==="goto"){S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;S.q="";window.scrollTo(0,0);render()}
+  if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
+  if(a==="page"){S.page=b.dataset.p||null;window.scrollTo(0,0);render();return}
+  if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
+  if(a==="print"){window.print();return}
+  if(a==="inv-save"){saveInventaire();return}
+  if(a==="export-xlsx"){exportExcel();return}
+  if(a==="rf-add"){$("#rfLines").insertAdjacentHTML("beforeend",`<div class="line rf"><input class="rfNom" placeholder="Nom" aria-label="Couleur"><input class="rfCode" placeholder="CODE" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
+  if(a==="rm-add"){$("#rmLines").insertAdjacentHTML("beforeend",`<div class="line rm2"><input class="rmNom" placeholder="Nom" aria-label="Modèle"><input class="rmCode" placeholder="CODE" aria-label="Code"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
+  if(a==="goto"){S.page=null;S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;S.q="";window.scrollTo(0,0);render()}
   else if(a==="mprev"){S.month=addMonths(S.month,-1);render()}
   else if(a==="mnext"){S.month=addMonths(S.month,1);render()}
   else if(a==="filter"){S[b.dataset.name]=b.dataset.val;render()}
@@ -782,11 +858,234 @@ document.addEventListener("change",e=>{
     if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
     else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=String(h).replace(".",",")}}
   if(e.target.id==="attFile"&&e.target.files[0])uploadFile(e.target.files[0]);
+  else if(e.target.classList&&e.target.classList.contains("mtId")){const m=S.matieres.find(x=>x.id===e.target.value);const u=e.target.closest(".line").querySelector(".u");if(u)u.textContent=m&&m.unite?m.unite:"×";livePreview()}
   else if(e.target.classList&&e.target.classList.contains("trNom")){const ln=e.target.closest(".line");ln.querySelector(".trLib").hidden=e.target.value!=="Autre";const h=ln.querySelector(".trH");h.value=String(TRAVAUX[e.target.value]??"").replace(".",",");livePreview()}
   else if(e.target.closest("#form"))livePreview();
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet()});
 
+
+/* ---------- référentiel modifiable (modèles, couleurs) ---------- */
+const DEFAULT_COULEURS=[
+  ["Noir Naturel","NN",0],["Brun Naturel","BN",0],["Châtain","CHT",0],["Gris Naturel","GR",0.07],
+  ["Blond Doré","BD",0.05],["Blond Miel","BM",0.05],["Blond Platine","BP",0.07],["Décoloré","DEC",0.07],
+  ["Rouge Cerise","RC",0.05],["Burgundy","BG",0.05],["Auburn","AU",0.05],["Cuivré","CU",0.06],["Ginger","GI",0.06],
+  ["Mèches Caramel","MC",0.04],["Highlights","HL",0.04],["Balayage","BAL",0.06],["Ombré","OM",0.08],
+  ["Rose Poudré","RP",0.1],["Violet Prune","VP",0.1],["Bleu Électrique","BE",0.1],["Vert Émeraude","VE",0.1],["Jaune Pastel","JP",0.1]
+].map(([nom,code,bonus])=>({nom,code,bonus}));
+function refCouleurs(){const r=S.referentiel&&Array.isArray(S.referentiel.couleurs)?S.referentiel.couleurs:null;return r&&r.length?r:DEFAULT_COULEURS}
+function refModeles(){const r=S.referentiel&&Array.isArray(S.referentiel.modeles)?S.referentiel.modeles:null;return r&&r.length?r:Object.entries(MODEL_CODES).map(([nom,code])=>({nom,code}))}
+function codeModele(nom){const m=refModeles().find(x=>x.nom===nom);return m?m.code:(MODEL_CODES[nom]||"")}
+function codeCouleur(nom){const c=refCouleurs().find(x=>x.nom===nom);return c?c.code:(COLOR_CODES[nom]||"")}
+function bonusCouleur(nom){if(!nom||nom==="Naturelle")return 0;const c=refCouleurs().find(x=>x.nom===nom);if(c)return n(c.bonus);return (BONUS["Couleur spéciale"][nom])||0}
+
+/* ---------- société ---------- */
+const DEF_SOCIETE={denomination:"EUGCEO",forme:"SASU",capital:1000,adresse:"",cpVille:"",siren:"",villeRcs:"",tvaIntra:"",president:"",email:"",site:"",iban:"",
+  debutExercice:"2026-10-12",finExercice:"2027-12-31",banqueDebut:0,tva:"Non",tauxTva:0.2,isTauxReduit:0.15,isPlafond:42500,isTauxNormal:0.25,
+  conditions:"Paiement à réception de la facture.",mention:""};
+function soc(){return{...DEF_SOCIETE,...(S.societe||{})}}
+
+/* ---------- numérotation ---------- */
+function nextRef(col,prefix,digits){let max=0;for(const x of S[col]){const m=String(x.ref||x.numero||"").match(new RegExp("^"+prefix.replace(/[-]/g,"\\-")+"(\\d+)$"));if(m)max=Math.max(max,Number(m[1]))}return prefix+String(max+1).padStart(digits,"0")}
+function nextFacture(date){const y=(date||today()).slice(0,4);return nextRef("ventes","EC-"+y+"-",3)}
+
+/* ---------- exercice, encaissements ---------- */
+function inExercice(d){const s=soc();return d&&d>=s.debutExercice&&d<=s.finExercice}
+function encaissements(v){
+  const out=[];const t=venteTotal(v);const av=v.avanceType&&v.avanceType!=="Aucune"?n(v.avanceMontant):0;
+  if(v.statut==="Payée"){if(av){out.push({d:v.avanceDate||v.date,m:av});out.push({d:v.dateEncaissement||v.date,m:r2(t-av)})}else out.push({d:v.dateEncaissement||v.date,m:t})}
+  else if(v.statut==="En attente de paiement"||(v.statut==="Annulée"&&v.avanceType==="Arrhes")){if(av)out.push({d:v.avanceDate||v.date,m:av})}
+  return out;
+}
+function mouvementsArgent(){
+  const L2=[];
+  for(const f of S.financement){const s=L.natures[f.nature]||1;L2.push({d:f.date,m:s*n(f.montant),k:s>0?"Apports et emprunts":"Remboursements et impôts"})}
+  for(const v of S.ventes)for(const e of encaissements(v))L2.push({d:e.d,m:e.m,k:"Ventes encaissées"});
+  for(const d of S.depenses)if(d.datePaiement)L2.push({d:d.datePaiement,m:-n(d.montant),k:"Dépenses"});
+  for(const a of S.achats)if(a.datePaiement)L2.push({d:a.datePaiement,m:-achatTotal(a),k:"Achats de marchandises"});
+  for(const a of S.abonnements)for(const k of (a.mois||[])){const j=String(Math.min(28,n(a.jour)||1)).padStart(2,"0");L2.push({d:k+"-"+j,m:-n(a.montant),k:"Abonnements"})}
+  return L2;
+}
+
+/* ---------- pages de gestion ---------- */
+function pageHead(t,sub){return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="">‹ Retour</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
+function table(head,rows,foot){return`<div class="tbl-wrap"><table class="tbl"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")||`<tr><td colspan="${head.length}" class="muted">Rien pour l'instant.</td></tr>`}</tbody>${foot?`<tfoot>${foot}</tfoot>`:""}</table></div>`}
+
+function pResultat(){
+  const s=soc();let ca=0,caM=0,caP=0,cmv=0,arrhes=0;const charges={};
+  for(const v of S.ventes){if(!inExercice(v.date))continue;
+    if(dansCA(v)){const t=venteTotal(v);ca+=t;const p=prod(v.produitId);if(p&&isPrestation(p))caP+=t;else{caM+=t;if(p)cmv+=Math.max(1,n(v.quantite)||1)*coutMoyen(p)}}
+    else if(v.statut==="Annulée"&&v.avanceType==="Arrhes")arrhes+=n(v.avanceMontant)}
+  for(const d of S.depenses)if(inExercice(d.date)){const c=d.categorie||"Autres charges";charges[c]=(charges[c]||0)+n(d.montant)}
+  for(const a of S.abonnements)for(const k of (a.mois||[]))if(inExercice(k+"-15")){const c=a.categorie||"Autres charges";charges[c]=(charges[c]||0)+n(a.montant)}
+  const totCh=Object.values(charges).reduce((x,y)=>x+y,0);
+  const res=r2(ca+arrhes-cmv-totCh);
+  const is=res>0?r2(Math.min(res,n(s.isPlafond))*n(s.isTauxReduit)+Math.max(0,res-n(s.isPlafond))*n(s.isTauxNormal)):0;
+  const line=(l,v,cls)=>`<tr class="${cls||""}"><td>${l}</td><td class="r num">${eur(v)}</td></tr>`;
+  return`${pageHead("Résultat de l'exercice","Du "+dfr(s.debutExercice)+" au "+dfr(s.finExercice)+". Montants sans TVA (franchise).")}
+  <div class="tbl-wrap"><table class="tbl">
+   <tbody>
+    <tr class="grp"><td colspan="2">Produits</td></tr>
+    ${line("Ventes de perruques et produits",caM)}${line("Prestations",caP)}${arrhes?line("Arrhes gardées (ventes annulées)",arrhes):""}
+    ${line("Total des produits",ca+arrhes,"sub")}
+    <tr class="grp"><td colspan="2">Charges</td></tr>
+    ${line("Coût des pièces vendues",cmv)}
+    ${Object.entries(charges).sort((a,b)=>b[1]-a[1]).map(([k,v])=>line(esc(k),v)).join("")}
+    ${line("Total des charges",cmv+totCh,"sub")}
+   </tbody>
+   <tfoot>${line("Résultat avant impôt",res,"tot "+(res<0?"neg":"pos"))}${line("Impôt sur les sociétés estimé",is)}${line("Résultat après impôt (estimé)",res-is,"tot")}</tfoot>
+  </table></div>
+  <p class="note">Estimation de gestion, pas des comptes officiels. Le coût des pièces vendues utilise le coût moyen d'achat. L'impôt est calculé à ${String(n(s.isTauxReduit)*100).replace(".",",")} % jusqu'à ${eur(n(s.isPlafond))}, puis ${String(n(s.isTauxNormal)*100).replace(".",",")} % (taux réduit PME, sous conditions).</p>`;
+}
+function pTresorerie(){
+  const s=soc();const mv=mouvementsArgent().filter(x=>x.d);
+  let start=ym(s.debutExercice);const end=ym(today())>ym(s.finExercice)?ym(s.finExercice):ym(today());
+  const months=[];let k=start;while(k<=end&&months.length<60){months.push(k);k=addMonths(k,1)}
+  let solde=n(s.banqueDebut);const before=mv.filter(x=>ym(x.d)<start).reduce((a,x)=>a+x.m,0);solde+=before;
+  const rows=months.map(m=>{const ins=mv.filter(x=>ym(x.d)===m&&x.m>0).reduce((a,x)=>a+x.m,0);const outs=mv.filter(x=>ym(x.d)===m&&x.m<0).reduce((a,x)=>a+x.m,0);solde+=ins+outs;
+    return`<tr><td class="cap">${esc(monthName(m))}</td><td class="r num pos">${ins?eur(ins):"—"}</td><td class="r num">${outs?eur(-outs):"—"}</td><td class="r num"><b>${eur(solde)}</b></td></tr>`});
+  const cats={};for(const x of mv.filter(x=>ym(x.d)>=start)){cats[x.k]=(cats[x.k]||0)+x.m}
+  return`${pageHead("Trésorerie","Argent entré et sorti mois par mois, d'après les dates de paiement.")}
+  ${table(["Mois","Entrées","Sorties","Solde"],rows)}
+  <h3>Par nature, depuis le début</h3>
+  ${table(["Nature","Montant"],Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r num ${v>0?"pos":""}">${eur(v)}</td></tr>`))}
+  <p class="note">Le solde doit correspondre au relevé Qonto. S'il y a un écart, il manque un paiement ou une date de paiement.</p>`;
+}
+function pTva(){
+  const y=today().slice(0,4);let m=0,p=0;
+  for(const v of S.ventes){if(!dansCA(v)||(v.date||"").slice(0,4)!==y)continue;const pr=prod(v.produitId);if(pr&&isPrestation(pr))p+=venteTotal(v);else m+=venteTotal(v)}
+  const bar=(val,seuil,maj)=>{const pc=Math.min(100,val/maj*100);const st=val>maj?"bad":val>seuil?"warn":"ok";return`<div class="gauge"><div class="gfill ${st}" style="width:${pc}%"></div><div class="gmark" style="left:${seuil/maj*100}%"></div></div>`};
+  const s=soc();
+  return`${pageHead("Franchise de TVA","Année "+y+". La société ne facture pas la TVA tant qu'elle reste sous les seuils.")}
+  <div class="kv-card"><div class="kvline"><span>Ventes de marchandises</span><b class="num">${eur(m)}</b></div>${bar(m,85000,93500)}<p class="note">Seuil 85 000 € · seuil majoré 93 500 €</p></div>
+  <div class="kv-card"><div class="kvline"><span>Prestations (pose, remise en forme…)</span><b class="num">${eur(p)}</b></div>${bar(p,37500,41250)}<p class="note">Seuil 37 500 € · seuil majoré 41 250 €</p></div>
+  <p class="note">Mention obligatoire sur chaque facture : « TVA non applicable, article 293 B du CGI » (ajoutée automatiquement). Si un seuil est dépassé, il faut facturer la TVA : prévenez un comptable avant. Seuils 2026, identiques à 2025 ; à revérifier chaque année.${s.tva==="Oui"?" <b>Attention : les paramètres indiquent que la société facture la TVA.</b>":""}</p>`;
+}
+function pInventaire(){
+  const ps=S.produits.filter(p=>!isPrestation(p)&&p.statut!=="Archivé").sort((a,b)=>a.code.localeCompare(b.code));
+  let val=0;
+  const rows=ps.map(p=>{const q=stockQty(p);const cu=coutMoyen(p);if(q>0)val+=q*cu;
+    return`<tr><td><span class="code">${esc(p.code)}</span></td><td class="r num">${q}</td><td class="r"><input class="inv" data-id="${esc(p.id)}" data-q="${q}" inputmode="numeric" aria-label="Quantité comptée ${esc(p.code)}" placeholder="${q}"></td><td class="r num">${eur(Math.max(0,q)*cu)}</td></tr>`});
+  return`${pageHead("Inventaire","Compte les pièces réellement présentes. Ne remplis que les lignes où le compte diffère.")}
+  ${table(["Code","Calculé","Compté","Valeur"],rows,`<tr><td colspan="3"><b>Valeur totale du stock</b></td><td class="r num"><b>${eur(val)}</b></td></tr>`)}
+  <p class="err" id="invMsg" hidden></p>
+  ${db&&canWrite?`<button class="btn" data-act="inv-save">Enregistrer les écarts</button>`:""}
+  <p class="note">Chaque écart crée une correction de stock datée d'aujourd'hui (« Inventaire : surplus trouvé » ou « manquant »). À faire au moins à la clôture de l'exercice (${dfr(soc().finExercice)}), signé par le président.</p>`;
+}
+async function saveInventaire(){
+  const diffs=[...document.querySelectorAll("input.inv")].filter(i=>i.value.trim()!=="").map(i=>({id:i.dataset.id,d:n(i.value)-n(i.dataset.q)})).filter(x=>x.d!==0);
+  const msg=$("#invMsg");if(!diffs.length){msg.textContent="Aucun écart saisi.";msg.hidden=false;return}
+  try{for(const x of diffs){await db.collection("mouvements").add({date:today(),produitId:x.id,motif:x.d>0?"Inventaire : surplus trouvé":"Inventaire : manquant",quantite:Math.abs(x.d),commentaire:"Inventaire du "+dfr(today()),excel:"nouveau",creeLe:new Date().toISOString(),par:myId||""})}
+    toast(diffs.length+" écart"+(diffs.length>1?"s":"")+" enregistré"+(diffs.length>1?"s":""));render()}catch(e){msg.textContent=dbErr(e);msg.hidden=false}
+}
+function controles(){
+  const out=[];const t=today();const s=soc();
+  const ago=(d,days)=>{if(!d)return false;const x=new Date(d);return (Date.now()-x.getTime())/864e5>days};
+  for(const k of ["siren","adresse","cpVille","president"])if(!s[k]){out.push({lvl:"warn",t:"Paramètres de la société incomplets",s:"Il manque des informations obligatoires sur les factures.",act:"societe"});break}
+  for(const v of S.ventes){
+    if(v.statut==="En attente de paiement"&&ago(v.date,30))out.push({lvl:"warn",t:"Vente en attente depuis plus de 30 jours",s:esc(v.client)+" · "+dfr(v.date)+" · reste "+eur(venteReste(v)),col:"ventes",id:v.id});
+    if(dansCA(v)&&n(v.plancher)&&(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)-n(v.remise))/Math.max(1,n(v.quantite)||1)<n(v.plancher))out.push({lvl:"warn",t:"Vente sous le prix plancher",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
+    if(v.statut==="Payée"&&!v.dateEncaissement)out.push({lvl:"info",t:"Vente payée sans date d'encaissement",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
+  }
+  for(const d of S.depenses)if(!d.justificatif&&!d.commentaire)out.push({lvl:"info",t:"Dépense sans justificatif",s:esc(d.fournisseur)+" · "+dfr(d.date)+" · "+eur(n(d.montant)),col:"depenses",id:d.id});
+  for(const a of S.achats){if(!a.dateReception&&ago(a.date,30))out.push({lvl:"warn",t:"Achat pas encore reçu après 30 jours",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id});if(!a.datePaiement)out.push({lvl:"info",t:"Achat sans date de paiement",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id})}
+  for(const p of S.produits){const q=stockQty(p);if(q!==null&&q<0)out.push({lvl:"bad",t:"Stock négatif",s:esc(p.code)+" : "+q+" (une vente sans pièce en stock ?)",col:"produits",id:p.id})}
+  for(const a of S.abonnements){const cur=ym(t);if(aboOccurrences(a).includes(cur)&&!(a.mois||[]).includes(cur)&&Number(t.slice(8))>n(a.jour)+3)out.push({lvl:"info",t:"Abonnement non pointé ce mois-ci",s:esc(a.fournisseur),page:"frais"})}
+  return out;
+}
+function pControles(){
+  const c=controles();const ico={bad:"bad",warn:"warn",info:""};
+  const rows=c.map(x=>`<button class="row" ${x.col?`data-act="edit" data-col="${x.col}" data-id="${esc(x.id)}"`:x.act==="societe"?`data-act="page" data-p="societe"`:`data-act="goto" data-tab="frais" data-filter="abonnements"`}><span class="t">${x.t}</span><span class="v"><span class="chip ${ico[x.lvl]}">${x.lvl==="bad"?"à corriger":x.lvl==="warn"?"à vérifier":"info"}</span></span><span class="s">${x.s}</span></button>`).join("");
+  return`${pageHead("Contrôles","Ce qui manque ou paraît anormal. Touche une ligne pour la corriger.")}<div class="list">${rows||`<div class="empty">Tout est en ordre.</div>`}</div>`;
+}
+function pFactures(){
+  const vs=S.ventes.filter(v=>v.numero).sort((a,b)=>(b.numero||"").localeCompare(a.numero||""));
+  const rows=vs.map(v=>`<button class="row" data-act="facture" data-id="${esc(v.id)}"><span class="t">${esc(v.numero)} · ${esc(v.client)}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(v.statut)}</span></button>`).join("");
+  return`${pageHead("Factures","Une facture par vente, numérotée automatiquement à l'enregistrement.")}<div class="list">${rows||`<div class="empty">Aucune facture. Elles apparaissent dès qu'une vente est enregistrée.</div>`}</div>`;
+}
+function pFacture(id){
+  const v=S.ventes.find(x=>x.id===id);if(!v)return pageHead("Facture")+`<div class="empty">Vente introuvable.</div>`;
+  const s=soc();const p=prod(v.produitId);const q=Math.max(1,n(v.quantite)||1);const tot=venteTotal(v);
+  const av=v.avanceType&&v.avanceType!=="Aucune"?n(v.avanceMontant):0;const paid=v.statut==="Payée";
+  const des=(v.designation||designation(p)||"")+(v.couleurSpe&&v.couleurSpe!=="Naturelle"?" · couleur "+v.couleurSpe:"");
+  const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";
+  return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <button class="linkbtn back" data-act="page" data-p="factures">‹ Factures</button>
+    <button class="btn" style="width:auto" data-act="print">Imprimer / PDF</button></div>
+  <article class="invoice">
+   <header class="inv-h"><div><div class="inv-brand">${esc(s.denomination)}</div><div class="inv-small">${esc(s.forme)} au capital de ${eur(n(s.capital))}<br>${esc(s.adresse)}<br>${esc(s.cpVille)}<br>SIREN ${esc(s.siren)} · RCS ${esc(s.villeRcs)}${s.tvaIntra?"<br>TVA "+esc(s.tvaIntra):""}<br>${esc(s.email)}${s.site?" · "+esc(s.site):""}</div></div>
+    <div class="inv-meta"><div class="inv-title">Facture</div><div>N° <b>${esc(v.numero||"(non numérotée)")}</b></div><div>Date : ${dfr(v.date)}</div>${paid?`<div>Payée le ${dfr(v.dateEncaissement||v.date)}</div>`:""}</div></header>
+   <section class="inv-client"><div class="inv-small">Facturé à</div><div><b>${esc(v.client)}</b><br>${esc(v.adresse||"")}${v.adresse?"<br>":""}${esc(v.ville||"")}</div></section>
+   <table class="inv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
+    <tbody><tr><td>${esc(des)}${p?`<div class="inv-small code">${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
+    ${n(v.remise)?`<tr><td>Remise</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
+    ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody>
+    <tfoot><tr><td colspan="3" class="r"><b>Total${s.tva==="Oui"?" TTC":""}</b></td><td class="r num"><b>${eur(tot)}</b></td></tr>
+    ${av?`<tr><td colspan="3" class="r">${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}</td><td class="r num">− ${eur(av)}</td></tr>`:""}
+    <tr><td colspan="3" class="r">${paid?"Reste à payer":"Reste à payer"}</td><td class="r num"><b>${eur(paid?0:Math.max(0,tot-av))}</b></td></tr></tfoot></table>
+   <footer class="inv-f">${tvaLine?`<p>${tvaLine}</p>`:""}${paid?"":`<p>${esc(s.conditions)}</p>`}${s.iban&&!paid?`<p>IBAN : ${esc(s.iban)}</p>`:""}${s.mention?`<p class="inv-small">${esc(s.mention)}</p>`:""}</footer>
+  </article>`;
+}
+function pSociete(){
+  const s=soc();const ro=!(db&&canWrite);
+  const f=(id,l,h,attrs)=>F("s_"+id,l,`<input id="s_${id}" name="${id}" value="${esc(s[id]??"")}" ${attrs||""}>`,h);
+  return`${pageHead("Société","Ces informations apparaissent sur les factures.")}
+  <form class="f" id="socForm" novalidate>
+   <div class="two">${f("denomination","Dénomination")}${f("forme","Forme juridique")}</div>
+   <div class="two">${f("capital","Capital (€)","",'inputmode="decimal"')}${f("siren","SIREN")}</div>
+   ${f("adresse","Adresse du siège")}${f("cpVille","Code postal et ville")}
+   <div class="two">${f("villeRcs","Ville du greffe (RCS)")}${f("tvaIntra","N° TVA intracommunautaire","Seulement si la société en a un.")}</div>
+   ${f("president","Président(e)")}
+   <div class="two">${f("email","E-mail")}${f("site","Site internet")}</div>
+   ${f("iban","IBAN","Facultatif : affiché sur les factures non payées.")}
+   <fieldset><legend>Exercice</legend><div class="two">${f("debutExercice","Début","",'type="date"')}${f("finExercice","Fin","",'type="date"')}</div>${f("banqueDebut","Argent en banque au début (€)","0 pour le premier exercice.",'inputmode="decimal"')}</fieldset>
+   <fieldset><legend>Factures</legend>${f("conditions","Conditions de paiement")}${f("mention","Mention en bas de facture")}</fieldset>
+   <p class="err" id="socMsg" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  </form>`;
+}
+async function saveSociete(form){
+  const o={};form.querySelectorAll("input[name]").forEach(i=>{o[i.name]=["capital","banqueDebut"].includes(i.name)?n(i.value):i.value.trim()});
+  try{await db.doc("reglages/societe").set({...soc(),...o,modifieLe:new Date().toISOString()});toast("Enregistré")}catch(e){const m=$("#socMsg");m.textContent=dbErr(e);m.hidden=false}
+}
+function pReferentiel(){
+  const ro=!(db&&canWrite);
+  const cl=refCouleurs().map((c,i)=>`<div class="line rf"><input class="rfNom" value="${esc(c.nom)}" aria-label="Couleur"><input class="rfCode" value="${esc(c.code)}" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="${String(c.bonus).replace(".",",")}" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
+  const ml=refModeles().map(m=>`<div class="line rm2"><input class="rmNom" value="${esc(m.nom)}" aria-label="Modèle"><input class="rmCode" value="${esc(m.code)}" aria-label="Code"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
+  return`${pageHead("Référentiel","Les noms, les codes utilisés dans les codes produits, et le bonus ajouté au coefficient de prix.")}
+  <form class="f" id="refForm" novalidate>
+   <fieldset><legend>Couleurs</legend><div class="line rf head"><span>Nom</span><span>Code</span><span>Bonus</span><span></span></div><div class="lines" id="rfLines">${cl}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rf-add">+ Ajouter une couleur</button>`}
+    <p class="note">Bonus : 0 pour une couleur naturelle, 0,05 pour un blond, 0,1 pour une couleur fantaisie… Il s'ajoute au coefficient quand la couleur est choisie comme « couleur obtenue » dans une vente.</p></fieldset>
+   <fieldset><legend>Modèles</legend><div class="line rm2 head"><span>Nom</span><span>Code</span><span></span></div><div class="lines" id="rmLines">${ml}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rm-add">+ Ajouter un modèle</button>`}</fieldset>
+   <p class="note">Changer un code ne modifie pas les codes des produits déjà créés.</p>
+   <p class="err" id="refMsg" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  </form>`;
+}
+async function saveReferentiel(form){
+  const couleurs=[...form.querySelectorAll("#rfLines .line")].map(l=>({nom:l.querySelector(".rfNom").value.trim(),code:l.querySelector(".rfCode").value.trim().toUpperCase(),bonus:n(l.querySelector(".rfBonus").value)})).filter(x=>x.nom&&x.code);
+  const modeles=[...form.querySelectorAll("#rmLines .line")].map(l=>({nom:l.querySelector(".rmNom").value.trim(),code:l.querySelector(".rmCode").value.trim().toUpperCase()})).filter(x=>x.nom&&x.code);
+  const dup=a=>a.find((x,i)=>a.findIndex(y=>y.code===x.code)!==i);
+  const m=$("#refMsg");if(dup(couleurs)){m.textContent="Deux couleurs ont le même code ("+dup(couleurs).code+").";m.hidden=false;return}if(dup(modeles)){m.textContent="Deux modèles ont le même code ("+dup(modeles).code+").";m.hidden=false;return}
+  try{await db.doc("reglages/referentiel").set({couleurs,modeles,modifieLe:new Date().toISOString()});toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
+}
+
+/* ---------- export Excel ---------- */
+function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script");s.src="vendor/xlsx.full.min.js";s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
+async function exportExcel(){
+  try{await loadXlsx()}catch(_){toast("Export impossible hors connexion");return}
+  const X=window.XLSX;const wb=X.utils.book_new();const add=(name,rows)=>X.utils.book_append_sheet(wb,X.utils.json_to_sheet(rows.length?rows:[{"(vide)":""}]),name);
+  add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
+  add("Achats",S.achats.map(a=>{const p=prod(a.produitId);return{"N°":a.ref||"",Date:a.date,Fournisseur:a.fournisseur,"N° facture":a.numFacture||"",Pays:a.pays||"",Code:p?p.code:"",Quantité:n(a.quantite),"Prix unitaire":n(a.prixUnit),Devise:a.devise||"EUR",Taux:n(a.taux)||"","Frais d'approche":n(a.frais),"Coût total (€)":achatTotal(a),"Payé le":a.datePaiement||"",Moyen:a.moyen||"","Reçu le":a.dateReception||"",Commentaire:a.commentaire||""}}));
+  add("Dépenses",S.depenses.map(d=>({"N°":d.ref||"",Date:d.date,Fournisseur:d.fournisseur,"N° facture":d.numFacture||"",Catégorie:d.categorie||"",Description:d.description||"",Montant:n(d.montant),"Payé le":d.datePaiement||"",Moyen:d.moyen||"",Justificatif:d.justificatif?"Oui":"Non",Commentaire:d.commentaire||""})));
+  add("Abonnements",S.abonnements.map(a=>({Fournisseur:a.fournisseur,Description:a.description||"",Catégorie:a.categorie||"",Montant:n(a.montant),Fréquence:a.frequence||"",Jour:a.jour||"",Début:a.debut||"",Fin:a.fin||"","Mois payés":(a.mois||[]).join(", ")})));
+  add("Financement",S.financement.map(f=>({Date:f.date,Nature:f.nature,Description:f.description||"",Montant:n(f.montant)*(L.natures[f.nature]||1),Commentaire:f.commentaire||""})));
+  add("Stock",S.produits.map(p=>({Code:p.code,Désignation:designation(p),Statut:p.statut||"",Type:isPrestation(p)?"Prestation":"Marchandise","Prix d'achat":n(p.prixAchat),"Stock de départ":n(p.stockDepart),"En stock":stockQty(p)??"","Coût moyen":isPrestation(p)?"":r2(coutMoyen(p))})));
+  add("Corrections stock",S.mouvements.map(m=>{const p=prod(m.produitId);return{Date:m.date,Code:p?p.code:"",Motif:m.motif,Quantité:n(m.quantite)*(L.motifs[m.motif]||-1),Commentaire:m.commentaire||""}}));
+  add("Matières",S.matieres.map(m=>({Nom:m.nom,Prix:n(m.prix),Unité:m.unite||"",Fournisseur:m.fournisseur||""})));
+  const out=X.write(wb,{bookType:"xlsx",type:"array"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download="EUGCEO_export_"+today()+".xlsx";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
 
 /* ---------- connexion aux données (Supabase) ---------- */
 const SB_URL="https://tlqllrtgyluglkoxhiqx.supabase.co",SB_KEY="sb_publishable_Xv3ztZMMZWPzuIGq0dj_Kg_A1MqH0kb";
@@ -888,10 +1187,15 @@ async function startData(session){
   for(const col of COLS){
     db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded.add(col);render()},()=>{toast("Données momentanément indisponibles");render()});
   }
+  db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
+  db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};render()},()=>{});
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&db)loaders.forEach(f=>f())});
-document.addEventListener("submit",e=>{if(e.target.id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}},true);
+document.addEventListener("submit",e=>{const id=e.target.id;
+  if(id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}
+  else if(id==="socForm"){e.preventDefault();e.stopImmediatePropagation();saveSociete(e.target)}
+  else if(id==="refForm"){e.preventDefault();e.stopImmediatePropagation();saveReferentiel(e.target)}},true);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b)return;
   if(b.dataset.act==="lg"){showLogin(b.dataset.m)}
   if(b.dataset.act==="logout"){sb.auth.signOut().then(()=>location.reload())}
