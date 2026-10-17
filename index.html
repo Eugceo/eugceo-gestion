@@ -45,6 +45,7 @@ img{max-width:100%}[hidden]{display:none!important}
 .login-in{display:flex;flex-direction:column;gap:8px;padding-block:48px 32px;max-width:420px}
 .login-brand{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:18px}
 .login-brand img{border-radius:18px}
+.pw{display:flex;align-items:center;gap:6px}.pw input{flex:1}
 .login-links{display:flex;flex-direction:column;align-items:center;gap:2px}
 body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -179,7 +180,23 @@ const L={
   packaging:["Aucun","Standard","Premium","Signature"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.6};
+/* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
+const BONUS={
+  "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
+  "Taille de lace":{"13x6":0.12,"13x4":0.1,"7x7":0.08,"6x6":0.06,"5x5":0.04,"4x4":0.02,"2x6":0.03,"2x4":0.02,"T-Part":0.03},
+  "Qualité de lace":{"Ultra HD Lace":0.15,"HD Lace":0.1,"Transparent Lace":0.07},
+  "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03},
+  "Couleur spéciale":{"Naturelle":0,"Ginger":0.06,"Blond":0.05,"Burgundy":0.05,"Ombre":0.08,"Décoloré":0.07,"Mèches":0.04,"Fantasy":0.1},
+  "Collection":{"Basique":0,"Premium":0.1,"Signature":0.25,"Unique":0.4},
+  "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2}
+};
+const PALIERS={
+  longueur:[[8,0],[10,0.01],[12,0.02],[14,0.03],[16,0.05],[18,0.07],[20,0.1],[22,0.13],[24,0.16],[26,0.2],[28,0.24],[30,0.28],[32,0.32],[34,0.36],[36,0.4],[38,0.44],[40,0.48]],
+  densite:[[2,0.15],[2.2,0.2],[2.5,0.28],[3,0.38]],
+  prix:[[0,0.15],[20,0.12],[40,0.1],[60,0.08],[80,0.06],[100,0.04],[120,0.03],[140,0.02],[160,0.01],[180,0],[200,-0.01],[220,-0.02],[240,-0.03],[260,-0.04],[280,-0.05],[300,-0.06]]
+};
+function palier(t,v){if(v===""||v==null)return 0;v=n(v);let b=null;for(const [k,x] of t){if(v>=k)b=x}return b===null?0:b}
 const COLS=["produits","ventes","achats","depenses","financement","abonnements","mouvements"];
 
 /* ---------- état ---------- */
@@ -273,6 +290,16 @@ function prixPlancher(p,heures,pack){
   const h=heures===""||heures==null?n(R.tempsDefaut):n(heures);
   const revient=n(p.prixAchat)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:n(R.transport));
   return {revient:r2(revient),plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
+}
+function coefVente(p,couleurSpe,niveau,collection){
+  if(!p)return 0;const b=(cat,v)=>(BONUS[cat]&&BONUS[cat][v])||0;const de=n(p.densite);
+  return r2(n(S.reglages.coefBase||1.6)+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
+    +palier(PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
+    +b("Couleur spéciale",couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
+}
+function prixConseille(p,pp,couleurSpe,niveau,collection){
+  if(!p||!pp)return null;const c=coefVente(p,couleurSpe,niveau,collection);
+  return {coef:c,prix:Math.round(pp.revient*c/(1-n(S.reglages.fraisVente)))};
 }
 function aboOccurrences(a){
   const out=[];if(!a.debut)return out;
@@ -443,6 +470,10 @@ function fVente(d){
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="two">${F("heures","Temps de travail (h)",money("heures",d.heures),"vide = "+String(S.reglages.tempsDefaut).replace(".",",")+" h")}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||"Standard"))}</div>
+  <details class="more"${d.couleurSpe&&d.couleurSpe!=="Naturelle"||d.niveau&&d.niveau!=="Standard"||d.collection&&d.collection!=="Basique"?" open":""}><summary>Finition (change le prix conseillé)</summary><div>
+    ${F("couleurSpe","Couleur ou coloration",sel("couleurSpe",Object.keys(BONUS["Couleur spéciale"]),d.couleurSpe||"Naturelle"))}
+    <div class="two">${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}</div>
+  </div></details>
   <div class="preview" id="pvVente"></div>
   <fieldset><legend>Paiement</legend>
     <div class="two">${F("statut","Statut",sel("statut",L.statutsVente,paid))}${F("paiement","Moyen",sel("paiement",L.paiements,d.paiement||"Carte bancaire"))}</div>
@@ -567,12 +598,14 @@ function livePreview(){
   }
   if(c==="ventes"){
     const p=prod(d.produitId);const box=$("#pvVente");
-    if(!p){box.innerHTML=`<span>Choisis le produit pour voir le prix plancher.</span>`;return}
-    const pp=prixPlancher(p,d.heures,d.packaging);const qte=Math.max(1,n(d.quantite)||1);
+    if(!p){box.innerHTML=`<span>Choisis le produit pour voir le prix conseillé et le prix plancher.</span>`;return}
+    const pp=prixPlancher(p,d.heures,d.packaging);const pc=prixConseille(p,pp,d.couleurSpe,d.niveau,d.collection);const qte=Math.max(1,n(d.quantite)||1);
     const net=n(d.prixTTC)?(qte*n(d.prixTTC)-n(d.remise))/qte:0;const sq=stockQty(p);
     const tot=r2(qte*n(d.prixTTC)-n(d.remise)+n(d.port));
     box.innerHTML=`<span>${esc(designation(p))}${sq===null?"":` · <b>${sq}</b> en stock`}</span>
-      <span>Prix de revient ${eur(pp.revient)} · prix plancher <b>${eur(pp.plancher)}</b></span>
+      <span>Prix conseillé <b class="num">${eur(pc.prix)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>
+      <span>Prix plancher <b class="num">${eur(pp.plancher)}</b> · prix de revient ${eur(pp.revient)} · coef. ${String(pc.coef).replace(".",",")}</span>
+      ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
       ${net&&net<pp.plancher?`<span class="chip bad" style="align-self:flex-start">Sous le prix plancher</span>`:""}
       <span>Total à payer : <b class="num">${eur(tot)}</b>${n(d.avanceMontant)&&d.avanceType!=="Aucune"?` · reste ${eur(Math.max(0,tot-n(d.avanceMontant)))}`:""}</span>`;
   }
@@ -640,6 +673,8 @@ function openReglages(){
    <div class="two">${row("transport","Transport + import par pièce (€)","Fret, douane, TVA import.")}${row("tempsDefaut","Temps par défaut (h)")}</div>
    <div class="three">${row("packStandard","Pack Standard (€)")}${row("packPremium","Pack Premium (€)")}${row("packSignature","Pack Signature (€)")}</div>
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)")}</div>
+   ${row("coefBase","Coefficient de base","Le curseur de positionnement de la Maison. Chaque caractéristique du produit y ajoute un bonus.")}
+   <p class="note">Prix conseillé = prix de revient × coefficient ÷ (1 − frais de vente).</p>
    <p class="note">Prix plancher = (prix d'achat + temps × taux + packaging + transport) × (1 + marge) ÷ (1 − frais de vente).</p>
    <p class="err" id="formErr" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
@@ -678,6 +713,8 @@ document.addEventListener("click",e=>{
   else if(a==="del"){del(b)}
   else if(a==="pointer"){pointer(b)}
   else if(a==="reglages"){openReglages()}
+  else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
+  else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
 });
 $("#plusBtn").addEventListener("click",openChooser);
@@ -761,7 +798,7 @@ function showLogin(mode,msg){
    <h2>${titles[mode]}</h2>
    <form id="loginForm" class="f" novalidate data-mode="${mode}">
     ${mode!=="newpw"?F("lgEmail","Adresse e-mail",'<input id="lgEmail" type="email" autocomplete="username" inputmode="email" required>'):""}
-    ${mode==="in"||mode==="up"||mode==="newpw"?F("lgPw",mode==="in"?"Mot de passe":"Choisis un mot de passe",`<input id="lgPw" type="password" autocomplete="${mode==="in"?"current-password":"new-password"}" minlength="8" required>`,mode==="in"?"":"8 caractères minimum."):""}
+    ${mode==="in"||mode==="up"||mode==="newpw"?F("lgPw",mode==="in"?"Mot de passe":"Choisis un mot de passe",`<div class="pw"><input id="lgPw" type="password" autocomplete="${mode==="in"?"current-password":"new-password"}" minlength="8" required><button type="button" class="linkbtn" data-act="pw-toggle" aria-pressed="false" aria-controls="lgPw">Afficher</button></div>`,mode==="in"?"":"8 caractères minimum."):""}
     <p class="${msg&&msg.ok?"note":"err"}" id="lgMsg" ${msg?"":"hidden"}>${esc(msg?msg.t:"")}</p>
     <button class="btn" type="submit">${{in:"Se connecter",up:"Créer mon accès",reset:"Recevoir un lien",newpw:"Enregistrer"}[mode]}</button>
    </form>
