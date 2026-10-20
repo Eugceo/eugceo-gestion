@@ -592,16 +592,19 @@ const DETTE_NAT={"Emprunt reçu":1,"Apport en compte courant d'associé":1,"Remb
 function dettes(){
   const by={};const add=(k,l)=>{(by[k]=by[k]||{lignes:[],total:0}).lignes.push(l);by[k].total=r2(by[k].total+l.m)};
   for(const f of S.financement){const sg=DETTE_NAT[f.nature];if(!sg)continue;add(normPers(f.personne)||"Non précisé",{d:f.date,t:f.nature,s:f.description||"",m:sg*n(f.montant),col:"financement",id:f.id})}
-  for(const a of S.achats){if(a.datePaiement||!n(a.quantite))continue;add(normPers(a.fournisseur)||"Fournisseur",{d:a.date,t:"Achat "+(a.ref||"")+" non payé",s:(prod(a.produitId)||{}).code||"",m:achatTotal(a),col:"achats",id:a.id,payable:true})}
-  for(const d of S.depenses){if(d.datePaiement)continue;add(normPers(d.fournisseur)||"Fournisseur",{d:d.date,t:"Dépense "+(d.ref||"")+" non payée",s:d.description||d.categorie||"",m:n(d.montant),col:"depenses",id:d.id,payable:true})}
-  return Object.entries(by).filter(([k,v])=>Math.abs(v.total)>0.004).sort((a,b)=>b[1].total-a[1].total);
+  for(const a of S.achats){if(a.datePaiement||!n(a.quantite))continue;add(normPers(a.fournisseur)||"Fournisseur",{d:a.date,ech:a.echeance||"",t:"Achat "+(a.ref||"")+" non payé",s:(prod(a.produitId)||{}).code||"",m:achatTotal(a),col:"achats",id:a.id,payable:true})}
+  for(const d of S.depenses){if(d.datePaiement)continue;add(normPers(d.fournisseur)||"Fournisseur",{d:d.date,ech:d.echeance||"",t:"Dépense "+(d.ref||"")+" non payée",s:d.description||d.categorie||"",m:n(d.montant),col:"depenses",id:d.id,payable:true})}
+  const late=v=>v.lignes.some(l=>l.ech&&l.ech<today())?1:0;
+  return Object.entries(by).filter(([k,v])=>Math.abs(v.total)>0.004).sort((a,b)=>late(b[1])-late(a[1])||b[1].total-a[1].total);
 }
+function echeanceInfo(l){if(!l.ech)return"";const j=Math.round((new Date(l.ech)-new Date(today()))/864e5);
+  if(j<0)return` <span class="chip bad">en retard de ${-j} j</span>`;if(j<=7)return` <span class="chip warn">${j===0?"aujourd'hui":"dans "+j+" j"}</span>`;return` <span class="chip">avant le ${dfr(l.ech)}</span>`}
 function pDettes(){
   const L2=dettes();const tot=r2(L2.reduce((t,[k,v])=>t+v.total,0));
   return`${pageHead("Ce que la société doit","Avances des associés, achats et dépenses pas encore payés.")}
   <section class="hero"><p class="eyebrow">Total dû</p><div class="money-big num">${eur(tot)}</div></section>
   ${L2.map(([k,v])=>`<section style="display:flex;flex-direction:column;gap:8px"><div class="kvline"><h2>${esc(k)}</h2><b class="num" style="font-size:18px">${eur(v.total)}</b></div>
-   <div class="list">${v.lignes.sort((a,b)=>(a.d||"").localeCompare(b.d||"")).map(l=>`<div class="docrow row" style="cursor:default"><button class="docinfo linkrow" data-act="edit" data-col="${l.col}" data-id="${esc(l.id)}"><b>${esc(l.t)}</b><span>${dfr(l.d)}${l.s?" · "+esc(l.s):""}</span></button><span class="docctl"><b class="num" style="color:${l.m<0?"var(--ok)":"inherit"}">${l.m<0?"− ":""}${eur(Math.abs(l.m))}</b>${l.payable&&db&&canWrite?`<button type="button" class="btn ghost small" data-act="payer" data-col="${l.col}" data-id="${esc(l.id)}">Payé aujourd'hui</button>`:""}</span></div>`).join("")}</div>
+   <div class="list">${v.lignes.sort((a,b)=>(a.ech||"9999").localeCompare(b.ech||"9999")||(a.d||"").localeCompare(b.d||"")).map(l=>`<div class="docrow row" style="cursor:default"><button class="docinfo linkrow" data-act="edit" data-col="${l.col}" data-id="${esc(l.id)}"><b>${esc(l.t)}</b><span>${dfr(l.d)}${l.s?" · "+esc(l.s):""}${echeanceInfo(l)}</span></button><span class="docctl"><b class="num" style="color:${l.m<0?"var(--ok)":"inherit"}">${l.m<0?"− ":""}${eur(Math.abs(l.m))}</b>${l.payable&&db&&canWrite?`<button type="button" class="btn ghost small" data-act="payer" data-col="${l.col}" data-id="${esc(l.id)}">Payé aujourd'hui</button>`:""}</span></div>`).join("")}</div>
    ${db&&canWrite&&v.lignes.some(l=>l.col==="financement")?`<button type="button" class="linkbtn addline" data-act="rembourser" data-p="${esc(k)}" data-m="${r2(v.lignes.filter(l=>l.col==="financement").reduce((t,l)=>t+l.m,0))}">+ Enregistrer un remboursement à ${esc(k.split(" ")[0])}</button>`:""}
   </section>`).join("")||`<div class="empty">La société ne doit rien à personne.</div>`}
   <p class="note">Un remboursement d'avance s'enregistre comme « Remboursement d'emprunt » : il fait baisser la dette et sort de la trésorerie. Un achat ou une dépense se règle avec « Payé aujourd'hui », ou en ouvrant la ligne pour mettre une autre date.</p>`;
@@ -721,6 +724,7 @@ function fAchat(d){
   <div class="two">${F("taux","Taux de change (1 devise = … €)",money("taux",d.taux),"Seulement si ce n'est pas en euros.")}${F("frais","Frais d'approche (€)",money("frais",d.frais),"Transport, douane, frais du site.")}</div>
   <div class="preview" id="pvAchat"></div>
   <div class="two">${F("datePaiement","Payé le",dateI("datePaiement",d.datePaiement??(d.id?"":today())))}${F("moyen","Moyen",sel("moyen",L.paiements,d.moyen||"Carte bancaire"))}</div>
+  ${F("echeance","À payer avant le",dateI("echeance",d.echeance),"Seulement si ce n'est pas encore payé. Laisse « Payé le » vide.")}
   ${F("dateReception","Reçu le",dateI("dateReception",d.dateReception),"Laisse vide tant que le colis n'est pas arrivé : le stock n'augmente qu'à la réception.")}
   ${attach(d)}
   ${F("commentaire","Commentaire",`<textarea id="commentaire" name="commentaire">${esc(d.commentaire||"")}</textarea>`)}`;
@@ -733,6 +737,7 @@ function fDepense(d){
   ${F("description","Description",inp("description",d.description))}
   <div class="two">${F("montant","Montant payé (€)",money("montant",d.montant))}${F("numFacture","N° de facture",inp("numFacture",d.numFacture))}</div>
   <div class="two">${F("datePaiement","Payé le",dateI("datePaiement",d.datePaiement??(d.id?"":today())))}${F("moyen","Moyen",sel("moyen",L.paiements,d.moyen||"Carte bancaire"))}</div>
+  ${F("echeance","À payer avant le",dateI("echeance",d.echeance),"Seulement si ce n'est pas encore payé. Laisse « Payé le » vide.")}
   ${attach(d)}
   ${F("commentaire","Commentaire",`<textarea id="commentaire" name="commentaire">${esc(d.commentaire||"")}</textarea>`)}
   <p class="note">Un abonnement (domiciliation, téléphone…) se met dans « Abonnement », pas ici.</p>`;
@@ -876,6 +881,7 @@ async function save(){
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date)}
   if(col==="matieres"){const u=d.uniteAchat||"unité";const f=u==="L"||u==="kg"?1000:1;d.contAchat=n(d.contenance)||1;d.contenance=d.contAchat*f;d.unite=u==="L"?"ml":u==="kg"?"g":u;d.prix=Math.round(n(d.prixCond)/d.contenance*10000)/10000}
   if(col==="achats"&&!orig.ref)d.ref=nextRef("achats","A-",5);
+  if((col==="achats"||col==="depenses")&&d.datePaiement)d.echeance=d.echeance||"";
   if(col==="achats"){const pa=prod(d.produitId);if(pa&&pa.statut==="Archivé"){try{await db.collection("produits").doc(pa.id).update({statut:"Actif",modifieLe:new Date().toISOString()})}catch(_){}}}
   if(col==="depenses"&&!orig.ref)d.ref=nextRef("depenses","D-",5);
   const body={...orig,...d};delete body.id;
@@ -1134,6 +1140,10 @@ function controles(){
   }
   for(const d of S.depenses)if(!d.justificatif&&!d.commentaire)out.push({lvl:"info",t:"Dépense sans justificatif",s:esc(d.fournisseur)+" · "+dfr(d.date)+" · "+eur(n(d.montant)),col:"depenses",id:d.id});
   for(const a of S.achats){if(!a.dateReception&&ago(a.date,30))out.push({lvl:"warn",t:"Achat pas encore reçu après 30 jours",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id});if(!a.datePaiement)out.push({lvl:"info",t:"Achat sans date de paiement",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id})}
+  for(const x of [...S.achats.map(a=>({...a,_c:"achats",_m:achatTotal(a),_t:"Achat"})),...S.depenses.map(d=>({...d,_c:"depenses",_m:n(d.montant),_t:"Dépense"}))]){
+    if(x.datePaiement||!x.echeance||!x._m)continue;const j=Math.round((new Date(x.echeance)-new Date(t))/864e5);
+    if(j<0)out.push({lvl:"bad",t:x._t+" en retard de paiement",s:esc(x.fournisseur||"")+" · "+eur(x._m)+" · à payer avant le "+dfr(x.echeance),col:x._c,id:x.id});
+    else if(j<=7)out.push({lvl:"warn",t:x._t+" à payer bientôt",s:esc(x.fournisseur||"")+" · "+eur(x._m)+" · avant le "+dfr(x.echeance),col:x._c,id:x.id})}
   for(const p of S.produits){const q=stockQty(p);if(q!==null&&q<0)out.push({lvl:"bad",t:"Stock négatif",s:esc(p.code)+" : "+q+" (une vente sans pièce en stock ?)",col:"produits",id:p.id})}
   for(const a of S.abonnements){const cur=ym(t);if(aboOccurrences(a).includes(cur)&&!(a.mois||[]).includes(cur)&&Number(t.slice(8))>n(a.jour)+3)out.push({lvl:"info",t:"Abonnement non pointé ce mois-ci",s:esc(a.fournisseur),page:"frais"})}
   return out;
