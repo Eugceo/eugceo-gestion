@@ -62,6 +62,8 @@ fieldset .docrow:first-of-type{border-top:0}
 .docinfo span{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
 .docctl{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .doclink{color:var(--accent);font-weight:500}
+.linkrow{background:none;border:0;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.btn.small{width:auto;padding:8px 14px;font-size:13px}
 .login-links{display:flex;flex-direction:column;align-items:center;gap:2px}
 body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -497,12 +499,26 @@ function exChip(d){return""}
 function vMatieres(){
   const list=[...S.matieres].sort((a,b)=>(a.nom||"").localeCompare(b.nom||""));
   const rows=list.map(m=>`<button class="row" data-act="edit" data-col="matieres" data-id="${esc(m.id)}"><span class="t">${esc(m.nom)}</span><span class="v num">${prixU(n(m.prix))} / ${esc(m.unite||"unité")}</span><span class="s">${n(m.contenance)>1?eur(n(m.prixCond))+" les "+n(m.contenance)+" "+esc(m.unite||""):""}${m.fournisseur?" · "+esc(m.fournisseur):""}</span></button>`).join("");
-  return`${banner()}${filterBar("stockFilter","matieres",[["dispo","Disponibles"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]])}
+  return`${banner()}${filterBar("stockFilter","matieres",STOCK_FILTERS)}
   ${loadingOr("matieres",`<div class="list">${rows||`<div class="empty">Aucune matière. Touche « + » puis « Matière » pour ajouter un tube de coloration, un oxydant, de la colle…</div>`}</div>`)}
   <p class="note">Les matières choisies dans une vente s'ajoutent au prix de revient de la perruque.</p>`;
 }
+function enCommande(p){return S.achats.filter(a=>a.produitId===p.id&&!a.dateReception).reduce((t,a)=>t+n(a.quantite),0)}
+function vAttente(){
+  const list=S.achats.filter(a=>!a.dateReception).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const rows=list.map(a=>{const p=prod(a.produitId);const j=Math.floor((Date.now()-new Date(a.date).getTime())/864e5);
+    return`<div class="docrow row" style="cursor:default"><button class="docinfo linkrow" data-act="edit" data-col="achats" data-id="${esc(a.id)}"><b class="code">${esc(p?p.code:"?")}</b><span>${n(a.quantite)} pièce${n(a.quantite)>1?"s":""} · ${esc(a.fournisseur||"")} · commandé le ${dfr(a.date)}${j>=0?" (il y a "+j+" j)":""}${a.ref?" · "+esc(a.ref):""}</span></button>${db&&canWrite?`<button type="button" class="btn ghost small" data-act="recu" data-id="${esc(a.id)}">Reçu aujourd'hui</button>`:""}</div>`}).join("");
+  return`${banner()}${filterBar("stockFilter","attente",STOCK_FILTERS)}
+  ${loadingOr("achats",`<div class="list">${rows||`<div class="empty">Rien en attente de réception.</div>`}</div>`)}
+  <p class="note">Une commande entre dans le stock le jour où tu indiques sa réception. Pour une autre date que aujourd'hui, touche la ligne et remplis « Reçu le ».</p>`;
+}
+async function marquerRecu(b){
+  b.disabled=true;try{await db.collection("achats").doc(b.dataset.id).update({dateReception:today(),modifieLe:new Date().toISOString()});toast("Reçu : ajouté au stock")}catch(e){b.disabled=false;toast(dbErr(e))}
+}
+const STOCK_FILTERS=[["dispo","Disponibles"],["attente","En attente"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]];
 function vStock(){
   if(S.stockFilter==="matieres")return vMatieres();
+  if(S.stockFilter==="attente")return vAttente();
   const f=S.stockFilter;let list=S.produits.filter(p=>f==="archives"?p.statut==="Archivé":p.statut!=="Archivé");
   const withQ=list.map(p=>({p,q:stockQty(p)}));
   let L2=withQ;
@@ -510,9 +526,9 @@ function vStock(){
   if(f==="alerte")L2=withQ.filter(x=>x.q!==null&&(x.q<=0||x.q<=n(x.p.seuil)));
   const q=S.q.trim().toLowerCase();if(q)L2=L2.filter(x=>(x.p.code+" "+designation(x.p)).toLowerCase().includes(q));
   L2.sort((a,b)=>(a.p.code||"").localeCompare(b.p.code||""));
-  const rows=L2.map(({p,q})=>{const chip=q===null?`<span class="chip">prestation</span>`:q<=0?`<span class="chip bad">rupture</span>`:q<=n(p.seuil)?`<span class="chip warn">sous le seuil</span>`:"";
+  const rows=L2.map(({p,q})=>{const ec=q===null?0:enCommande(p);const chip=(q===null?`<span class="chip">prestation</span>`:q<=0?`<span class="chip bad">rupture</span>`:q<=n(p.seuil)?`<span class="chip warn">sous le seuil</span>`:"")+(ec?` <span class="chip">${ec} en attente</span>`:"");
     return`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span></button>`}).join("");
-  return`${banner()}${filterBar("stockFilter",f,[["dispo","Disponibles"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]])}
+  return`${banner()}${filterBar("stockFilter",f,STOCK_FILTERS)}
   <input class="search" id="q" type="search" placeholder="Chercher un code ou un modèle" value="${esc(S.q)}">
   ${loadingOr("produits",`<div class="list">${rows||`<div class="empty">Rien ici. Touche « + » puis « Produit » pour créer une référence.</div>`}</div>`)}
   <p class="note">Le stock compte : stock de départ + achats reçus − ventes + corrections. Un achat sans date de réception n'est pas encore en stock.</p>`;
@@ -921,6 +937,7 @@ document.addEventListener("click",e=>{
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
   if(a==="doc-pick"){pickDoc(b);return}
+  if(a==="recu"){marquerRecu(b);return}
   if(a==="doc-rm"){docRemove(b);return}
   if(a==="new-prod"&&current&&current.col==="achats"){S.returnTo={col:"achats",id:current.id,draft:{...current.orig,...formData()}};openForm("produits");const h=$("#sheet h2");if(h)h.textContent="Nouveau produit";return}
   if(a==="inv-save"){saveInventaire();return}
