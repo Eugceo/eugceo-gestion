@@ -55,6 +55,13 @@ img{max-width:100%}[hidden]{display:none!important}
 .line .u{color:var(--muted);font-size:13px}
 .line .rm{padding:6px;color:var(--muted)}
 .addline{align-self:flex-start;padding-left:0}
+.docrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+fieldset .docrow:first-of-type{border-top:0}
+.list .docrow{padding:12px 14px}
+.docinfo{display:flex;flex-direction:column;min-width:0;flex:1 1 12em}
+.docinfo span{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.docctl{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.doclink{color:var(--accent);font-weight:500}
 .login-links{display:flex;flex-direction:column;align-items:center;gap:2px}
 body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -399,7 +406,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -447,6 +454,7 @@ function vAccueil(){
   <section style="display:flex;flex-direction:column;gap:10px">
     <h2>Gestion</h2>
     <div class="list">
+      <button class="row" data-act="page" data-p="justificatifs"><span class="t">Justificatifs</span><span class="v">${(()=>{const m=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;return m?`<span class="chip warn">${m} manquant${m>1?"s":""}</span>`:"›"})()}</span><span class="s">Toutes les factures et pièces, à voir ou remplacer.</span></button>
       <button class="row" data-act="page" data-p="factures"><span class="t">Factures</span><span class="v">›</span><span class="s">Toutes les factures clientes, à imprimer ou en PDF.</span></button>
       <button class="row" data-act="page" data-p="resultat"><span class="t">Résultat de l'exercice</span><span class="v">›</span><span class="s">Chiffre d'affaires, charges, bénéfice et impôt estimé.</span></button>
       <button class="row" data-act="page" data-p="tresorerie"><span class="t">Trésorerie</span><span class="v">›</span><span class="s">Entrées, sorties et solde mois par mois.</span></button>
@@ -560,6 +568,64 @@ function prodSelect(id,cur,onlyStock,withArch){
   const o=p=>`<option value="${esc(p.id)}"${p.id===cur?" selected":""}>${esc(p.code)}${isPrestation(p)?"":" ("+stockQty(p)+")"}</option>`;
   return`<select id="${id}" name="${id}"><option value="">Choisir…</option>${!onlyStock&&pre.length?`<optgroup label="Prestations">${pre.map(o).join("")}</optgroup>`:""}${st.length?`<optgroup label="En stock">${st.map(o).join("")}</optgroup>`:""}${ru.length?`<optgroup label="En rupture">${ru.map(o).join("")}</optgroup>`:""}${arch.length?`<optgroup label="Archivés (réactivés à l'achat)">${arch.map(o).join("")}</optgroup>`:""}</select>`;
 }
+/* ---------- justificatifs partout ---------- */
+function docCtl(col,id,path,mode,idx){
+  const ro=!(db&&canWrite)||!assets;
+  const up=(lbl,m)=>ro?"":`<button type="button" class="linkbtn" data-act="doc-pick" data-col="${col}" data-id="${esc(id)}" data-mode="${m}"${idx!==undefined?` data-idx="${idx}"`:""}>${lbl}</button>`;
+  if(path){setTimeout(hydrateAtt,0);return`<span class="docctl"><span class="attlink hint" data-att="${esc(path)}">…</span>${up("Remplacer",mode==="add"?"replace":"set")}${mode==="add"&&!ro?`<button type="button" class="linkbtn rmdoc" data-act="doc-rm" data-col="${col}" data-id="${esc(id)}" data-idx="${idx}">Retirer</button>`:""}</span>`}
+  return`<span class="docctl"><span class="chip warn">aucun justificatif</span>${up("Ajouter","set")}</span>`;
+}
+function produitDocs(p){
+  const docs=Array.isArray(p.docs)?p.docs:[];
+  const ach=S.achats.filter(a=>a.produitId===p.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const ven=S.ventes.filter(v=>v.produitId===p.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const mv=S.mouvements.filter(m=>m.produitId===p.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const row=(t,s,ctl)=>`<div class="docrow"><div class="docinfo"><b>${t}</b><span>${s}</span></div>${ctl}</div>`;
+  return`<fieldset><legend>Justificatifs</legend>
+   ${docs.map((d,i)=>row(esc(d.nom||"Document"),"Document de la fiche",docCtl("produits",p.id,d.path,"add",i))).join("")}
+   ${ach.map(a=>row("Achat "+esc(a.ref||""),dfr(a.date)+" · "+esc(a.fournisseur||"")+" · "+n(a.quantite)+" × "+eur(n(a.prixUnit)),docCtl("achats",a.id,a.justificatif,"set"))).join("")}
+   ${ven.map(v=>row("Vente "+esc(v.numero||""),dfr(v.date)+" · "+esc(v.client||""),`<span class="docctl"><button type="button" class="linkbtn" data-act="facture" data-id="${esc(v.id)}">Voir la facture</button></span>`)).join("")}
+   ${mv.map(m=>row("Correction",dfr(m.date)+" · "+esc(m.motif)+" · "+n(m.quantite),docCtl("mouvements",m.id,m.justificatif,"set"))).join("")}
+   ${!docs.length&&!ach.length&&!ven.length&&!mv.length?`<p class="note">Aucun document pour cette perruque.</p>`:""}
+   ${db&&canWrite&&assets?`<button type="button" class="linkbtn addline" data-act="doc-pick" data-col="produits" data-id="${esc(p.id)}" data-mode="add">+ Ajouter un document à la fiche</button><span class="hint">Par exemple : facture d'origine, attestation de vente, photo.</span>`:""}
+  </fieldset>`;
+}
+let docTarget=null;
+function pickDoc(b){docTarget={col:b.dataset.col,id:b.dataset.id,mode:b.dataset.mode,idx:b.dataset.idx===undefined?null:Number(b.dataset.idx)};let i=$("#docFile");if(!i){i=document.createElement("input");i.type="file";i.id="docFile";i.accept="image/*,application/pdf";i.hidden=true;document.body.appendChild(i)}i.value="";i.click()}
+async function docUploaded(file){
+  const t=docTarget;docTarget=null;if(!t||!file)return;toast("Envoi du fichier…");
+  try{
+    let type=file.type;if(!type&&/\.pdf$/i.test(file.name))type="application/pdf";
+    const r=await assets.upload(file,type?{type}:undefined);
+    const ref=db.collection(t.col).doc(t.id);const now=new Date().toISOString();
+    if(t.col==="produits"&&(t.mode==="add"||t.mode==="replace")){const p=prod(t.id);const docs=[...(Array.isArray(p&&p.docs)?p.docs:[])];const nom=file.name.replace(/\.[^.]+$/,"").slice(0,60)||"Document";
+      if(t.mode==="replace"&&t.idx!==null&&docs[t.idx])docs[t.idx]={...docs[t.idx],path:r.id};else docs.push({nom,path:r.id});
+      await ref.update({docs,modifieLe:now})}
+    else await ref.update({justificatif:r.id,modifieLe:now});
+    toast("Justificatif enregistré");refreshDocsView();
+  }catch(e){toast(e&&e.code==="unsupported_type"?"Format refusé : photo ou PDF.":e&&e.code==="too_large"?"Fichier trop lourd (20 Mo max).":"L'envoi a échoué.")}
+}
+async function docRemove(b){
+  const p=prod(b.dataset.id);if(!p)return;const docs=[...(p.docs||[])];docs.splice(Number(b.dataset.idx),1);
+  try{await db.collection("produits").doc(p.id).update({docs,modifieLe:new Date().toISOString()});toast("Document retiré");refreshDocsView()}catch(e){toast(dbErr(e))}
+}
+function refreshDocsView(){setTimeout(()=>{if(current&&current.col==="produits"&&current.id){const box=$("#prodDocs");const p=prod(current.id);if(box&&p)box.innerHTML=produitDocs(p)}else render()},600)}
+function pJustificatifs(){
+  const f=S.docFilter||"tout";const items=[];
+  for(const a of S.achats){const p=prod(a.produitId);items.push({d:a.date,t:"Achat "+(a.ref||""),s:(a.fournisseur||"")+" · "+(p?p.code:"")+" · "+eur(achatTotal(a)),col:"achats",id:a.id,path:a.justificatif})}
+  for(const d of S.depenses)items.push({d:d.date,t:"Dépense "+(d.ref||""),s:(d.fournisseur||"")+" · "+(d.description||d.categorie||"")+" · "+eur(n(d.montant)),col:"depenses",id:d.id,path:d.justificatif});
+  for(const x of S.financement)items.push({d:x.date,t:x.nature,s:(x.description||"")+" · "+eur(n(x.montant)),col:"financement",id:x.id,path:x.justificatif});
+  for(const m of S.mouvements){const p=prod(m.produitId);items.push({d:m.date,t:"Correction",s:m.motif+" · "+(p?p.code:""),col:"mouvements",id:m.id,path:m.justificatif})}
+  for(const p of S.produits)(p.docs||[]).forEach((d,i)=>items.push({d:"",t:"Fiche "+p.code,s:d.nom||"Document",col:"produits",id:p.id,path:d.path,idx:i}));
+  let L2=items;if(f==="manquants")L2=items.filter(x=>!x.path&&x.col!=="produits");
+  const q=(S.q||"").trim().toLowerCase();if(q)L2=L2.filter(x=>(x.t+" "+x.s).toLowerCase().includes(q));
+  L2.sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+  return`${pageHead("Justificatifs","Tous les documents, au même endroit. Touche « Ajouter » ou « Remplacer » pour envoyer une photo ou un PDF.")}
+  ${filterBar("docFilter",f,[["tout","Tout"],["manquants","Manquants"]])}
+  <input class="search" id="q" type="search" placeholder="Chercher un fournisseur, un code, un numéro" value="${esc(S.q||"")}">
+  <div class="list">${L2.map(x=>`<div class="docrow row" style="cursor:default"><div class="docinfo"><b>${esc(x.t)}</b><span>${x.d?dfr(x.d)+" · ":""}${esc(x.s)}</span></div>${docCtl(x.col,x.id,x.path,x.col==="produits"?"add":"set",x.idx)}</div>`).join("")||`<div class="empty">Rien ici.</div>`}</div>
+  <p class="note">Les factures clientes se trouvent dans Gestion → Factures.</p>`;
+}
 function attach(d){return`<div class="field"><span class="lbl">Justificatif (photo ou PDF)</span><div class="att" id="attBox">${attView(d.justificatif)}</div>${assets?`<input type="file" id="attFile" accept="image/*,application/pdf">`:""}<input type="hidden" id="justificatif" name="justificatif" value="${esc(d.justificatif||"")}"></div>`}
 function attView(id){if(!id)return`<span class="hint">Aucun fichier.</span>`;setTimeout(hydrateAtt,0);return`<span data-att="${esc(id)}" class="hint">Chargement du fichier…</span><button type="button" class="linkbtn" data-act="att-clear">Retirer</button>`}
 /* Durées : accepte 1h30, 1h, 35min, 0h35, 1:30, 1,5 */
@@ -648,17 +714,18 @@ function fProduit(d){
     <div class="two">${F("stockDepart","Quantité au départ",inp("stockDepart",d.stockDepart||0,'inputmode="numeric"'))}${F("coutDepart","Coût unitaire (€)",money("coutDepart",d.coutDepart))}</div>
     <p class="note">Seulement pour les pièces déjà là au début de l'exercice (apport, stock existant). Une pièce achetée se saisit dans « Achat ».</p>
   </div></details>
+  ${d.id?`<div id="prodDocs">${produitDocs(d)}</div>`:""}
   ${F("statut","Statut",sel("statut",["Actif","Archivé"],d.statut||"Actif"),"Archivé : ne se vend plus, disparaît des listes.")}`;
 }
 function fFin(d){
-  return`${F("date","Date",dateI("date",d.date||today()))}
+  return`${attach(d)}${F("date","Date",dateI("date",d.date||today()))}
   ${F("nature","Nature",sel("nature",Object.keys(L.natures),d.nature||"Emprunt reçu"),"Argent avancé par un associé = « Emprunt reçu ». Son remboursement = « Remboursement d'emprunt ».")}
   ${F("description","Description",inp("description",d.description,'placeholder="ex. Avance Danerik, frais de greffe"'))}
   ${F("montant","Montant (€)",money("montant",d.montant))}
   ${F("commentaire","Commentaire",`<textarea id="commentaire" name="commentaire">${esc(d.commentaire||"")}</textarea>`)}`;
 }
 function fMouv(d){
-  return`${F("date","Date",dateI("date",d.date||today()))}
+  return`${attach(d)}${F("date","Date",dateI("date",d.date||today()))}
   ${F("produitId","Produit",prodSelect("produitId",d.produitId,true))}
   ${F("motif","Motif",sel("motif",Object.keys(L.motifs),d.motif||"Perte ou défaut"),"Le sens (entrée ou sortie) dépend du motif.")}
   ${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}
@@ -853,6 +920,8 @@ document.addEventListener("click",e=>{
   if(a==="page"){S.page=b.dataset.p||null;window.scrollTo(0,0);render();return}
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
+  if(a==="doc-pick"){pickDoc(b);return}
+  if(a==="doc-rm"){docRemove(b);return}
   if(a==="new-prod"&&current&&current.col==="achats"){S.returnTo={col:"achats",id:current.id,draft:{...current.orig,...formData()}};openForm("produits");const h=$("#sheet h2");if(h)h.textContent="Nouveau produit";return}
   if(a==="inv-save"){saveInventaire();return}
   if(a==="export-xlsx"){exportExcel();return}
@@ -888,6 +957,7 @@ document.addEventListener("change",e=>{
     if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseH1)}));
     else if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
     else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=fmtDuree(h)}}
+  if(e.target.id==="docFile"&&e.target.files[0]){docUploaded(e.target.files[0]);return}
   if(e.target.id==="attFile"&&e.target.files[0])uploadFile(e.target.files[0]);
   else if(e.target.classList&&e.target.classList.contains("mtId")){const m=S.matieres.find(x=>x.id===e.target.value);const u=e.target.closest(".line").querySelector(".u");if(u)u.textContent=m&&m.unite?m.unite:"×";livePreview()}
   else if(e.target.classList&&e.target.classList.contains("trNom")){const ln=e.target.closest(".line");ln.querySelector(".trLib").hidden=e.target.value!=="Autre";const h=ln.querySelector(".trH");h.value=fmtDuree(TRAVAUX[e.target.value]??0);livePreview()}
@@ -1167,9 +1237,10 @@ const storageAdapter={
 };
 async function hydrateAtt(){
   for(const el of document.querySelectorAll("[data-att]")){
-    const p=el.dataset.att;el.removeAttribute("data-att");
+    const p=el.dataset.att;el.removeAttribute("data-att");const asLink=el.classList.contains("attlink");
     const{data,error}=await sb.storage.from(BUCKET).createSignedUrl(p,3600);
     if(error||!data){el.outerHTML=`<span class="hint">Fichier introuvable.</span>`;continue}
+    if(asLink){el.outerHTML=`<a class="doclink" href="${esc(data.signedUrl)}" target="_blank" rel="noopener">${/\.pdf$/i.test(p)?"Ouvrir le PDF":"Voir la photo"}</a>`;continue}
     if(/\.pdf$/i.test(p))el.outerHTML=`<a href="${esc(data.signedUrl)}" target="_blank" rel="noopener">Ouvrir le PDF</a>`;
     else el.outerHTML=`<a href="${esc(data.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(data.signedUrl)}" alt="Justificatif"></a>`;
   }
