@@ -248,7 +248,7 @@ const L={
   devises:["EUR","USD","CNY"],
   categories:["Frais de douane et d'import","Transport des achats","Expédition des commandes","Packaging et emballages","Produits de travail (colle, teinture…)","Petit matériel et outillage","Fournitures de bureau","Publicité, photos, impressions","Site internet, logiciels, abonnements","Honoraires (comptable, juridique)","Frais d'immatriculation et formalités","Assurances","Frais bancaires et commissions","Téléphone et internet","Déplacements, hébergement, repas","Loyer et charges du local","Formation","Cadeaux et échantillons clientes","Autres charges"],
   natures:{"Capital social versé":1,"Apport en compte courant d'associé":1,"Emprunt reçu":1,"Subvention reçue":1,"Remboursement de TVA reçu":1,"Autre entrée d'argent":1,"Remboursement de compte courant":-1,"Remboursement d'emprunt":-1,"Paiement de la TVA":-1,"Paiement de l'impôt sur les sociétés":-1,"Autre sortie d'argent":-1},
-  motifs:{"Retour cliente":1,"Perte ou défaut":-1,"Usage interne / démonstration":-1,"Échantillon offert":-1,"Inventaire : surplus trouvé":1,"Inventaire : manquant":-1},
+  motifs:{"Retour cliente":1,"Perte ou défaut":-1,"Usage interne / démonstration":-1,"Échantillon offert":-1,"Inventaire : surplus trouvé":1,"Inventaire : manquant":-1,"Transformation (sortie)":-1,"Transformation (entrée)":1},
   destinations:["France métropolitaine","Union européenne","Guyane","Guadeloupe","Martinique","La Réunion","Mayotte","Suriname","Autre pays hors UE"],
   packaging:["Aucun","Standard","Premium","Signature"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
@@ -788,6 +788,7 @@ function fProduit(d){
     <p class="note">Seulement pour les pièces déjà là au début de l'exercice (apport, stock existant). Une pièce achetée se saisit dans « Achat ».</p>
   </div></details>
   ${d.id?`<div id="prodDocs">${produitDocs(d)}</div>`:""}
+  ${d.id?transfoBloc(d):""}
   ${siteFields(d)}
   ${F("statut","Statut",sel("statut",["Actif","Archivé"],d.statut||"Actif"),"Archivé : ne se vend plus, disparaît des listes.")}`;
 }
@@ -1008,6 +1009,9 @@ document.addEventListener("click",e=>{
   if(a==="payer"){marquerPaye(b);return}
   if(a==="rembourser"){openForm("financement",null,{nature:"Remboursement d'emprunt",personne:b.dataset.p,montant:n(b.dataset.m),description:"Remboursement d'avance"});return}
   if(a==="doc-rm"){docRemove(b);return}
+  if(a==="tf-open"){openTransfo(b.dataset.id);return}
+  if(a==="tf-back"){openForm("produits",b.dataset.id);return}
+  if(a==="tf-save"){saveTransfo();return}
   if(a==="dv-new"){openDevis();return}
   if(a==="dv-add"){$("#dvLines").insertAdjacentHTML("beforeend",dvLine({qte:1}));return}
   if(a==="dv-rm"){b.closest(".line").remove();dvPreview();return}
@@ -1062,6 +1066,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
+  if(e.target.closest("#tfForm"))tfPreview();
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&!current.id){const box=$("#trLines");const p=prod(e.target.value);if(box&&p){const base=box.querySelector(".line .trNom");const h=prepBase(p);
@@ -1396,6 +1401,79 @@ async function devisMail(id){
   catch(e){if(e&&e.code==="non_configure")location.href=mailtoUrl(d.email,sujet,window.__dvShare.text);else toast("L'envoi a échoué. Réessaie.")}
 }
 
+/* ---------- transformer une pièce ---------- */
+const TRANSFO_OUT="Transformation (sortie)",TRANSFO_IN="Transformation (entrée)";
+function openTransfo(id){
+  const p=prod(id);if(!p)return;const q=stockQty(p);
+  if(!(q>0)){toast("Plus aucune pièce en stock pour cette fiche.");return}
+  current={col:"transfo",id,orig:p};
+  const L2=refModeles().map(m=>m.nom),colors=refCouleurs().map(c=>c.nom);
+  const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="tf-back" data-id="${esc(id)}">‹ Retour</button><h2>Transformer une pièce</h2><button class="linkbtn" data-act="tf-save">Valider</button></div></div>
+  <div class="wrap"><form class="f" id="tfForm" novalidate>
+   <p class="note">Une pièce de <b>${esc(p.code)}</b> (${q} en stock) devient une nouvelle référence. Les autres pièces ne changent pas. La pièce garde son coût d'achat (${eur(r2(coutMoyen(p)))}).</p>
+   <p class="note">Change seulement ce qui est différent après la transformation.</p>
+   ${F("modele","Modèle",inp("modele",p.modele,'list="dlMod2" autocomplete="off"'))}<datalist id="dlMod2">${L2.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+   ${F("construction","Construction",sel("construction",L.constructions,p.construction,"—"))}
+   <div class="two">${F("laceTaille","Taille de lace",sel("laceTaille",L.laceTailles,p.laceTaille,"Pas de lace"))}${F("laceQualite","Qualité de lace",sel("laceQualite",L.laceQualites,p.laceQualite,"—"))}</div>
+   <div class="two">${F("longueur","Longueur (pouces)",inp("longueur",p.longueur,'inputmode="numeric"'))}${F("densite","Densité (%)",money("densite",p.densite?(n(p.densite)<10?n(p.densite)*100:n(p.densite)):""))}</div>
+   ${F("cheveux","Qualité de cheveux",sel("cheveux",L.cheveux,p.cheveux,"—"))}
+   ${F("couleur","Couleur",inp("couleur",p.couleur,'list="dlCol2" autocomplete="off"'),"Si la couleur n'existe pas, ajoute-la d'abord dans le Référentiel pour avoir un code propre.")}<datalist id="dlCol2">${colors.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+   ${F("tf_travaux","Ce qui a été fait",`<textarea id="tf_travaux" rows="2" placeholder="ex. coupe 12″ → 10″, coloration rouge et noir"></textarea>`)}
+   ${F("tf_date","Date",`<input id="tf_date" type="date" value="${today()}">`)}
+   <div class="preview" id="pvTf"></div>
+   <p class="err" id="formErr" hidden></p>
+   <button class="btn" type="submit">Valider la transformation</button>
+   <p class="note">Le temps de travail et les produits utilisés se comptent au moment de la vente, dans la fiche de création, comme d'habitude.</p>
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;tfPreview();
+}
+function tfData(){
+  const p=current.orig;const d={};
+  for(const k of["modele","construction","laceTaille","laceQualite","longueur","densite","cheveux","couleur"]){const e=$("#tfForm #"+k);d[k]=e?e.value.trim():p[k]}
+  d.densite=d.densite===""?"":n(d.densite);if(n(d.densite)>=10)d.densite=n(d.densite)/100;
+  return d;
+}
+function tfPreview(){const b=$("#pvTf");if(!b||!current||current.col!=="transfo")return;const d=tfData();const base=baseCode({...current.orig,...d,type:"Marchandise"});
+  const ex=S.produits.find(x=>x.id!==current.id&&x.code===base);
+  b.innerHTML=base===current.orig.code?`<span class="err">Rien n'a changé : modifie au moins une caractéristique.</span>`:`<span>Nouvelle référence</span><span class="code">${esc(base)}</span><span>${esc(designation({...current.orig,...d}))}</span>${ex?`<span>Cette référence existe déjà${ex.statut==="Archivé"?" (archivée, elle sera réactivée)":""} : la pièce y sera ajoutée.</span>`:""}`}
+async function saveTransfo(){
+  const p=current.orig;const d=tfData();const eb=$("#formErr");
+  const date=$("#tf_date").value||today();const trav=$("#tf_travaux").value.trim();
+  const nouv={...p,...d,type:"Marchandise"};const base=baseCode(nouv);
+  if(!d.modele){eb.textContent="Il manque le modèle.";eb.hidden=false;return}
+  if(base===p.code){eb.textContent="Rien n'a changé : modifie au moins une caractéristique.";eb.hidden=false;return}
+  if(!(stockQty(p)>0)){eb.textContent="Plus aucune pièce en stock pour cette fiche.";eb.hidden=false;return}
+  const btns=document.querySelectorAll('[data-act="tf-save"],#tfForm .btn[type=submit]');btns.forEach(b=>b.disabled=true);
+  const now=new Date().toISOString();const cout=r2(coutMoyen(p));
+  try{
+    let target=S.produits.find(x=>x.id!==p.id&&x.code===base);let tid;
+    if(target){tid=target.id;if(target.statut==="Archivé")await db.collection("produits").doc(tid).update({statut:"Actif",modifieLe:now})}
+    else{
+      const body={modele:d.modele,construction:d.construction,laceTaille:d.laceTaille,laceQualite:d.laceQualite,longueur:d.longueur,densite:d.densite,cheveux:d.cheveux,couleur:d.couleur,
+        type:"Marchandise",prixAchat:cout,seuil:0,stockDepart:0,statut:"Actif",code:"",origine:{produitId:p.id,code:p.code,date,travaux:trav},creeLe:now,modifieLe:now,excel:"nouveau"};
+      if(myId)body.par=myId;body.code=codeFor(body,null,"");
+      const ref=db.collection("produits").doc();await ref.set(body);tid=ref.id;S.produits.push({id:tid,...body});target={id:tid,...body};
+    }
+    const lien=crypto.randomUUID();
+    await db.collection("mouvements").doc().set({date,produitId:p.id,motif:TRANSFO_OUT,quantite:1,commentaire:"Transformée en "+target.code+(trav?" : "+trav:""),lienTransfo:lien,versProduitId:tid,creeLe:now,modifieLe:now,par:myId||"",excel:"nouveau"});
+    await db.collection("mouvements").doc().set({date,produitId:tid,motif:TRANSFO_IN,quantite:1,commentaire:"Issue de "+p.code+(trav?" : "+trav:""),lienTransfo:lien,deProduitId:p.id,coutUnitaire:cout,creeLe:now,modifieLe:now,par:myId||"",excel:"nouveau"});
+    closeSheet(true);toast("Pièce transformée : "+target.code);openForm("produits",tid);
+  }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false}
+}
+function transfoBloc(p){
+  const outs=S.mouvements.filter(m=>m.produitId===p.id&&(m.motif===TRANSFO_OUT||m.motif===TRANSFO_IN));
+  const orig=p.origine&&p.origine.produitId?prod(p.origine.produitId):null;
+  const lines=[];
+  if(p.origine&&p.origine.code)lines.push(`<span>Issue de <button type="button" class="linkbtn" data-act="edit" data-col="produits" data-id="${esc(p.origine.produitId)}">${esc(p.origine.code)}</button> le ${dfr(p.origine.date)}${p.origine.travaux?" · "+esc(p.origine.travaux):""}</span>`);
+  for(const m of outs.filter(m=>m.motif===TRANSFO_OUT)){const t=prod(m.versProduitId);lines.push(`<span>${dfr(m.date)} : 1 pièce transformée en ${t?`<button type="button" class="linkbtn" data-act="edit" data-col="produits" data-id="${esc(t.id)}">${esc(t.code)}</button>`:"une autre référence"}</span>`)}
+  for(const m of outs.filter(m=>m.motif===TRANSFO_IN&&!(p.origine&&p.origine.produitId===m.deProduitId))){const t=prod(m.deProduitId);lines.push(`<span>${dfr(m.date)} : 1 pièce reçue de ${t?`<button type="button" class="linkbtn" data-act="edit" data-col="produits" data-id="${esc(t.id)}">${esc(t.code)}</button>`:"une autre référence"}</span>`)}
+  const can=db&&canWrite&&!isPrestation(p)&&p.statut!=="Archivé"&&stockQty(p)>0;
+  if(!lines.length&&!can)return"";
+  return`<fieldset><legend>Transformations</legend>${lines.join("")||`<p class="note">Aucune transformation.</p>`}
+   ${can?`<button type="button" class="btn ghost" data-act="tf-open" data-id="${esc(p.id)}">Transformer une pièce</button><span class="hint">Coupe, couleur, modèle… : une pièce passe dans une nouvelle référence, avec son coût d'achat. Les autres pièces ne changent pas.</span>`:""}</fieldset>`;
+}
+
 /* ---------- pages de gestion ---------- */
 function pageHead(t,sub){return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="">‹ Retour</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
 function table(head,rows,foot){return`<div class="tbl-wrap"><table class="tbl"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")||`<tr><td colspan="${head.length}" class="muted">Rien pour l'instant.</td></tr>`}</tbody>${foot?`<tfoot>${foot}</tfoot>`:""}</table></div>`}
@@ -1695,6 +1773,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("submit",e=>{const id=e.target.id;
   if(id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}
   else if(id==="socForm"){e.preventDefault();e.stopImmediatePropagation();saveSociete(e.target)}
+  else if(id==="tfForm"){e.preventDefault();e.stopImmediatePropagation();saveTransfo()}
   else if(id==="dvForm"){e.preventDefault();e.stopImmediatePropagation();saveDevis()}
   else if(id==="rpForm"){e.preventDefault();e.stopImmediatePropagation();sendReply()}
   else if(id==="siteForm"){e.preventDefault();e.stopImmediatePropagation();saveSitePage()}
