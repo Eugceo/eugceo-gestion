@@ -197,6 +197,19 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
   @page{margin:16mm}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.check{display:flex;align-items:center;gap:10px;font-size:15px}
+.check input{width:20px;height:20px;accent-color:var(--ink,#111)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.mgrid:empty{display:none}
+.mthumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:#eee}
+.mthumb img,.mthumb video{width:100%;height:100%;object-fit:cover;display:block}
+.mthumb .mctl{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(0,0,0,.55)}
+.mthumb .mctl .linkbtn{color:#fff;padding:6px 8px;min-height:0}
+.secline{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.secline:first-child{border-top:0;padding-top:0}
+.secline .mctl{display:flex;gap:8px;justify-content:flex-end}
+.dem{align-items:flex-start;flex-wrap:wrap;gap:8px}
+.dem .msg{margin:6px 0 0;white-space:pre-wrap;font-size:14px}
 </style>
 </head>
 <body>
@@ -408,7 +421,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,demandes:pDemandes}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -452,6 +465,13 @@ function vAccueil(){
       <button class="row" data-act="goto" data-tab="ventes" data-filter="attente"><span class="t">Reste à encaisser</span><span class="v num">${eur(reste)}</span><span class="s">${attente.length} vente${attente.length>1?"s":""} en attente de paiement</span></button>
       <button class="row" data-act="goto" data-tab="stock" data-filter="alerte"><span class="t">Stock</span><span class="v num">${pieces} pièce${pieces>1?"s":""}</span><span class="s">valeur ${eur(valeur)}${alertes.length?` · <span class="chip warn">${alertes.length} en rupture ou sous le seuil</span>`:""}</span></button>
       ${aPointer.length?`<button class="row" data-act="goto" data-tab="frais" data-filter="abonnements"><span class="t">Abonnements à pointer ce mois-ci</span><span class="v">${aPointer.length}</span><span class="s">${aPointer.map(a=>esc(a.fournisseur)).join(", ")}</span></button>`:""}
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2>Site internet</h2>
+    <div class="list">
+      <button class="row" data-act="page" data-p="site"><span class="t">Site eugceo.fr</span><span class="v">›</span><span class="s">Textes, photos, vidéos et créations en ligne.</span></button>
+      <button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${(()=>{const k=(S.demandes||[]).filter(d=>(d.statut||"Nouvelle")==="Nouvelle").length;return k?`<span class="chip warn">${k} nouvelle${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Commandes, rendez-vous et messages du site.</span></button>
     </div>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
@@ -759,6 +779,7 @@ function fProduit(d){
     <p class="note">Seulement pour les pièces déjà là au début de l'exercice (apport, stock existant). Une pièce achetée se saisit dans « Achat ».</p>
   </div></details>
   ${d.id?`<div id="prodDocs">${produitDocs(d)}</div>`:""}
+  ${siteFields(d)}
   ${F("statut","Statut",sel("statut",["Actif","Archivé"],d.statut||"Actif"),"Archivé : ne se vend plus, disparaît des listes.")}`;
 }
 function fFin(d){
@@ -876,7 +897,7 @@ async function save(){
     if(!id&&d.type==="Marchandise"&&same.length){const ex=same[0];
       if(ex.statut==="Archivé"){try{await db.collection("produits").doc(ex.id).update({statut:"Actif",modifieLe:new Date().toISOString()});toast("Cette référence existait (archivée) : elle est réactivée");afterProduct(ex.id)}catch(e){eb.textContent=dbErr(e);eb.hidden=false}return}
       eb.textContent="Ce produit existe déjà : "+ex.code+". Choisis-le dans la liste au lieu de le recréer.";eb.hidden=false;return}
-    d.code=codeFor(d,id,orig.code)}
+    d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st)d.site=st}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date)}
   if(col==="matieres"){const u=d.uniteAchat||"unité";const f=u==="L"||u==="kg"?1000:1;d.contAchat=n(d.contenance)||1;d.contenance=d.contAchat*f;d.unite=u==="L"?"ml":u==="kg"?"g":u;d.prix=Math.round(n(d.prixCond)/d.contenance*10000)/10000}
@@ -884,13 +905,14 @@ async function save(){
   if((col==="achats"||col==="depenses")&&d.datePaiement)d.echeance=d.echeance||"";
   if(col==="achats"){const pa=prod(d.produitId);if(pa&&pa.statut==="Archivé"){try{await db.collection("produits").doc(pa.id).update({statut:"Actif",modifieLe:new Date().toISOString()})}catch(_){}}}
   if(col==="depenses"&&!orig.ref)d.ref=nextRef("depenses","D-",5);
-  const body={...orig,...d};delete body.id;
+  const demId=current.demId;const body={...orig,...d};delete body.id;
   body.excel=orig.excel==="ok"?"modifié":(orig.excel||"nouveau");
   body.modifieLe=new Date().toISOString();if(!orig.id){body.creeLe=body.modifieLe;if(myId)body.par=myId}
   const btns=document.querySelectorAll('[data-act="save"],#form .btn[type="submit"]');btns.forEach(b=>b.disabled=true);
   try{
     const ref=id?db.collection(col).doc(id):db.collection(col).doc();
     await ref.set(body);
+    if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",traiteLe:new Date().toISOString()})}catch(_){}}
     if(col==="produits"&&S.returnTo){toast("Produit créé : "+body.code);afterProduct(ref.id,body);return}
     closeSheet(true);toast(orig.id?"Modifié":"Enregistré");
   }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false;if(e&&e.code==="invalid_argument"){canWrite=false;render()}}
@@ -972,6 +994,17 @@ document.addEventListener("click",e=>{
   if(a==="payer"){marquerPaye(b);return}
   if(a==="rembourser"){openForm("financement",null,{nature:"Remboursement d'emprunt",personne:b.dataset.p,montant:n(b.dataset.m),description:"Remboursement d'avance"});return}
   if(a==="doc-rm"){docRemove(b);return}
+  if(a==="m-add"){pickMedia(b.dataset.g,"produit");return}
+  if(a==="pg-media"){pickMedia(b.dataset.g==="video"?"video":"image","page");mediaTarget.group=b.dataset.g;return}
+  if(a==="m-left"||a==="m-right"||a==="m-rm"){mediaAction(a,b);return}
+  if(a==="site-page"){openSitePage(b.dataset.k);return}
+  if(a==="site-save"){saveSitePage();return}
+  if(a==="sec-add"){$("#secLines").insertAdjacentHTML("beforeend",secLine({}));return}
+  if(a==="sec-up"||a==="sec-down"){const l=b.closest(".secline");if(a==="sec-up"&&l.previousElementSibling)l.parentNode.insertBefore(l,l.previousElementSibling);if(a==="sec-down"&&l.nextElementSibling)l.parentNode.insertBefore(l.nextElementSibling,l);return}
+  if(a==="line-rm2"){b.closest(".secline").remove();return}
+  if(a==="dem-ok"){demStatut(b.dataset.id,"Traitée");return}
+  if(a==="dem-re"){demStatut(b.dataset.id,"Nouvelle");return}
+  if(a==="dem-vente"){const dm=(S.demandes||[]).find(x=>x.id===b.dataset.id);if(dm){openForm("ventes",null,{client:dm.nom,produitId:dm.produitId,date:today()});current.demId=dm.id}return}
   if(a==="new-prod"&&current&&current.col==="achats"){S.returnTo={col:"achats",id:current.id,draft:{...current.orig,...formData()}};openForm("produits");const h=$("#sheet h2");if(h)h.textContent="Nouveau produit";return}
   if(a==="inv-save"){saveInventaire();return}
   if(a==="export-xlsx"){exportExcel();return}
@@ -1008,6 +1041,7 @@ document.addEventListener("change",e=>{
     else if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
     else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=fmtDuree(h)}}
   if(e.target.id==="docFile"&&e.target.files[0]){docUploaded(e.target.files[0]);return}
+  if(e.target.id==="mediaFile"&&e.target.files.length){mediaChosen([...e.target.files]);return}
   if(e.target.id==="attFile"&&e.target.files[0])uploadFile(e.target.files[0]);
   else if(e.target.classList&&e.target.classList.contains("mtId")){const m=S.matieres.find(x=>x.id===e.target.value);const u=e.target.closest(".line").querySelector(".u");if(u)u.textContent=m&&m.unite?m.unite:"×";livePreview()}
   else if(e.target.classList&&e.target.classList.contains("trNom")){const ln=e.target.closest(".line");ln.querySelector(".trLib").hidden=e.target.value!=="Autre";const h=ln.querySelector(".trH");h.value=fmtDuree(TRAVAUX[e.target.value]??0);livePreview()}
@@ -1057,6 +1091,124 @@ function mouvementsArgent(){
   for(const a of S.abonnements)for(const k of (a.mois||[])){const j=String(Math.min(28,n(a.jour)||1)).padStart(2,"0");L2.push({d:k+"-"+j,m:-n(a.montant),k:"Abonnements"})}
   return L2;
 }
+
+/* ---------- site internet : produits en ligne, pages, demandes ---------- */
+const SITE_PAGES=[["accueil","Accueil"],["creations","Créations (introduction)"],["maison","La Maison"],["prestations","Prestations"],["rendezvous","Rendez-vous"],["entretien","Entretien"],["contact","Contact"],["legal","Mentions légales"],["confidentialite","Confidentialité"]];
+const SITE_URL="https://eugceo.fr";
+function pubUrl(path){return path?sb.storage.from("site").getPublicUrl(path).data.publicUrl:""}
+async function uploadSite(file){
+  const type=file.type||"";if(!/^image\/|^video\//.test(type))throw{code:"unsupported_type"};
+  if(file.size>50*1024*1024)throw{code:"too_large"};
+  const ext=(file.name.split(".").pop()||type.split("/")[1]||"bin").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const path=(type.startsWith("video/")?"videos/":"photos/")+crypto.randomUUID()+"."+ext;
+  const{error}=await sb.storage.from("site").upload(path,file,{contentType:type,cacheControl:"31536000",upsert:false});
+  if(error)throw{code:"upload_failed",message:error.message};return path;
+}
+function mediaThumb(path,i,group){const u=pubUrl(path);const vid=/^videos\//.test(path);
+  return`<div class="mthumb">${vid?`<video src="${esc(u)}" muted playsinline preload="metadata"></video>`:`<img src="${esc(u)}" alt="">`}
+   <div class="mctl">${group==="photos"?`<button type="button" class="linkbtn" data-act="m-left" data-g="${group}" data-i="${i}" aria-label="Avancer">←</button><button type="button" class="linkbtn" data-act="m-right" data-g="${group}" data-i="${i}" aria-label="Reculer">→</button>`:""}<button type="button" class="linkbtn" data-act="m-rm" data-g="${group}" data-i="${i}" aria-label="Retirer">✕</button></div></div>`}
+/* champs « Sur le site » dans la fiche produit */
+function siteFields(d){
+  const s=d.site||{};const photos=Array.isArray(s.photos)?s.photos:[];
+  const pp=isPrestation(d)?null:prixPlancher(d,"",d.packaging||"Standard");
+  return`<fieldset id="siteBox"><legend>Sur le site</legend>
+   <label class="check"><input type="checkbox" id="site_enLigne" ${s.enLigne?"checked":""}> Afficher cette création sur eugceo.fr</label>
+   ${F("site_titre","Titre sur le site",inp("site_titre",s.titre||"",`placeholder="${esc(designation(d))}"`),"Vide = la désignation automatique.")}
+   ${F("site_description","Description",`<textarea id="site_description" rows="4">${esc(s.description||"")}</textarea>`,"Ce que la cliente doit savoir : rendu, longueur, ce qui est inclus.")}
+   <div class="two">${F("site_prix","Prix affiché (€)",money("site_prix",s.prix),pp?"Prix plancher actuel : "+eur(pp.plancher):"")}${F("site_mode","Disponibilité affichée",`<select id="site_mode"><option value="auto"${s.mode!=="commande"&&s.mode!=="masque"?" selected":""}>Selon le stock</option><option value="commande"${s.mode==="commande"?" selected":""}>Toujours « sur commande »</option></select>`,"Selon le stock : « disponible » s'il en reste, sinon « sur commande ».")}</div>
+   <div class="field"><span class="lbl">Photos (la première est la photo principale)</span><div class="mgrid" id="mPhotos">${photos.map((p,i)=>mediaThumb(p,i,"photos")).join("")}</div>
+    ${assets?`<button type="button" class="linkbtn addline" data-act="m-add" data-g="photos">+ Ajouter des photos</button>`:""}</div>
+   <div class="field"><span class="lbl">Vidéo (facultatif)</span><div class="mgrid" id="mVideo">${s.video?mediaThumb(s.video,0,"video"):""}</div>
+    ${assets?`<button type="button" class="linkbtn addline" data-act="m-add" data-g="video">${s.video?"Remplacer la vidéo":"+ Ajouter une vidéo"}</button><span class="hint">50 Mo maximum. Une vidéo courte (10 à 20 secondes) suffit.</span>`:""}</div>
+   <input type="hidden" id="site_photos" value="${esc(JSON.stringify(photos))}"><input type="hidden" id="site_video" value="${esc(s.video||"")}">
+   ${s.enLigne&&d.id?`<p class="note">En ligne : <a href="${SITE_URL}/#/creation/${esc(d.id)}" target="_blank" rel="noopener">voir sur le site</a></p>`:""}
+  </fieldset>`;
+}
+function readSiteFields(){
+  if(!$("#siteBox"))return null;
+  let photos=[];try{photos=JSON.parse($("#site_photos").value||"[]")}catch(_){}
+  return{enLigne:$("#site_enLigne").checked,titre:$("#site_titre").value.trim(),description:$("#site_description").value.trim(),prix:$("#site_prix").value.trim()===""?"":n($("#site_prix").value),mode:$("#site_mode").value,photos,video:$("#site_video").value};
+}
+let mediaTarget=null;
+function pickMedia(group,target){mediaTarget={group,target:target||"produit"};let i=$("#mediaFile");if(!i){i=document.createElement("input");i.type="file";i.id="mediaFile";i.hidden=true;document.body.appendChild(i)}i.accept=group==="photos"||group==="image"?"image/*":"video/*";i.multiple=group==="photos";i.value="";i.click()}
+async function mediaChosen(files){
+  const t=mediaTarget;mediaTarget=null;if(!t||!files.length)return;toast("Envoi en cours…");
+  try{
+    const paths=[];for(const f of files)paths.push(await uploadSite(f));
+    if(t.target==="produit"){
+      if(t.group==="photos"){const h=$("#site_photos");const arr=JSON.parse(h.value||"[]").concat(paths);h.value=JSON.stringify(arr);$("#mPhotos").innerHTML=arr.map((p,i)=>mediaThumb(p,i,"photos")).join("")}
+      else{$("#site_video").value=paths[0];$("#mVideo").innerHTML=mediaThumb(paths[0],0,"video")}
+    }else{const h=$("#pg_"+t.group);if(h){h.value=paths[0];$("#pgm_"+t.group).innerHTML=mediaThumb(paths[0],0,"pg_"+t.group)}}
+    toast("Ajouté. Pense à enregistrer.");
+  }catch(e){toast(e&&e.code==="unsupported_type"?"Format refusé.":e&&e.code==="too_large"?"Fichier trop lourd (50 Mo max).":"L'envoi a échoué.")}
+}
+function mediaAction(a,b){
+  const g=b.dataset.g,i=Number(b.dataset.i);
+  if(g==="photos"){const h=$("#site_photos");const arr=JSON.parse(h.value||"[]");
+    if(a==="m-rm")arr.splice(i,1);if(a==="m-left"&&i>0)[arr[i-1],arr[i]]=[arr[i],arr[i-1]];if(a==="m-right"&&i<arr.length-1)[arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+    h.value=JSON.stringify(arr);$("#mPhotos").innerHTML=arr.map((p,k)=>mediaThumb(p,k,"photos")).join("")}
+  else if(g==="video"&&a==="m-rm"){$("#site_video").value="";$("#mVideo").innerHTML=""}
+  else if(g.startsWith("pg_")&&a==="m-rm"){const k=g.slice(3);$("#pg_"+k).value="";$("#pgm_"+k).innerHTML=""}
+}
+/* pages du site */
+function pSite(){
+  const ps=S.produits.filter(p=>p.site&&p.site.enLigne&&p.statut!=="Archivé");
+  const nd=(S.demandes||[]).filter(d=>(d.statut||"Nouvelle")==="Nouvelle").length;
+  return`${pageHead("Site internet",`Ce que tu modifies ici apparaît sur <a href="${SITE_URL}" target="_blank" rel="noopener">eugceo.fr</a> en quelques secondes.`)}
+  <div class="list"><button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${nd?`<span class="chip warn">${nd} nouvelle${nd>1?"s":""}</span>`:"›"}</span><span class="s">Commandes, rendez-vous et messages envoyés depuis le site.</span></button></div>
+  <h3>Pages</h3>
+  <div class="list">${SITE_PAGES.map(([k,l])=>{const c=(S.siteContenu||{})[k]||{};return`<button class="row" data-act="site-page" data-k="${k}"><span class="t">${esc(l)}</span><span class="v">›</span><span class="s">${esc((c.titre||"")+(c.texte?" · "+c.texte.slice(0,60)+(c.texte.length>60?"…":""):""))}</span></button>`}).join("")}</div>
+  <h3>Créations en ligne (${ps.length})</h3>
+  <div class="list">${ps.map(p=>`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(p.site.titre||designation(p))}</span><span class="v num">${p.site.prix?eur(n(p.site.prix)):"prix ?"}</span><span class="s"><span class="code">${esc(p.code)}</span> · ${(p.site.photos||[]).length} photo${(p.site.photos||[]).length>1?"s":""}${!p.site.prix?' <span class="chip warn">sans prix</span>':""}</span></button>`).join("")||`<div class="empty">Aucune création en ligne. Ouvre une fiche dans Stock, puis coche « Afficher cette création sur eugceo.fr ».</div>`}</div>`;
+}
+function openSitePage(k){
+  const c={...((S.siteContenu||{})[k]||{})};const L0=SITE_PAGES.find(x=>x[0]===k);const ro=!(db&&canWrite);
+  current={col:"site",id:k,orig:c};
+  const sec=Array.isArray(c.sections)?c.sections:[];
+  const media=(key,label,accept)=>`<div class="field"><span class="lbl">${label}</span><div class="mgrid" id="pgm_${key}">${c[key]?mediaThumb(c[key],0,"pg_"+key):""}</div><input type="hidden" id="pg_${key}" value="${esc(c[key]||"")}">${!ro&&assets?`<button type="button" class="linkbtn addline" data-act="pg-media" data-g="${key}" data-accept="${accept}">${c[key]?"Remplacer":"+ Ajouter"}</button>`:""}</div>`;
+  const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>${esc(L0?L0[1]:k)}</h2>${ro?"":`<button class="linkbtn" data-act="site-save">Enregistrer</button>`}</div></div>
+  <div class="wrap"><form class="f" id="siteForm" novalidate>
+   ${k==="accueil"?F("pg_surTitre","Petit titre (au-dessus)",`<input id="pg_surTitre" value="${esc(c.surTitre||"")}">`):""}
+   ${F("pg_titre","Titre",`<input id="pg_titre" value="${esc(c.titre||"")}">`)}
+   ${F("pg_texte","Texte",`<textarea id="pg_texte" rows="6">${esc(c.texte||"")}</textarea>`,"Une ligne vide entre deux paragraphes.")}
+   ${k==="contact"?`<div class="two">${F("pg_email","E-mail affiché",`<input id="pg_email" value="${esc(c.email||"")}">`)}${F("pg_telephone","Téléphone affiché",`<input id="pg_telephone" value="${esc(c.telephone||"")}">`)}</div>`:""}
+   ${["legal","confidentialite"].includes(k)?"":media("image","Photo de la page","image")+media("video","Vidéo de la page (remplace la photo en haut de page, sur l'accueil)","video")}
+   <fieldset><legend>Blocs</legend><div class="lines" id="secLines">${sec.map(secLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="sec-add">+ Ajouter un bloc</button>`}</fieldset>
+   <p class="err" id="formErr" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+   <p class="note"><a href="${SITE_URL}/#/${k==="accueil"?"":k}" target="_blank" rel="noopener">Voir la page sur le site</a></p>
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
+}
+function secLine(x){x=x||{};return`<div class="secline"><input class="secT" placeholder="Titre du bloc" value="${esc(x.titre||"")}"><textarea class="secX" rows="3" placeholder="Texte">${esc(x.texte||"")}</textarea><div class="mctl"><button type="button" class="linkbtn" data-act="sec-up">↑</button><button type="button" class="linkbtn" data-act="sec-down">↓</button><button type="button" class="linkbtn" data-act="line-rm2">Retirer</button></div></div>`}
+async function saveSitePage(){
+  const k=current.id;const o={...current.orig};
+  const v=id=>{const e=$("#"+id);return e?e.value.trim():undefined};
+  for(const f of ["surTitre","titre","texte","email","telephone","image","video"]){const x=v("pg_"+f);if(x!==undefined)o[f]=x}
+  o.sections=[...document.querySelectorAll("#secLines .secline")].map(l=>({titre:l.querySelector(".secT").value.trim(),texte:l.querySelector(".secX").value.trim()})).filter(x=>x.titre||x.texte);
+  try{await db.collection("site_contenu").doc(k).set(o);closeSheet(true);toast("Page enregistrée : en ligne")}catch(e){const m=$("#formErr");m.textContent=dbErr(e);m.hidden=false}
+}
+/* demandes */
+function pDemandes(){
+  const f=S.demFilter||"nouvelles";let L2=[...(S.demandes||[])];
+  if(f==="nouvelles")L2=L2.filter(d=>(d.statut||"Nouvelle")==="Nouvelle");
+  if(f==="traitees")L2=L2.filter(d=>d.statut==="Traitée");
+  L2.sort((a,b)=>(b.envoyeLe||"").localeCompare(a.envoyeLe||""));
+  const typ={commande:"Commande",rdv:"Rendez-vous",contact:"Message"};
+  return`${pageHead("Demandes reçues","Envoyées depuis le site. Réponds par e-mail ou par téléphone, puis marque la demande comme traitée.")}
+  ${filterBar("demFilter",f,[["nouvelles","Nouvelles"],["traitees","Traitées"],["toutes","Toutes"]])}
+  <div class="list">${L2.map(d=>{const p=d.produitId?prod(d.produitId):null;return`<div class="dem row" style="cursor:default">
+    <div class="docinfo"><b>${esc(typ[d.type]||"Demande")} · ${esc(d.nom||"")}</b>
+     <span>${d.envoyeLe?new Date(d.envoyeLe).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):""}${p?" · "+esc(p.site&&p.site.titre||designation(p)):""}${d.prestation?" · "+esc(d.prestation):""}</span>
+     <span class="sel">${d.email?esc(d.email):""}${d.email&&d.telephone?" · ":""}${d.telephone?esc(d.telephone):""}</span>
+     ${d.disponibilites?`<span>Disponibilités : ${esc(d.disponibilites)}</span>`:""}
+     ${d.message?`<p class="msg">${esc(d.message)}</p>`:""}</div>
+    <div class="docctl">${(d.statut||"Nouvelle")==="Nouvelle"?`<span class="chip warn">nouvelle</span>`:`<span class="chip ok">${esc(d.statut)}</span>`}
+     ${db&&canWrite?`${d.type==="commande"&&p?`<button type="button" class="btn ghost small" data-act="dem-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}${(d.statut||"Nouvelle")==="Nouvelle"?`<button type="button" class="btn ghost small" data-act="dem-ok" data-id="${esc(d.id)}">Marquer traitée</button>`:`<button type="button" class="linkbtn" data-act="dem-re" data-id="${esc(d.id)}">Remettre en nouvelle</button>`}`:""}</div></div>`}).join("")||`<div class="empty">Aucune demande ${f==="nouvelles"?"nouvelle":"ici"}.</div>`}</div>
+  <p class="note">Les demandes de plus de trois ans doivent être effacées (règle annoncée dans la page Confidentialité du site).</p>`;
+}
+async function demStatut(id,statut){try{await db.collection("demandes").doc(id).update({statut,traiteLe:new Date().toISOString()});toast(statut==="Traitée"?"Marquée traitée":"Remise en nouvelle")}catch(e){toast(dbErr(e))}}
 
 /* ---------- pages de gestion ---------- */
 function pageHead(t,sub){return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="">‹ Retour</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
@@ -1346,6 +1498,8 @@ async function startData(session){
   for(const col of COLS){
     db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded.add(col);render()},()=>{toast("Données momentanément indisponibles");render()});
   }
+  db.collection("site_contenu").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.siteContenu=o;render()},()=>{});
+  db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};render()},()=>{});
@@ -1354,6 +1508,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("submit",e=>{const id=e.target.id;
   if(id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}
   else if(id==="socForm"){e.preventDefault();e.stopImmediatePropagation();saveSociete(e.target)}
+  else if(id==="siteForm"){e.preventDefault();e.stopImmediatePropagation();saveSitePage()}
   else if(id==="refForm"){e.preventDefault();e.stopImmediatePropagation();saveReferentiel(e.target)}},true);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b)return;
   if(b.dataset.act==="lg"){showLogin(b.dataset.m)}
