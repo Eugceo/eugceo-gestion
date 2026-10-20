@@ -1369,7 +1369,7 @@ function openReply(id){
    <p class="note">À : <b>${esc(dm.nom)}</b> · ${esc(dm.email||"pas d'e-mail")}</p>
    ${dm.message?`<p class="note" style="white-space:pre-wrap;border-left:2px solid var(--line);padding-left:10px">${esc(dm.message)}</p>`:""}
    ${F("rp_sujet","Objet",`<input id="rp_sujet" value="${esc("EUGCEO · "+sujet)}">`)}
-   ${F("rp_texte","Message",`<textarea id="rp_texte" rows="10">${esc(`Bonjour ${prenom},\n\nMerci pour ton message.\n\n\n\nÀ très vite,\nEugène\nEUGCEO`)}</textarea>`)}
+   ${F("rp_texte","Message",`<textarea id="rp_texte" rows="10">${esc(`Bonjour ${prenom},\n\nMerci pour ton message.\n\n\n\nÀ très vite,\nEUGCEO`)}</textarea>`)}
    <p class="err" id="formErr" hidden></p>
    <button class="btn" type="submit">Envoyer</button>
    ${dm.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(dm.telephone))}" target="_blank" rel="noopener">Répondre sur WhatsApp</a>`:""}
