@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>EUGCEO Gestion</title>
-<meta name="theme-color" content="#f2eee8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111111" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -20,8 +20,8 @@
 <style>
 /* Layout : appli téléphone — en-tête collant, une colonne, barre d'onglets fixe en bas avec bouton central « + ». Charte EUGCEO : noir, crème, bronze, gris. */
 :root{
-  --bg:#f2eee8; --surface:#fbf9f6; --fg:#111111; --muted:#6f625a; --line:#d9d2ca;
-  --accent:#5e4c42; --accent-fg:#f2eee8; --soft:#e7e0d7;
+  --bg:#ffffff; --surface:#f6f6f6; --fg:#111111; --muted:#5c5c5c; --line:#e3e3e3;
+  --accent:#111111; --accent-fg:#ffffff; --soft:#efefef; --marron:#5e4c42;
   --ok:#2f6b47; --warn:#9a5b12; --bad:#a3322a;
   --ok-bg:#e1ece4; --warn-bg:#f4e7d3; --bad-bg:#f5dfdc;
   --display:"Cormorant Garamond", "Cormorant", Garamond, "Times New Roman", serif;
@@ -29,13 +29,13 @@
   --r:12px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#111111; --surface:#1b1917; --fg:#f2eee8; --muted:#a99c92; --line:#34302c;
-  --accent:#c4a796; --accent-fg:#111111; --soft:#26221f;
+  --bg:#111111; --surface:#1c1c1c; --fg:#ffffff; --muted:#a8a8a8; --line:#333333;
+  --accent:#ffffff; --accent-fg:#111111; --soft:#262626;
   --ok:#7fc39a; --warn:#e3a95c; --bad:#ec8a80;
   --ok-bg:#1d2b22; --warn-bg:#30251a; --bad-bg:#33201e; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#111111; --surface:#1b1917; --fg:#f2eee8; --muted:#a99c92; --line:#34302c;
-  --accent:#c4a796; --accent-fg:#111111; --soft:#26221f;
+  --bg:#111111; --surface:#1c1c1c; --fg:#ffffff; --muted:#a8a8a8; --line:#333333;
+  --accent:#ffffff; --accent-fg:#111111; --soft:#262626;
   --ok:#7fc39a; --warn:#e3a95c; --bad:#ec8a80;
   --ok-bg:#1d2b22; --warn-bg:#30251a; --bad-bg:#33201e; color-scheme:dark}
 *,*::before,*::after{box-sizing:border-box}
@@ -68,7 +68,7 @@ fieldset .docrow:first-of-type{border-top:0}
 body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:640px;margin:0 auto}
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;--fg:#ffffff;--muted:#bdbdbd;--line:#2a2a2a;background:#111111;color:#ffffff;border-bottom:1px solid #111111}
 header.top .wrap{display:flex;align-items:baseline;gap:12px;padding-block:12px 10px}
 .brand{font-family:var(--display);font-weight:600;letter-spacing:.32em;font-size:15px}
 h1{font-family:var(--display);font-weight:500;font-size:22px;margin:0;flex:1;text-wrap:balance}
@@ -182,7 +182,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .invoice{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:18px;font-size:13px;line-height:1.5}
 .inv-h{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .inv-brand{font-family:var(--display);font-size:26px;letter-spacing:.3em;font-weight:600}
-.inv-small{font-size:11.5px;color:#5e4c42}
+.inv-small{font-size:11.5px;color:#5c5c5c}
 .inv-meta{text-align:right}.inv-title{font-family:var(--display);font-size:24px;font-weight:600}
 .inv-tbl{width:100%;border-collapse:collapse}
 .inv-tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5e4c42;border-bottom:1px solid #111;padding:6px 4px;text-align:left}
@@ -201,7 +201,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .check input{width:20px;height:20px;accent-color:var(--ink,#111)}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .mgrid:empty{display:none}
-.mthumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:#eee}
+.mthumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:var(--marron)}
 .mthumb img,.mthumb video{width:100%;height:100%;object-fit:cover;display:block}
 .mthumb .mctl{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(0,0,0,.55)}
 .mthumb .mctl .linkbtn{color:#fff;padding:6px 8px;min-height:0}
@@ -253,7 +253,7 @@ const L={
   packaging:["Aucun","Standard","Premium","Signature"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.6,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.6,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -843,6 +843,8 @@ function openForm(col,id,prefill){
   <p class="err" id="formErr" hidden></p>
   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
   ${id&&col==="ventes"?`<button class="btn ghost" type="button" data-act="facture" data-id="${esc(id)}">Voir la facture${d.numero?" "+esc(d.numero):""}</button>`:""}
+  ${id&&col==="ventes"&&!ro&&venteReste(d)>0?`<button class="btn ghost" type="button" data-act="solde-link" data-id="${esc(id)}">Lien de paiement du solde (${eur(venteReste(d))})</button><div id="soldeBox"></div>`:""}
+  ${id&&col==="ventes"&&d.origine==="site"?`<p class="note">Vente créée automatiquement par un paiement sur eugceo.fr${d.email?" · "+esc(d.email):""}${d.telephone?" · "+esc(d.telephone):""}.</p>`:""}
   ${id&&!ro?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
   ${id?`<p class="note" id="byline"></p>`:""}
   </form></div>`;
@@ -969,6 +971,9 @@ function openReglages(){
     <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
     <div class="two">${row("poseH2","Jusqu'à (heures)")}${row("posePrix2","Prix (€)")}</div>
     <p class="note">Le temps de pose saisi dans la vente choisit le forfait.</p></fieldset>
+   <fieldset><legend>Boutique en ligne</legend>
+    <div class="three">${row("livraisonFR","Livraison métropole (€)")}${row("livraisonDOM","Livraison outre-mer (€)")}${row("acomptePct","Acompte sur commande (%)")}</div>
+    <p class="note">Appliqués aux paiements sur eugceo.fr. Pense à garder les CGV cohérentes si tu les changes.</p></fieldset>
    <fieldset><legend>Forfait remise en forme</legend>
     <div class="two">${row("remisePrix","Prix (€)")}${row("remiseH","Temps compris (heures)","Sert au prix de revient.")}</div>
     <p class="note">Comprend le nettoyage et le lissage ou la redéfinition des boucles. Tout autre travail ajouté dans la vente (coloration, coupe…) s'ajoute au forfait.</p></fieldset>
@@ -1009,6 +1014,9 @@ document.addEventListener("click",e=>{
   if(a==="payer"){marquerPaye(b);return}
   if(a==="rembourser"){openForm("financement",null,{nature:"Remboursement d'emprunt",personne:b.dataset.p,montant:n(b.dataset.m),description:"Remboursement d'avance"});return}
   if(a==="doc-rm"){docRemove(b);return}
+  if(a==="solde-link"){lienSolde(b);return}
+  if(a==="sl-share"){if(navigator.share&&window.__slShare)navigator.share(window.__slShare).catch(()=>{});return}
+  if(a==="sl-copy"){if(window.__slShare&&navigator.clipboard)navigator.clipboard.writeText(window.__slShare.url).then(()=>toast("Lien copié"),()=>{});return}
   if(a==="tf-open"){openTransfo(b.dataset.id);return}
   if(a==="tf-back"){openForm("produits",b.dataset.id);return}
   if(a==="tf-save"){saveTransfo();return}
@@ -1022,7 +1030,7 @@ document.addEventListener("click",e=>{
   if(a==="dv-copy"){if(window.__dvShare&&navigator.clipboard)navigator.clipboard.writeText(window.__dvShare.url).then(()=>toast("Lien copié"),()=>{});return}
   if(a==="dv-mail"){devisMail(b.dataset.id);return}
   if(a==="dv-st"){devisStatut(b.dataset.id,b.dataset.st);return}
-  if(a==="dv-vente"){const d=S.devis.find(x=>x.id===b.dataset.id);if(d){const hp=r2(devisTotal(d)-n(d.port));openForm("ventes",null,{client:d.client,adresse:d.adresse,ville:d.ville,date:today(),prixTTC:hp,port:d.port||"",avanceType:n(d.acompte)?"Acompte":"Aucune",avanceMontant:d.acompte||"",commentaire:"Devis "+d.numero});current.devisId=d.id}return}
+  if(a==="dv-vente"){const d=S.devis.find(x=>x.id===b.dataset.id);if(d){const hp=r2(devisTotal(d)-n(d.port));openForm("ventes",null,{client:d.client,adresse:d.adresse,ville:d.ville,date:today(),prixTTC:hp,port:d.port||"",avanceType:n(d.acompte)?"Acompte":"Aucune",avanceMontant:d.acompte||"",avanceDate:d.acomptePaye?String(d.acomptePaye.le).slice(0,10):"",paiement:d.acomptePaye?"Carte bancaire":undefined,email:d.email||"",telephone:d.telephone||"",statut:"En attente de paiement",commentaire:"Devis "+d.numero+(d.acomptePaye?" · acompte payé en ligne":"")});current.devisId=d.id}return}
   if(a==="rp-send"){sendReply();return}
   if(a==="dem-reply"){openReply(b.dataset.id);return}
   if(a==="dem-devis"){const dm=(S.demandes||[]).find(x=>x.id===b.dataset.id);if(dm){const p=dm.produitId?prod(dm.produitId):null;const pr=p&&p.site&&p.site.prix;const lib=dm.produit||(p?(p.site&&p.site.titre)||designation(p):"")||dm.prestation||"";openDevis(null,{client:dm.nom,email:dm.email,telephone:dm.telephone,objet:lib,lignes:[{libelle:lib,qte:1,prix:pr||""}]});current.demId=dm.id}return}
@@ -1230,7 +1238,7 @@ function pDemandes(){
   if(f==="nouvelles")L2=L2.filter(d=>(d.statut||"Nouvelle")==="Nouvelle");
   if(f==="traitees")L2=L2.filter(d=>d.statut==="Traitée");
   L2.sort((a,b)=>(b.envoyeLe||"").localeCompare(a.envoyeLe||""));
-  const typ={commande:"Commande",rdv:"Rendez-vous",contact:"Message"};
+  const typ={commande:"Commande",rdv:"Rendez-vous",contact:"Message",paiement:"Paiement en ligne"};
   return`${pageHead("Demandes reçues","Envoyées depuis le site. Réponds par e-mail ou par téléphone, puis marque la demande comme traitée.")}
   ${filterBar("demFilter",f,[["nouvelles","Nouvelles"],["traitees","Traitées"],["toutes","Toutes"]])}
   <div class="list">${L2.map(d=>{const p=d.produitId?prod(d.produitId):null;return`<div class="dem row" style="cursor:default">
@@ -1316,7 +1324,7 @@ function pDevis(id){
   const s=soc();const tot=devisTotal(d);const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";const w=db&&canWrite;
   return`<div class="noprint" style="display:flex;flex-direction:column;gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="linkbtn back" data-act="page" data-p="devis">‹ Devis</button>${devisChip(d)}</div>
-    ${d.statut==="Accepté"?`<p class="note">Accepté le ${dfr((d.accepteLe||"").slice(0,10))}${d.acceptePar?" par "+esc(d.acceptePar):""}.</p>`:""}
+    ${d.statut==="Accepté"?`<p class="note">Accepté le ${dfr((d.accepteLe||"").slice(0,10))}${d.acceptePar?" par "+esc(d.acceptePar):""}.${d.acomptePaye?` Acompte de ${eur(n(d.acomptePaye.montant))} payé en ligne le ${dfr(String(d.acomptePaye.le).slice(0,10))}.`:n(d.acompte)?" Acompte pas encore payé.":""}</p>`:""}
     <div class="actions2">
      ${w&&!["Accepté","Refusé","Annulé"].includes(d.statut)?`<button class="btn" data-act="dv-send" data-id="${esc(d.id)}">${d.statut==="Envoyé"?"Renvoyer le lien":"Envoyer à la cliente"}</button>`:""}
      ${w&&d.statut==="Accepté"&&!d.venteId?`<button class="btn" data-act="dv-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}
@@ -1472,6 +1480,26 @@ function transfoBloc(p){
   if(!lines.length&&!can)return"";
   return`<fieldset><legend>Transformations</legend>${lines.join("")||`<p class="note">Aucune transformation.</p>`}
    ${can?`<button type="button" class="btn ghost" data-act="tf-open" data-id="${esc(p.id)}">Transformer une pièce</button><span class="hint">Coupe, couleur, modèle… : une pièce passe dans une nouvelle référence, avec son coût d'achat. Les autres pièces ne changent pas.</span>`:""}</fieldset>`;
+}
+
+
+/* ---------- lien de paiement du solde (Stripe) ---------- */
+async function lienSolde(b){
+  const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v)return;b.disabled=true;const box=$("#soldeBox");box.innerHTML=`<p class="note">Création du lien…</p>`;
+  try{
+    const{data,error}=await sb.functions.invoke("paiement-creer",{body:{type:"solde",venteId:v.id}});
+    let d=data;if(error){try{d=await error.context.json()}catch(_){d={}}}
+    b.disabled=false;
+    if(!d||!d.url){box.innerHTML=`<p class="err">${d&&d.error==="non_configure"?"Le paiement en ligne n'est pas encore activé (clé Stripe manquante).":d&&d.error==="rien_a_payer"?"Il n'y a plus rien à payer sur cette vente.":"Le lien n'a pas pu être créé. Réessaie."}</p>`;return}
+    const prenom=(v.client||"").split(" ")[0];const txt=`Bonjour ${prenom},\n\nTa création est prête ! Voici le lien pour régler le solde de ${eur(d.montant)} avant l'expédition :\n${d.url}\n\nLe lien est valable 23 heures.\n\nÀ très vite,\nEUGCEO`;
+    window.__slShare={title:"Solde EUGCEO",text:txt,url:d.url};
+    box.innerHTML=`<div class="list" style="padding:12px;gap:10px;display:flex;flex-direction:column"><b>Lien prêt (${eur(d.montant)}, valable 23 h)</b>
+      ${navigator.share?`<button type="button" class="btn" data-act="sl-share">Partager (WhatsApp, SMS…)</button>`:""}
+      ${v.email?`<a class="btn ghost" href="${esc(mailtoUrl(v.email,"EUGCEO · Solde de ta commande",txt))}">Envoyer par e-mail</a>`:""}
+      ${v.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(v.telephone))}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+      <button type="button" class="linkbtn" data-act="sl-copy">Copier le lien</button><span class="hint" style="overflow-wrap:anywhere">${esc(d.url)}</span>
+      <span class="hint">Quand la cliente aura payé, la vente passera toute seule en « Payée ».</span></div>`;
+  }catch(_){b.disabled=false;box.innerHTML=`<p class="err">Le lien n'a pas pu être créé. Réessaie.</p>`}
 }
 
 /* ---------- pages de gestion ---------- */
