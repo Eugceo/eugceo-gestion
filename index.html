@@ -210,6 +210,10 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .secline .mctl{display:flex;gap:8px;justify-content:flex-end}
 .dem{align-items:flex-start;flex-wrap:wrap;gap:8px}
 .dem .msg{margin:6px 0 0;white-space:pre-wrap;font-size:14px}
+.actions2{display:flex;flex-wrap:wrap;gap:8px}.actions2 .btn{width:auto}
+a.btn{text-decoration:none}
+.line.dv{grid-template-columns:minmax(0,1fr) 3.6em 5.4em auto}
+.dem .msg.rep{border-left:2px solid var(--line);padding-left:10px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -272,7 +276,7 @@ const TRAVAUX={"Pose":2,"Remise en forme":1,"Préparation de base":1.5,"Colorati
 function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle (Tissage)")return 0;if(["Demi-tête (Half Wig)","Ponytail (Queue de cheval)"].includes(p.construction))return 0.5;return 1.5}
 
 /* ---------- état ---------- */
-const S={referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
+const S={devis:[],demandes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -425,7 +429,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,demandes:pDemandes}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId)}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -482,6 +486,7 @@ function vAccueil(){
     <h2>Gestion</h2>
     <div class="list">
       <button class="row" data-act="page" data-p="justificatifs"><span class="t">Justificatifs</span><span class="v">${(()=>{const m=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;return m?`<span class="chip warn">${m} manquant${m>1?"s":""}</span>`:"›"})()}</span><span class="s">Toutes les factures et pièces, à voir ou remplacer.</span></button>
+      <button class="row" data-act="page" data-p="devis"><span class="t">Devis</span><span class="v">${(()=>{const k=(S.devis||[]).filter(d=>d.statut==="Accepté"&&!d.venteId).length;return k?`<span class="chip ok">${k} accepté${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Préparer, envoyer, suivre les acceptations.</span></button>
       <button class="row" data-act="page" data-p="factures"><span class="t">Factures</span><span class="v">›</span><span class="s">Toutes les factures clientes, à imprimer ou en PDF.</span></button>
       <button class="row" data-act="page" data-p="resultat"><span class="t">Résultat de l'exercice</span><span class="v">›</span><span class="s">Chiffre d'affaires, charges, bénéfice et impôt estimé.</span></button>
       <button class="row" data-act="page" data-p="tresorerie"><span class="t">Trésorerie</span><span class="v">›</span><span class="s">Entrées, sorties et solde mois par mois.</span></button>
@@ -817,6 +822,7 @@ function openChooser(){
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><h2>Ajouter</h2><button class="linkbtn" data-act="close">Fermer</button></div></div>
   <div class="wrap"><div class="choices">
     <button class="choice" data-act="new" data-col="ventes"><b>Vente</b><span>Une perruque vendue ou une prestation.</span></button>
+    <button class="choice" data-act="dv-new"><b>Devis</b><span>Un prix à faire accepter par une cliente.</span></button>
     <button class="choice" data-act="new" data-col="achats"><b>Achat</b><span>De la marchandise à revendre.</span></button>
     <button class="choice" data-act="new" data-col="depenses"><b>Dépense</b><span>Frais, matériel, packaging, pub…</span></button>
     <button class="choice" data-act="new" data-col="produits"><b>Produit</b><span>Nouvelle référence, code automatique.</span></button>
@@ -909,7 +915,7 @@ async function save(){
   if((col==="achats"||col==="depenses")&&d.datePaiement)d.echeance=d.echeance||"";
   if(col==="achats"){const pa=prod(d.produitId);if(pa&&pa.statut==="Archivé"){try{await db.collection("produits").doc(pa.id).update({statut:"Actif",modifieLe:new Date().toISOString()})}catch(_){}}}
   if(col==="depenses"&&!orig.ref)d.ref=nextRef("depenses","D-",5);
-  const demId=current.demId;const body={...orig,...d};delete body.id;
+  const demId=current.demId,devisId=current.devisId;const body={...orig,...d};delete body.id;
   body.excel=orig.excel==="ok"?"modifié":(orig.excel||"nouveau");
   body.modifieLe=new Date().toISOString();if(!orig.id){body.creeLe=body.modifieLe;if(myId)body.par=myId}
   const btns=document.querySelectorAll('[data-act="save"],#form .btn[type="submit"]');btns.forEach(b=>b.disabled=true);
@@ -917,6 +923,7 @@ async function save(){
     const ref=id?db.collection(col).doc(id):db.collection(col).doc();
     await ref.set(body);
     if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",traiteLe:new Date().toISOString()})}catch(_){}}
+    if(devisId){try{await db.collection("devis").doc(devisId).update({venteId:ref.id})}catch(_){}}
     if(col==="produits"&&S.returnTo){toast("Produit créé : "+body.code);afterProduct(ref.id,body);return}
     closeSheet(true);toast(orig.id?"Modifié":"Enregistré");
   }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false;if(e&&e.code==="invalid_argument"){canWrite=false;render()}}
@@ -993,7 +1000,7 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act],[data-tab]");if(!b)return;
   const a=b.dataset.act;
   if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
-  if(a==="page"){S.page=b.dataset.p||null;window.scrollTo(0,0);render();return}
+  if(a==="page"){S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
   if(a==="doc-pick"){pickDoc(b);return}
@@ -1001,6 +1008,20 @@ document.addEventListener("click",e=>{
   if(a==="payer"){marquerPaye(b);return}
   if(a==="rembourser"){openForm("financement",null,{nature:"Remboursement d'emprunt",personne:b.dataset.p,montant:n(b.dataset.m),description:"Remboursement d'avance"});return}
   if(a==="doc-rm"){docRemove(b);return}
+  if(a==="dv-new"){openDevis();return}
+  if(a==="dv-add"){$("#dvLines").insertAdjacentHTML("beforeend",dvLine({qte:1}));return}
+  if(a==="dv-rm"){b.closest(".line").remove();dvPreview();return}
+  if(a==="dv-save"){saveDevis();return}
+  if(a==="dv-edit"){openDevis(b.dataset.id);return}
+  if(a==="dv-send"){devisEnvoyer(b.dataset.id);return}
+  if(a==="dv-share"){if(navigator.share&&window.__dvShare)navigator.share(window.__dvShare).catch(()=>{});return}
+  if(a==="dv-copy"){if(window.__dvShare&&navigator.clipboard)navigator.clipboard.writeText(window.__dvShare.url).then(()=>toast("Lien copié"),()=>{});return}
+  if(a==="dv-mail"){devisMail(b.dataset.id);return}
+  if(a==="dv-st"){devisStatut(b.dataset.id,b.dataset.st);return}
+  if(a==="dv-vente"){const d=S.devis.find(x=>x.id===b.dataset.id);if(d){const hp=r2(devisTotal(d)-n(d.port));openForm("ventes",null,{client:d.client,adresse:d.adresse,ville:d.ville,date:today(),prixTTC:hp,port:d.port||"",avanceType:n(d.acompte)?"Acompte":"Aucune",avanceMontant:d.acompte||"",commentaire:"Devis "+d.numero});current.devisId=d.id}return}
+  if(a==="rp-send"){sendReply();return}
+  if(a==="dem-reply"){openReply(b.dataset.id);return}
+  if(a==="dem-devis"){const dm=(S.demandes||[]).find(x=>x.id===b.dataset.id);if(dm){const p=dm.produitId?prod(dm.produitId):null;const pr=p&&p.site&&p.site.prix;const lib=dm.produit||(p?(p.site&&p.site.titre)||designation(p):"")||dm.prestation||"";openDevis(null,{client:dm.nom,email:dm.email,telephone:dm.telephone,objet:lib,lignes:[{libelle:lib,qte:1,prix:pr||""}]});current.demId=dm.id}return}
   if(a==="m-add"){pickMedia(b.dataset.g,"produit");return}
   if(a==="pg-media"){pickMedia(b.dataset.g==="video"?"video":"image","page");mediaTarget.group=b.dataset.g;return}
   if(a==="m-left"||a==="m-right"||a==="m-rm"){mediaAction(a,b);return}
@@ -1040,6 +1061,7 @@ document.addEventListener("submit",e=>{e.preventDefault();if(current&&current.co
 document.addEventListener("input",e=>{
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
+  if(e.target.closest("#dvForm"))dvPreview();
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&!current.id){const box=$("#trLines");const p=prod(e.target.value);if(box&&p){const base=box.querySelector(".line .trNom");const h=prepBase(p);
@@ -1101,7 +1123,7 @@ function mouvementsArgent(){
 }
 
 /* ---------- site internet : produits en ligne, pages, demandes ---------- */
-const SITE_PAGES=[["accueil","Accueil"],["creations","Créations (introduction)"],["maison","La Maison"],["prestations","Prestations"],["rendezvous","Rendez-vous"],["entretien","Entretien"],["contact","Contact"],["legal","Mentions légales"],["confidentialite","Confidentialité"]];
+const SITE_PAGES=[["accueil","Accueil"],["creations","Créations (introduction)"],["maison","La Maison"],["prestations","Prestations"],["rendezvous","Rendez-vous"],["entretien","Entretien"],["contact","Contact"],["legal","Mentions légales"],["confidentialite","Confidentialité"],["cgv","Conditions générales de vente"]];
 const SITE_URL="https://eugceo.fr";
 function pubUrl(path){return path?sb.storage.from("site").getPublicUrl(path).data.publicUrl:""}
 async function uploadSite(file){
@@ -1181,7 +1203,7 @@ function openSitePage(k){
    ${F("pg_titre","Titre",`<input id="pg_titre" value="${esc(c.titre||"")}">`)}
    ${F("pg_texte","Texte",`<textarea id="pg_texte" rows="6">${esc(c.texte||"")}</textarea>`,"Une ligne vide entre deux paragraphes.")}
    ${k==="contact"?`<div class="two">${F("pg_email","E-mail affiché",`<input id="pg_email" value="${esc(c.email||"")}">`)}${F("pg_telephone","Téléphone affiché",`<input id="pg_telephone" value="${esc(c.telephone||"")}">`)}</div>`:""}
-   ${["legal","confidentialite"].includes(k)?"":media("image","Photo de la page","image")+media("video","Vidéo de la page (remplace la photo en haut de page, sur l'accueil)","video")}
+   ${["legal","confidentialite","cgv"].includes(k)?"":media("image","Photo de la page","image")+media("video","Vidéo de la page (remplace la photo en haut de page, sur l'accueil)","video")}
    <fieldset><legend>Blocs</legend><div class="lines" id="secLines">${sec.map(secLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="sec-add">+ Ajouter un bloc</button>`}</fieldset>
    <p class="err" id="formErr" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
@@ -1211,12 +1233,168 @@ function pDemandes(){
      <span>${d.envoyeLe?new Date(d.envoyeLe).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):""}${p?" · "+esc(p.site&&p.site.titre||designation(p)):""}${d.prestation?" · "+esc(d.prestation):""}</span>
      <span class="sel">${d.email?esc(d.email):""}${d.email&&d.telephone?" · ":""}${d.telephone?esc(d.telephone):""}</span>
      ${d.disponibilites?`<span>Disponibilités : ${esc(d.disponibilites)}</span>`:""}
-     ${d.message?`<p class="msg">${esc(d.message)}</p>`:""}</div>
+     ${d.message?`<p class="msg">${esc(d.message)}</p>`:""}
+     ${(d.messages||[]).map(m=>`<p class="msg rep"><b>Réponse du ${new Date(m.le).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}</b><br>${esc(m.texte)}</p>`).join("")}
+     ${d.devisId?`<button type="button" class="linkbtn" style="align-self:flex-start;padding-left:0" data-act="page" data-p="devisv" data-id="${esc(d.devisId)}">Voir le devis</button>`:""}</div>
     <div class="docctl">${(d.statut||"Nouvelle")==="Nouvelle"?`<span class="chip warn">nouvelle</span>`:`<span class="chip ok">${esc(d.statut)}</span>`}
-     ${db&&canWrite?`${d.type==="commande"&&p?`<button type="button" class="btn ghost small" data-act="dem-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}${(d.statut||"Nouvelle")==="Nouvelle"?`<button type="button" class="btn ghost small" data-act="dem-ok" data-id="${esc(d.id)}">Marquer traitée</button>`:`<button type="button" class="linkbtn" data-act="dem-re" data-id="${esc(d.id)}">Remettre en nouvelle</button>`}`:""}</div></div>`}).join("")||`<div class="empty">Aucune demande ${f==="nouvelles"?"nouvelle":"ici"}.</div>`}</div>
+     ${db&&canWrite?`${d.email?`<button type="button" class="btn small" data-act="dem-reply" data-id="${esc(d.id)}">Répondre</button>`:""}${d.devisId?"":`<button type="button" class="btn ghost small" data-act="dem-devis" data-id="${esc(d.id)}">Faire un devis</button>`}${d.type==="commande"&&p?`<button type="button" class="btn ghost small" data-act="dem-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}${(d.statut||"Nouvelle")==="Nouvelle"?`<button type="button" class="btn ghost small" data-act="dem-ok" data-id="${esc(d.id)}">Marquer traitée</button>`:`<button type="button" class="linkbtn" data-act="dem-re" data-id="${esc(d.id)}">Remettre en nouvelle</button>`}`:""}</div></div>`}).join("")||`<div class="empty">Aucune demande ${f==="nouvelles"?"nouvelle":"ici"}.</div>`}</div>
   <p class="note">Les demandes de plus de trois ans doivent être effacées (règle annoncée dans la page Confidentialité du site).</p>`;
 }
 async function demStatut(id,statut){try{await db.collection("demandes").doc(id).update({statut,traiteLe:new Date().toISOString()});toast(statut==="Traitée"?"Marquée traitée":"Remise en nouvelle")}catch(e){toast(dbErr(e))}}
+
+/* ---------- devis ---------- */
+const DEVIS_STATUTS=["Brouillon","Envoyé","Accepté","Refusé","Annulé"];
+function addDays(s,k){const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+k);return d.toISOString().slice(0,10)}
+function devisTotal(d){return r2((d.lignes||[]).reduce((t,l)=>t+n(l.qte||1)*n(l.prix),0)-n(d.remise)+n(d.port))}
+function devisLien(d){return SITE_URL+"/#/devis/"+encodeURIComponent(d.token||"")}
+function devisExpire(d){return d.statut==="Envoyé"&&d.validite&&d.validite<today()}
+function devisChip(d){if(devisExpire(d))return`<span class="chip bad">expiré</span>`;const c={Brouillon:"",Envoyé:"warn",Accepté:"ok",Refusé:"bad",Annulé:"bad"}[d.statut||"Brouillon"];return`<span class="chip ${c}">${esc((d.statut||"Brouillon").toLowerCase())}</span>`}
+function newToken(){const a=new Uint8Array(18);crypto.getRandomValues(a);return[...a].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function dvLine(l){l=l||{};return`<div class="line dv"><input class="dvLib" placeholder="ex. Body Wave 26″, lace HD 13x4" value="${esc(l.libelle||"")}" aria-label="Désignation"><input class="dvQ" inputmode="decimal" value="${l.qte===undefined?"1":String(l.qte).replace(".",",")}" aria-label="Quantité"><input class="dvP" inputmode="decimal" placeholder="Prix €" value="${l.prix===undefined||l.prix===""?"":String(l.prix).replace(".",",")}" aria-label="Prix unitaire"><button type="button" class="linkbtn rm" data-act="dv-rm" aria-label="Retirer">✕</button></div>`}
+function dvRead(){return[...document.querySelectorAll("#dvLines .line")].map(l=>({libelle:l.querySelector(".dvLib").value.trim(),qte:n(l.querySelector(".dvQ").value)||1,prix:n(l.querySelector(".dvP").value)})).filter(x=>x.libelle||x.prix)}
+function dvPreview(){const b=$("#dvTot");if(!b)return;const d={lignes:dvRead(),remise:$("#dv_remise").value,port:$("#dv_port").value};b.innerHTML=`Total du devis : <b class="num">${eur(devisTotal(d))}</b>`}
+function openDevis(id,prefill){
+  const d=id?{...(S.devis.find(x=>x.id===id)||{})}:{date:today(),validite:addDays(today(),30),lignes:[{qte:1}],delai:"Environ 2 semaines après acceptation du devis et réception de l'acompte.",conditions:"Acompte à la commande, solde à la livraison ou au retrait.",...(prefill||{})};
+  current={col:"devis",id:id||null,orig:d};const ro=!(db&&canWrite);
+  const t=(k,l,h,attrs)=>F("dv_"+k,l,`<input id="dv_${k}" value="${esc(d[k]??"")}" ${attrs||""}>`,h);
+  const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Devis${d.numero?` <span class="chip">${esc(d.numero)}</span>`:""}</h2>${ro?"":`<button class="linkbtn" data-act="dv-save">Enregistrer</button>`}</div></div>
+  <div class="wrap"><form class="f" id="dvForm" novalidate>
+   <fieldset><legend>Cliente</legend>
+    ${t("client","Nom et prénom")}
+    <div class="two">${t("email","E-mail","",'type="email" autocomplete="off"')}${t("telephone","Téléphone","",'type="tel"')}</div>
+    ${t("adresse","Adresse","Facultatif.")}${t("ville","Code postal et ville")}</fieldset>
+   ${t("objet","Objet","ex. Création sur mesure, remise en forme…",'placeholder="Création sur mesure"')}
+   <div class="two">${F("dv_date","Date",`<input id="dv_date" type="date" value="${esc(d.date||today())}">`)}${F("dv_validite","Valable jusqu'au",`<input id="dv_validite" type="date" value="${esc(d.validite||"")}">`)}</div>
+   <fieldset><legend>Détail</legend><div class="lines" id="dvLines">${(d.lignes&&d.lignes.length?d.lignes:[{qte:1}]).map(dvLine).join("")}</div>
+    ${ro?"":`<button type="button" class="linkbtn addline" data-act="dv-add">+ Ajouter une ligne</button>`}
+    <div class="two">${F("dv_remise","Remise (€)",money("dv_remise",d.remise))}${F("dv_port","Livraison (€)",money("dv_port",d.port))}</div>
+    <p class="note" id="dvTot"></p></fieldset>
+   ${F("dv_acompte","Acompte demandé (€)",money("dv_acompte",d.acompte),"Laisse vide s'il n'y a pas d'acompte.")}
+   ${t("delai","Délai de réalisation")}
+   ${F("dv_conditions","Conditions",`<textarea id="dv_conditions" rows="3">${esc(d.conditions||"")}</textarea>`)}
+   ${F("dv_notes","Notes internes",`<textarea id="dv_notes" rows="2">${esc(d.notes||"")}</textarea>`,"Jamais visibles par la cliente.")}
+   <p class="err" id="formErr" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;dvPreview();
+  if(ro)sh.querySelectorAll("input,select,textarea").forEach(e=>e.disabled=true);
+}
+async function saveDevis(){
+  const o={...current.orig};const v=k=>$("#dv_"+k).value.trim();
+  for(const k of["client","email","telephone","adresse","ville","objet","date","validite","delai","conditions","notes"])o[k]=v(k);
+  for(const k of["remise","port","acompte"])o[k]=v(k)===""?"":n(v(k));
+  o.lignes=dvRead();o.total=devisTotal(o);
+  const eb=$("#formErr");const miss=[];if(!o.client)miss.push("le nom de la cliente");if(!o.lignes.length)miss.push("au moins une ligne");if(o.lignes.some(l=>!n(l.prix)))miss.push("le prix de chaque ligne");
+  if(miss.length){eb.textContent="Il manque "+miss.join(", ")+".";eb.hidden=false;return}
+  if(!o.numero)o.numero=nextRef("devis","DV-"+(o.date||today()).slice(0,4)+"-",3);
+  if(!o.token)o.token=newToken();if(!o.statut)o.statut="Brouillon";
+  o.modifieLe=new Date().toISOString();if(!current.id){o.creeLe=o.modifieLe;if(myId)o.par=myId}
+  const demId=current.demId;
+  try{const ref=current.id?db.collection("devis").doc(current.id):db.collection("devis").doc();await ref.set(o);
+    if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",devisId:ref.id,traiteLe:new Date().toISOString()})}catch(_){}}
+    closeSheet(true);S.page="devisv";S.pageId=ref.id;if(!S.devis.some(x=>x.id===ref.id))S.devis.push({id:ref.id,...o});render();toast("Devis enregistré")}
+  catch(e){eb.textContent=dbErr(e);eb.hidden=false}
+}
+function pDevisListe(){
+  const f=S.dvFilter||"cours";let L2=[...(S.devis||[])];
+  if(f==="cours")L2=L2.filter(d=>["Brouillon","Envoyé"].includes(d.statut||"Brouillon")||(d.statut==="Accepté"&&!d.venteId));
+  if(f==="acceptes")L2=L2.filter(d=>d.statut==="Accepté");
+  L2.sort((a,b)=>(b.numero||"").localeCompare(a.numero||""));
+  return`${pageHead("Devis","Prépare un devis, envoie le lien : la cliente le lit et clique sur « J'accepte ».")}
+  ${db&&canWrite?`<button class="btn" data-act="dv-new">+ Nouveau devis</button>`:""}
+  ${filterBar("dvFilter",f,[["cours","En cours"],["acceptes","Acceptés"],["tous","Tous"]])}
+  <div class="list">${L2.map(d=>`<button class="row" data-act="page" data-p="devisv" data-id="${esc(d.id)}"><span class="t">${esc(d.numero||"")} · ${esc(d.client||"")}</span><span class="v num">${eur(devisTotal(d))}</span><span class="s">${dfr(d.date)} · ${devisChip(d)}${d.statut==="Accepté"&&!d.venteId?' <span class="chip warn">vente à créer</span>':""}${d.objet?" · "+esc(d.objet):""}</span></button>`).join("")||`<div class="empty">Aucun devis ${f==="tous"?"":"ici"}.</div>`}</div>`;
+}
+function pDevis(id){
+  const d=(S.devis||[]).find(x=>x.id===id);if(!d)return pageHead("Devis")+`<div class="empty">Devis introuvable.</div>`;
+  const s=soc();const tot=devisTotal(d);const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";const w=db&&canWrite;
+  return`<div class="noprint" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="linkbtn back" data-act="page" data-p="devis">‹ Devis</button>${devisChip(d)}</div>
+    ${d.statut==="Accepté"?`<p class="note">Accepté le ${dfr((d.accepteLe||"").slice(0,10))}${d.acceptePar?" par "+esc(d.acceptePar):""}.</p>`:""}
+    <div class="actions2">
+     ${w&&!["Accepté","Refusé","Annulé"].includes(d.statut)?`<button class="btn" data-act="dv-send" data-id="${esc(d.id)}">${d.statut==="Envoyé"?"Renvoyer le lien":"Envoyer à la cliente"}</button>`:""}
+     ${w&&d.statut==="Accepté"&&!d.venteId?`<button class="btn" data-act="dv-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}
+     ${d.venteId?`<button class="btn ghost" data-act="facture" data-id="${esc(d.venteId)}">Voir la facture</button>`:""}
+     <button class="btn ghost" data-act="print">Imprimer / PDF</button>
+     ${w&&!["Accepté"].includes(d.statut)?`<button class="btn ghost" data-act="dv-edit" data-id="${esc(d.id)}">Modifier</button>`:""}
+    </div>
+    ${S.dvShare&&S.dvShare.id===d.id?S.dvShare.html:""}
+    ${w&&d.statut==="Envoyé"?`<div style="display:flex;gap:14px;flex-wrap:wrap"><button class="linkbtn" data-act="dv-st" data-id="${esc(d.id)}" data-st="Refusé">La cliente refuse</button><button class="linkbtn" data-act="dv-st" data-id="${esc(d.id)}" data-st="Annulé">Annuler le devis</button></div>`:""}
+    ${d.notes?`<p class="note">Notes internes : ${esc(d.notes)}</p>`:""}
+  </div>
+  <article class="invoice">
+   <header class="inv-h"><div><div class="inv-brand">${esc(s.denomination)}</div><div class="inv-small">${esc(s.forme)} au capital de ${eur(n(s.capital))}<br>${esc(s.adresse)}<br>${esc(s.cpVille)}<br>SIREN ${esc(s.siren)} · RCS ${esc(s.villeRcs)}<br>${esc(s.email)}${s.site?" · "+esc(s.site):""}</div></div>
+    <div class="inv-meta"><div class="inv-title">Devis</div><div>N° <b>${esc(d.numero)}</b></div><div>Date : ${dfr(d.date)}</div><div>Valable jusqu'au ${dfr(d.validite)}</div></div></header>
+   <section class="inv-client"><div class="inv-small">Pour</div><div><b>${esc(d.client)}</b>${d.adresse?"<br>"+esc(d.adresse):""}${d.ville?"<br>"+esc(d.ville):""}</div>${d.objet?`<div style="margin-top:8px">Objet : ${esc(d.objet)}</div>`:""}</section>
+   <table class="inv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
+    <tbody>${(d.lignes||[]).map(l=>`<tr><td>${esc(l.libelle)}</td><td class="r">${String(n(l.qte||1)).replace(".",",")}</td><td class="r num">${eur(n(l.prix))}</td><td class="r num">${eur(n(l.qte||1)*n(l.prix))}</td></tr>`).join("")}
+    ${n(d.remise)?`<tr><td>Remise</td><td></td><td></td><td class="r num">− ${eur(n(d.remise))}</td></tr>`:""}${n(d.port)?`<tr><td>Livraison</td><td></td><td></td><td class="r num">${eur(n(d.port))}</td></tr>`:""}</tbody>
+    <tfoot><tr><td colspan="3" class="r"><b>Total${s.tva==="Oui"?" TTC":""}</b></td><td class="r num"><b>${eur(tot)}</b></td></tr>${n(d.acompte)?`<tr><td colspan="3" class="r">Acompte à la commande</td><td class="r num">${eur(n(d.acompte))}</td></tr>`:""}</tfoot></table>
+   <footer class="inv-f">${d.delai?`<p>Délai : ${esc(d.delai)}</p>`:""}${d.conditions?`<p>${esc(d.conditions)}</p>`:""}${tvaLine?`<p>${tvaLine}</p>`:""}<p class="inv-small">Devis gratuit. Bon pour accord : acceptation en ligne ou signature précédée de la mention « Bon pour accord ».</p></footer>
+  </article>`;
+}
+async function devisEnvoyer(id){
+  const d=S.devis.find(x=>x.id===id);if(!d)return;
+  if(d.statut!=="Envoyé"){try{await db.collection("devis").doc(id).update({statut:"Envoyé",envoyeLe:new Date().toISOString()});d.statut="Envoyé"}catch(e){toast(dbErr(e));return}}
+  const url=devisLien(d);const prenom=(d.client||"").split(" ")[0];
+  const txt=`Bonjour ${prenom},\n\nVoici ton devis EUGCEO ${d.numero} (${eur(devisTotal(d))}). Tu peux le consulter et l'accepter ici :\n${url}\n\nÀ très vite,\nEUGCEO`;
+  const canMail=!!d.email;
+  S.dvShare={id,html:`<div class="list" style="padding:12px;gap:10px;display:flex;flex-direction:column"><b>Envoyer le lien à ${esc(d.client)}</b>
+    ${navigator.share?`<button class="btn" data-act="dv-share">Partager (WhatsApp, SMS…)</button>`:""}
+    ${canMail?`<button class="btn ghost" data-act="dv-mail" data-id="${esc(id)}">Envoyer par e-mail</button>`:""}
+    ${d.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(d.telephone))}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost" href="sms:${esc(d.telephone.replace(/\s/g,""))}?&body=${encodeURIComponent(txt)}">SMS</a>`:""}
+    <button class="linkbtn" data-act="dv-copy">Copier le lien</button>
+    <span class="hint" style="overflow-wrap:anywhere">${esc(url)}</span></div>`};
+  window.__dvShare={title:"Devis EUGCEO "+d.numero,text:txt,url};
+  render();
+}
+function waNum(t){let x=String(t).replace(/[^\d+]/g,"");if(x.startsWith("+"))return x.slice(1);if(x.startsWith("00"))return x.slice(2);if(x.startsWith("0"))return"33"+x.slice(1);return x}
+async function devisStatut(id,st){try{await db.collection("devis").doc(id).update({statut:st,modifieLe:new Date().toISOString()});toast("Devis : "+st.toLowerCase())}catch(e){toast(dbErr(e))}}
+
+/* ---------- e-mails (réponses, devis) ---------- */
+async function sendMail(o){
+  const{data,error}=await sb.functions.invoke("envoyer-email",{body:o});
+  if(error){let msg="";try{msg=(await error.context.json()).error||""}catch(_){}throw{code:msg||"envoi"}}
+  if(data&&data.error)throw{code:data.error};return data;
+}
+function mailtoUrl(to,subject,body){return"mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body)}
+function openReply(id){
+  const dm=(S.demandes||[]).find(x=>x.id===id);if(!dm)return;
+  current={col:"reply",id,orig:dm};const prenom=(dm.nom||"").split(" ")[0];
+  const sujet=dm.type==="commande"?"Ta demande pour "+(dm.produit||"une création EUGCEO"):dm.type==="rdv"?"Ta demande de rendez-vous":"Ton message à EUGCEO";
+  const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Répondre</h2><button class="linkbtn" data-act="rp-send">Envoyer</button></div></div>
+  <div class="wrap"><form class="f" id="rpForm" novalidate>
+   <p class="note">À : <b>${esc(dm.nom)}</b> · ${esc(dm.email||"pas d'e-mail")}</p>
+   ${dm.message?`<p class="note" style="white-space:pre-wrap;border-left:2px solid var(--line);padding-left:10px">${esc(dm.message)}</p>`:""}
+   ${F("rp_sujet","Objet",`<input id="rp_sujet" value="${esc("EUGCEO · "+sujet)}">`)}
+   ${F("rp_texte","Message",`<textarea id="rp_texte" rows="10">${esc(`Bonjour ${prenom},\n\nMerci pour ton message.\n\n\n\nÀ très vite,\nEugène\nEUGCEO`)}</textarea>`)}
+   <p class="err" id="formErr" hidden></p>
+   <button class="btn" type="submit">Envoyer</button>
+   ${dm.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(dm.telephone))}" target="_blank" rel="noopener">Répondre sur WhatsApp</a>`:""}
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
+}
+async function sendReply(){
+  const dm=current.orig;const sujet=$("#rp_sujet").value.trim();const texte=$("#rp_texte").value.trim();const eb=$("#formErr");
+  if(!dm.email){eb.textContent="Cette cliente n'a pas laissé d'e-mail : réponds-lui par téléphone ou WhatsApp.";eb.hidden=false;return}
+  if(texte.length<5){eb.textContent="Écris ton message.";eb.hidden=false;return}
+  const btns=document.querySelectorAll('[data-act="rp-send"],#rpForm .btn[type=submit]');btns.forEach(b=>b.disabled=true);
+  try{await sendMail({to:dm.email,subject:sujet,text:texte,demandeId:dm.id});
+    const msgs=[...(dm.messages||[]),{le:new Date().toISOString(),par:myId,sujet,texte}];
+    await db.collection("demandes").doc(dm.id).update({messages:msgs,statut:"Traitée",traiteLe:new Date().toISOString()});
+    closeSheet(true);toast("Réponse envoyée")}
+  catch(e){btns.forEach(b=>b.disabled=false);
+    if(e&&e.code==="non_configure"){eb.innerHTML=`L'envoi depuis l'app n'est pas encore activé. <a href="${esc(mailtoUrl(dm.email,sujet,texte))}">Ouvrir ma messagerie avec ce message</a>`;eb.hidden=false}
+    else{eb.textContent="L'envoi a échoué ("+esc(e&&e.code||"erreur")+"). Réessaie.";eb.hidden=false}}
+}
+async function devisMail(id){
+  const d=S.devis.find(x=>x.id===id);if(!d||!S.dvShare)return;
+  const sujet="Ton devis EUGCEO "+d.numero;
+  try{await sendMail({to:d.email,subject:sujet,text:window.__dvShare.text,devisId:id});await db.collection("devis").doc(id).update({mailLe:new Date().toISOString()});toast("Devis envoyé par e-mail")}
+  catch(e){if(e&&e.code==="non_configure")location.href=mailtoUrl(d.email,sujet,window.__dvShare.text);else toast("L'envoi a échoué. Réessaie.")}
+}
 
 /* ---------- pages de gestion ---------- */
 function pageHead(t,sub){return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="">‹ Retour</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
@@ -1507,6 +1685,7 @@ async function startData(session){
     db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded.add(col);render()},()=>{toast("Données momentanément indisponibles");render()});
   }
   db.collection("site_contenu").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.siteContenu=o;render()},()=>{});
+  db.collection("devis").onSnapshot(snap=>{S.devis=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
@@ -1516,6 +1695,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 document.addEventListener("submit",e=>{const id=e.target.id;
   if(id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}
   else if(id==="socForm"){e.preventDefault();e.stopImmediatePropagation();saveSociete(e.target)}
+  else if(id==="dvForm"){e.preventDefault();e.stopImmediatePropagation();saveDevis()}
+  else if(id==="rpForm"){e.preventDefault();e.stopImmediatePropagation();sendReply()}
   else if(id==="siteForm"){e.preventDefault();e.stopImmediatePropagation();saveSitePage()}
   else if(id==="refForm"){e.preventDefault();e.stopImmediatePropagation();saveReferentiel(e.target)}},true);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b)return;
