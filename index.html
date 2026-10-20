@@ -1259,7 +1259,7 @@ function dvLine(l){l=l||{};return`<div class="line dv"><input class="dvLib" plac
 function dvRead(){return[...document.querySelectorAll("#dvLines .line")].map(l=>({libelle:l.querySelector(".dvLib").value.trim(),qte:n(l.querySelector(".dvQ").value)||1,prix:n(l.querySelector(".dvP").value)})).filter(x=>x.libelle||x.prix)}
 function dvPreview(){const b=$("#dvTot");if(!b)return;const d={lignes:dvRead(),remise:$("#dv_remise").value,port:$("#dv_port").value};b.innerHTML=`Total du devis : <b class="num">${eur(devisTotal(d))}</b>`}
 function openDevis(id,prefill){
-  const d=id?{...(S.devis.find(x=>x.id===id)||{})}:{date:today(),validite:addDays(today(),30),lignes:[{qte:1}],delai:"Environ 2 semaines après acceptation du devis et réception de l'acompte.",conditions:"Acompte à la commande, solde à la livraison ou au retrait.",...(prefill||{})};
+  const d=id?{...(S.devis.find(x=>x.id===id)||{})}:{date:today(),validite:addDays(today(),30),lignes:[{qte:1}],delai:"15 à 30 jours après réception de l'acompte.",conditions:"Acompte à la commande, solde à la livraison ou au retrait.",...(prefill||{})};
   current={col:"devis",id:id||null,orig:d};const ro=!(db&&canWrite);
   const t=(k,l,h,attrs)=>F("dv_"+k,l,`<input id="dv_${k}" value="${esc(d[k]??"")}" ${attrs||""}>`,h);
   const sh=$("#sheet");
