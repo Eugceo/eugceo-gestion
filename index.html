@@ -1139,7 +1139,7 @@ function controles(){
     if(v.statut==="Payée"&&!v.dateEncaissement)out.push({lvl:"info",t:"Vente payée sans date d'encaissement",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
   }
   for(const d of S.depenses)if(!d.justificatif&&!d.commentaire)out.push({lvl:"info",t:"Dépense sans justificatif",s:esc(d.fournisseur)+" · "+dfr(d.date)+" · "+eur(n(d.montant)),col:"depenses",id:d.id});
-  for(const a of S.achats){if(!a.dateReception&&ago(a.date,30))out.push({lvl:"warn",t:"Achat pas encore reçu après 30 jours",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id});if(!a.datePaiement)out.push({lvl:"info",t:"Achat sans date de paiement",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id})}
+  for(const a of S.achats){if(!a.dateReception&&ago(a.date,30))out.push({lvl:"warn",t:"Achat pas encore reçu après 30 jours",s:esc(a.fournisseur)+" · "+dfr(a.date),col:"achats",id:a.id});}
   for(const x of [...S.achats.map(a=>({...a,_c:"achats",_m:achatTotal(a),_t:"Achat"})),...S.depenses.map(d=>({...d,_c:"depenses",_m:n(d.montant),_t:"Dépense"}))]){
     if(x.datePaiement||!x.echeance||!x._m)continue;const j=Math.round((new Date(x.echeance)-new Date(t))/864e5);
     if(j<0)out.push({lvl:"bad",t:x._t+" en retard de paiement",s:esc(x.fournisseur||"")+" · "+eur(x._m)+" · à payer avant le "+dfr(x.echeance),col:x._c,id:x.id});
