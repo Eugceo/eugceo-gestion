@@ -429,7 +429,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId)}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId)}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -479,7 +479,7 @@ function vAccueil(){
     <h2>Site internet</h2>
     <div class="list">
       <button class="row" data-act="page" data-p="site"><span class="t">Site eugceo.fr</span><span class="v">›</span><span class="s">Textes, photos, vidéos et créations en ligne.</span></button>
-      <button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${(()=>{const k=(S.demandes||[]).filter(d=>(d.statut||"Nouvelle")==="Nouvelle").length;return k?`<span class="chip warn">${k} nouvelle${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Commandes, rendez-vous et messages du site.</span></button>
+      <button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${(()=>{const k=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;return k?`<span class="chip warn">${k} nouvelle${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Commandes, rendez-vous et messages du site.</span></button>
     </div>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
@@ -1039,6 +1039,14 @@ document.addEventListener("click",e=>{
   if(a==="m-left"||a==="m-right"||a==="m-rm"){mediaAction(a,b);return}
   if(a==="site-page"){openSitePage(b.dataset.k);return}
   if(a==="site-save"){saveSitePage();return}
+  if(a==="site-open"){openOuverture(true);return}
+  if(a==="site-close"){openOuverture(false);return}
+  if(a==="site-open-ok"){setOuvert(true,b);return}
+  if(a==="site-close-ok"){setOuvert(false,b);return}
+  if(a==="apercu-copy"){apercuCopy();return}
+  if(a==="annonce"){openAnnonce();return}
+  if(a==="annonce-send"){sendAnnonce(b);return}
+  if(a==="liste-copy"){const t=listeAttente().map(d=>d.email).join(", ");if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast("E-mails copiés"),()=>{});return}
   if(a==="sec-add"){$("#secLines").insertAdjacentHTML("beforeend",secLine({}));return}
   if(a==="sec-up"||a==="sec-down"){const l=b.closest(".secline");if(a==="sec-up"&&l.previousElementSibling)l.parentNode.insertBefore(l,l.previousElementSibling);if(a==="sec-down"&&l.nextElementSibling)l.parentNode.insertBefore(l.nextElementSibling,l);return}
   if(a==="line-rm2"){b.closest(".secline").remove();return}
@@ -1069,7 +1077,7 @@ document.addEventListener("click",e=>{
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
 });
 $("#plusBtn").addEventListener("click",openChooser);
-document.addEventListener("submit",e=>{e.preventDefault();if(current&&current.col==="reglages")saveReglages();else save()});
+document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else save()});
 document.addEventListener("input",e=>{
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
@@ -1138,6 +1146,7 @@ function mouvementsArgent(){
 /* ---------- site internet : produits en ligne, pages, demandes ---------- */
 const SITE_PAGES=[["accueil","Accueil"],["creations","Créations (introduction)"],["maison","La Maison"],["prestations","Prestations"],["rendezvous","Rendez-vous"],["entretien","Entretien"],["contact","Contact"],["legal","Mentions légales"],["confidentialite","Confidentialité"],["cgv","Conditions générales de vente"]];
 const SITE_URL="https://eugceo.fr";
+const SITE_PAGES_ALL=[...SITE_PAGES,["attente","Page d'attente"]];
 function pubUrl(path){return path?sb.storage.from("site").getPublicUrl(path).data.publicUrl:""}
 async function uploadSite(file){
   const type=file.type||"";if(!/^image\/|^video\//.test(type))throw{code:"unsupported_type"};
@@ -1196,8 +1205,19 @@ function mediaAction(a,b){
 /* pages du site */
 function pSite(){
   const ps=S.produits.filter(p=>p.site&&p.site.enLigne&&p.statut!=="Archivé");
-  const nd=(S.demandes||[]).filter(d=>(d.statut||"Nouvelle")==="Nouvelle").length;
+  const nd=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
+  const at=(S.siteContenu||{}).attente||{};const ferme=at.ouvert===false;const ins=listeAttente();const prev=ins.filter(d=>d.annonceLe).length;
   return`${pageHead("Site internet",`Ce que tu modifies ici apparaît sur <a href="${SITE_URL}" target="_blank" rel="noopener">eugceo.fr</a> en quelques secondes.`)}
+  <h3>Ouverture</h3>
+  <div class="list">
+   <div class="row" style="cursor:default"><span class="t">${ferme?"Site fermé : page d'attente":"Site ouvert à tous"}</span><span class="v">${ferme?`<span class="chip warn">bientôt</span>`:`<span class="chip ok">ouvert</span>`}</span>
+    <span class="s">${ferme?"Les visiteurs voient seulement la page « Bientôt » et peuvent s'inscrire. Les liens de devis, les CGV et les mentions restent accessibles.":"Tout le site et la boutique sont visibles."}</span>
+    ${db&&canWrite?`<span class="s" style="margin-top:8px">${ferme?`<button type="button" class="btn small" data-act="site-open">Ouvrir le site</button>`:`<button type="button" class="btn ghost small" data-act="site-close">Remettre la page d'attente</button>`}</span>`:""}</div>
+   <button class="row" data-act="site-page" data-k="attente"><span class="t">Page d'attente</span><span class="v">›</span><span class="s">${esc((at.titre||"")+(at.texte?" · "+at.texte.slice(0,60)+(at.texte.length>60?"…":""):""))}</span></button>
+   <button class="row" data-act="page" data-p="liste"><span class="t">Liste d'attente</span><span class="v">${ins.length?`<span class="chip">${ins.length} inscrite${ins.length>1?"s":""}</span>`:"›"}</span><span class="s">${ins.length?(prev?prev+" déjà prévenue"+(prev>1?"s":"")+" · ":"")+"Envoie l'annonce le jour de l'ouverture.":"Les inscriptions de la page d'attente arrivent ici."}</span></button>
+   ${ferme?`<button class="row" data-act="apercu-copy"><span class="t">Lien d'aperçu privé</span><span class="v">Copier</span><span class="s">Pour voir le vrai site pendant qu'il est fermé (toi et Eugène). Ne le partage pas : il ouvre tout le site et la boutique.</span></button>`:""}
+  </div>
+  <h3>Demandes</h3>
   <div class="list"><button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${nd?`<span class="chip warn">${nd} nouvelle${nd>1?"s":""}</span>`:"›"}</span><span class="s">Commandes, rendez-vous et messages envoyés depuis le site.</span></button></div>
   <h3>Pages</h3>
   <div class="list">${SITE_PAGES.map(([k,l])=>{const c=(S.siteContenu||{})[k]||{};return`<button class="row" data-act="site-page" data-k="${k}"><span class="t">${esc(l)}</span><span class="v">›</span><span class="s">${esc((c.titre||"")+(c.texte?" · "+c.texte.slice(0,60)+(c.texte.length>60?"…":""):""))}</span></button>`}).join("")}</div>
@@ -1205,22 +1225,23 @@ function pSite(){
   <div class="list">${ps.map(p=>`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(p.site.titre||designation(p))}</span><span class="v num">${p.site.prix?eur(n(p.site.prix)):"prix ?"}</span><span class="s"><span class="code">${esc(p.code)}</span> · ${(p.site.photos||[]).length} photo${(p.site.photos||[]).length>1?"s":""}${!p.site.prix?' <span class="chip warn">sans prix</span>':""}</span></button>`).join("")||`<div class="empty">Aucune création en ligne. Ouvre une fiche dans Stock, puis coche « Afficher cette création sur eugceo.fr ».</div>`}</div>`;
 }
 function openSitePage(k){
-  const c={...((S.siteContenu||{})[k]||{})};const L0=SITE_PAGES.find(x=>x[0]===k);const ro=!(db&&canWrite);
+  const c={...((S.siteContenu||{})[k]||{})};const L0=SITE_PAGES_ALL.find(x=>x[0]===k);const ro=!(db&&canWrite);
   current={col:"site",id:k,orig:c};
   const sec=Array.isArray(c.sections)?c.sections:[];
   const media=(key,label,accept)=>`<div class="field"><span class="lbl">${label}</span><div class="mgrid" id="pgm_${key}">${c[key]?mediaThumb(c[key],0,"pg_"+key):""}</div><input type="hidden" id="pg_${key}" value="${esc(c[key]||"")}">${!ro&&assets?`<button type="button" class="linkbtn addline" data-act="pg-media" data-g="${key}" data-accept="${accept}">${c[key]?"Remplacer":"+ Ajouter"}</button>`:""}</div>`;
   const sh=$("#sheet");
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>${esc(L0?L0[1]:k)}</h2>${ro?"":`<button class="linkbtn" data-act="site-save">Enregistrer</button>`}</div></div>
   <div class="wrap"><form class="f" id="siteForm" novalidate>
-   ${k==="accueil"?F("pg_surTitre","Petit titre (au-dessus)",`<input id="pg_surTitre" value="${esc(c.surTitre||"")}">`):""}
+   ${k==="attente"?`<p class="note">Ce que voient les visiteurs tant que le site est fermé. Le formulaire d'inscription s'ajoute tout seul sous le texte.</p>`:""}
+   ${k==="accueil"||k==="attente"?F("pg_surTitre","Petit titre (au-dessus)",`<input id="pg_surTitre" value="${esc(c.surTitre||"")}">`):""}
    ${F("pg_titre","Titre",`<input id="pg_titre" value="${esc(c.titre||"")}">`)}
    ${F("pg_texte","Texte",`<textarea id="pg_texte" rows="6">${esc(c.texte||"")}</textarea>`,"Une ligne vide entre deux paragraphes.")}
    ${k==="contact"?`<div class="two">${F("pg_email","E-mail affiché",`<input id="pg_email" value="${esc(c.email||"")}">`)}${F("pg_telephone","Téléphone affiché",`<input id="pg_telephone" value="${esc(c.telephone||"")}">`)}</div>`:""}
-   ${["legal","confidentialite","cgv"].includes(k)?"":media("image","Photo de la page","image")+media("video","Vidéo de la page (remplace la photo en haut de page, sur l'accueil)","video")}
-   <fieldset><legend>Blocs</legend><div class="lines" id="secLines">${sec.map(secLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="sec-add">+ Ajouter un bloc</button>`}</fieldset>
+   ${k==="attente"?media("image","Photo (à droite sur ordinateur, en haut sur téléphone)","image"):["legal","confidentialite","cgv"].includes(k)?"":media("image","Photo de la page","image")+media("video","Vidéo de la page (remplace la photo en haut de page, sur l'accueil)","video")}
+   ${k==="attente"?"":`<fieldset><legend>Blocs</legend><div class="lines" id="secLines">${sec.map(secLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="sec-add">+ Ajouter un bloc</button>`}</fieldset>`}
    <p class="err" id="formErr" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
-   <p class="note"><a href="${SITE_URL}/#/${k==="accueil"?"":k}" target="_blank" rel="noopener">Voir la page sur le site</a></p>
+   <p class="note">${k==="attente"?`Pour la voir telle quelle, ouvre <a href="${SITE_URL}" target="_blank" rel="noopener">eugceo.fr</a> dans une fenêtre de navigation privée.`:`<a href="${SITE_URL}/#/${k==="accueil"?"":k}" target="_blank" rel="noopener">Voir la page sur le site</a>`}</p>
   </form></div>`;
   sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
 }
@@ -1229,12 +1250,91 @@ async function saveSitePage(){
   const k=current.id;const o={...current.orig};
   const v=id=>{const e=$("#"+id);return e?e.value.trim():undefined};
   for(const f of ["surTitre","titre","texte","email","telephone","image","video"]){const x=v("pg_"+f);if(x!==undefined)o[f]=x}
-  o.sections=[...document.querySelectorAll("#secLines .secline")].map(l=>({titre:l.querySelector(".secT").value.trim(),texte:l.querySelector(".secX").value.trim()})).filter(x=>x.titre||x.texte);
+  if($("#secLines"))o.sections=[...document.querySelectorAll("#secLines .secline")].map(l=>({titre:l.querySelector(".secT").value.trim(),texte:l.querySelector(".secX").value.trim()})).filter(x=>x.titre||x.texte);
   try{await db.collection("site_contenu").doc(k).set(o);closeSheet(true);toast("Page enregistrée : en ligne")}catch(e){const m=$("#formErr");m.textContent=dbErr(e);m.hidden=false}
 }
+/* ouverture du site, liste d'attente */
+function listeAttente(){const seen=new Set();return(S.demandes||[]).filter(d=>d.type==="liste").sort((a,b)=>(a.envoyeLe||"").localeCompare(b.envoyeLe||"")).filter(d=>{const k=String(d.email||"").toLowerCase();if(!k||seen.has(k))return false;seen.add(k);return true})}
+function openOuverture(ouvrir){
+  current={col:"ouverture"};const ins=listeAttente().filter(d=>!d.annonceLe).length;const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>${ouvrir?"Ouvrir le site":"Page d'attente"}</h2><span></span></div></div>
+  <div class="wrap"><div class="f">
+   ${ouvrir?`<p>Le site complet devient visible pour tout le monde : créations, prestations, rendez-vous et boutique en ligne avec paiement.</p>
+   <p class="note">Avant d'ouvrir : vérifie avec le lien d'aperçu que les créations en ligne ont leurs photos et leurs prix.</p>
+   ${ins?`<p>Ensuite, envoie l'annonce aux <b>${ins}</b> inscrite${ins>1?"s":""} de la liste d'attente (l'app te le proposera).</p>`:""}`:
+   `<p>Les visiteurs ne verront plus que la page « Bientôt » avec l'inscription. La boutique en ligne est suspendue.</p><p class="note">Les liens de devis déjà envoyés, les CGV et les mentions légales restent accessibles.</p>`}
+   <p class="err" id="formErr" hidden></p>
+   <button type="button" class="btn" data-act="${ouvrir?"site-open-ok":"site-close-ok"}">${ouvrir?"Ouvrir le site maintenant":"Remettre la page d'attente"}</button>
+  </div></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
+}
+async function setOuvert(v,b){
+  b.disabled=true;
+  try{const at={...((S.siteContenu||{}).attente||{}),ouvert:v,[v?"ouvertLe":"fermeLe"]:new Date().toISOString()};
+    await db.collection("site_contenu").doc("attente").set(at);
+    S.siteContenu={...(S.siteContenu||{}),attente:at};closeSheet(true);
+    if(v){const ins=listeAttente().filter(d=>!d.annonceLe).length;toast("Le site est ouvert");if(ins){S.page="liste";window.scrollTo(0,0);render()}}else toast("Page d'attente remise")}
+  catch(e){b.disabled=false;const m=$("#formErr");m.textContent=dbErr(e);m.hidden=false}
+}
+async function apercuCopy(){
+  try{const{data,error}=await sb.from("reglages").select("data").eq("id","apercu").maybeSingle();if(error||!data)throw 0;
+    const url=SITE_URL+"/?apercu="+encodeURIComponent(data.data.code);
+    if(navigator.clipboard){await navigator.clipboard.writeText(url);toast("Lien d'aperçu copié")}else prompt("Lien d'aperçu",url)}
+  catch(_){toast("Lien indisponible pour le moment")}
+}
+function pListe(){
+  const L2=listeAttente();const prev=L2.filter(d=>d.annonceLe).length;const reste=L2.length-prev;const ouvert=((S.siteContenu||{}).attente||{}).ouvert!==false;
+  return`${pageHead("Liste d'attente","Les personnes inscrites sur la page « Bientôt ». Elles ont accepté de recevoir un seul e-mail : l'annonce de l'ouverture.")}
+  <div class="list"><div class="row" style="cursor:default"><span class="t">${L2.length} inscrite${L2.length>1?"s":""}</span><span class="v">${prev?`<span class="chip ok">${prev} prévenue${prev>1?"s":""}</span>`:""}</span>
+   <span class="s">${!L2.length?"Personne pour l'instant.":reste?(ouvert?`${reste} à prévenir.`:`${reste} à prévenir le jour de l'ouverture. Ouvre d'abord le site, puis envoie l'annonce.`):"Tout le monde a reçu l'annonce."}</span>
+   ${db&&canWrite&&L2.length?`<span class="s" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">${reste&&ouvert?`<button type="button" class="btn small" data-act="annonce">Envoyer l'annonce d'ouverture</button>`:""}<button type="button" class="btn ghost small" data-act="liste-copy">Copier les e-mails</button></span>`:""}</div></div>
+  <div class="list">${[...L2].reverse().map(d=>`<div class="row" style="cursor:default"><span class="t">${esc(d.nom||"")}</span><span class="v">${d.annonceLe?`<span class="chip ok">prévenue</span>`:""}</span><span class="s">${esc(d.email||"")} · inscrite le ${d.envoyeLe?new Date(d.envoyeLe).toLocaleDateString("fr-FR"):""}</span></div>`).join("")||`<div class="empty">Aucune inscription pour l'instant.</div>`}</div>
+  <p class="note">Après l'annonce, n'écris plus à ces personnes sans leur accord (sauf si elles commandent ou te contactent).</p>`;
+}
+function openAnnonce(){
+  const L2=listeAttente().filter(d=>!d.annonceLe);current={col:"annonce",ids:L2.map(d=>d.id)};const sh=$("#sheet");
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Annonce d'ouverture</h2><span></span></div></div>
+  <div class="wrap"><form class="f" id="anForm" novalidate>
+   <p class="note">À : <b>${L2.length}</b> inscrite${L2.length>1?"s":""} pas encore prévenue${L2.length>1?"s":""}. Chacune reçoit son propre e-mail, avec ta carte de visite en signature.</p>
+   ${F("an_sujet","Objet",`<input id="an_sujet" value="La Maison EUGCEO est ouverte">`)}
+   ${F("an_texte","Message",`<textarea id="an_texte" rows="12">${esc(`Bonjour {prénom},
+
+Tu t'étais inscrite pour être prévenue : la Maison EUGCEO est ouverte.
+
+Découvre les premières créations, préparées et personnalisées une à une :
+https://eugceo.fr
+
+À très vite,
+EUGCEO`)}</textarea>`,"{prénom} est remplacé par le prénom de chaque inscrite.")}
+   <p class="note" id="anProg" hidden></p>
+   <p class="err" id="formErr" hidden></p>
+   <button type="button" class="btn" data-act="annonce-send">Envoyer à ${L2.length} personne${L2.length>1?"s":""}</button>
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
+}
+async function sendAnnonce(b){
+  const sujet=$("#an_sujet").value.trim(),texte=$("#an_texte").value.trim(),eb=$("#formErr"),pg=$("#anProg");
+  if(!sujet||texte.length<10){eb.textContent="Écris l'objet et le message.";eb.hidden=false;return}
+  const L2=listeAttente().filter(d=>!d.annonceLe&&current.ids.includes(d.id));const MAX=95;
+  b.disabled=true;eb.hidden=true;pg.hidden=false;let ok=0,ko=0;
+  for(const d of L2.slice(0,MAX)){
+    pg.textContent=`Envoi ${ok+ko+1} sur ${Math.min(L2.length,MAX)}…`;
+    const prenom=String(d.nom||"").trim().split(" ")[0]||"";
+    try{await sendMail({to:d.email,subject:sujet,text:texte.replace(/\{pr[ée]nom\}/gi,prenom).replace(/Bonjour ,/,"Bonjour,"),demandeId:d.id});
+      const le=new Date().toISOString();const same=(S.demandes||[]).filter(x=>x.type==="liste"&&String(x.email||"").toLowerCase()===String(d.email).toLowerCase());
+      for(const x of same){x.annonceLe=le;try{await db.collection("demandes").doc(x.id).update({annonceLe:le,statut:"Traitée",traiteLe:le})}catch(_){}}
+      ok++}
+    catch(e){ko++;if(e&&e.code==="non_configure"){eb.textContent="L'envoi d'e-mails depuis l'app n'est pas activé.";eb.hidden=false;break}}
+    await new Promise(r=>setTimeout(r,650));
+  }
+  const rest=listeAttente().filter(d=>!d.annonceLe).length;
+  pg.textContent=`${ok} e-mail${ok>1?"s":""} envoyé${ok>1?"s":""}${ko?`, ${ko} en échec`:""}.${rest?` Il en reste ${rest} : ${L2.length>MAX?"l'offre gratuite d'envoi est limitée à 100 e-mails par jour, reprends demain. ":""}les personnes déjà prévenues ne recevront rien une deuxième fois.`:" Tout le monde est prévenu."}`;
+  b.disabled=false;b.textContent=rest?"Continuer l'envoi":"Fermer";if(!rest)b.dataset.act="close";else current.ids=listeAttente().filter(d=>!d.annonceLe).map(d=>d.id);render();
+}
+
 /* demandes */
 function pDemandes(){
-  const f=S.demFilter||"nouvelles";let L2=[...(S.demandes||[])];
+  const f=S.demFilter||"nouvelles";let L2=(S.demandes||[]).filter(d=>d.type!=="liste");
   if(f==="nouvelles")L2=L2.filter(d=>(d.statut||"Nouvelle")==="Nouvelle");
   if(f==="traitees")L2=L2.filter(d=>d.statut==="Traitée");
   L2.sort((a,b)=>(b.envoyeLe||"").localeCompare(a.envoyeLe||""));
