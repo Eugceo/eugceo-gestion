@@ -1299,9 +1299,9 @@ function openAnnonce(){
    ${F("an_sujet","Objet",`<input id="an_sujet" value="La Maison EUGCEO est ouverte">`)}
    ${F("an_texte","Message",`<textarea id="an_texte" rows="12">${esc(`Bonjour {prénom},
 
-Tu t'étais inscrite pour être prévenue : la Maison EUGCEO est ouverte.
+Vous vous étiez inscrite pour être prévenue : la Maison EUGCEO est ouverte.
 
-Découvre les premières créations, préparées et personnalisées une à une :
+Découvrez les premières créations, préparées et personnalisées une à une :
 https://eugceo.fr
 
 À très vite,
@@ -1451,7 +1451,7 @@ async function devisEnvoyer(id){
   const d=S.devis.find(x=>x.id===id);if(!d)return;
   if(d.statut!=="Envoyé"){try{await db.collection("devis").doc(id).update({statut:"Envoyé",envoyeLe:new Date().toISOString()});d.statut="Envoyé"}catch(e){toast(dbErr(e));return}}
   const url=devisLien(d);const prenom=(d.client||"").split(" ")[0];
-  const txt=`Bonjour ${prenom},\n\nVoici ton devis EUGCEO ${d.numero} (${eur(devisTotal(d))}). Tu peux le consulter et l'accepter ici :\n${url}\n\nÀ très vite,\nEUGCEO`;
+  const txt=`Bonjour ${prenom},\n\nVoici votre devis EUGCEO ${d.numero} (${eur(devisTotal(d))}). Vous pouvez le consulter et l'accepter ici :\n${url}\n\nÀ très vite,\nEUGCEO`;
   const canMail=!!d.email;
   S.dvShare={id,html:`<div class="list" style="padding:12px;gap:10px;display:flex;flex-direction:column"><b>Envoyer le lien à ${esc(d.client)}</b>
     ${navigator.share?`<button class="btn" data-act="dv-share">Partager (WhatsApp, SMS…)</button>`:""}
@@ -1475,14 +1475,14 @@ function mailtoUrl(to,subject,body){return"mailto:"+encodeURIComponent(to)+"?sub
 function openReply(id){
   const dm=(S.demandes||[]).find(x=>x.id===id);if(!dm)return;
   current={col:"reply",id,orig:dm};const prenom=(dm.nom||"").split(" ")[0];
-  const sujet=dm.type==="commande"?"Ta demande pour "+(dm.produit||"une création EUGCEO"):dm.type==="rdv"?"Ta demande de rendez-vous":"Ton message à EUGCEO";
+  const sujet=dm.type==="commande"?"Votre demande pour "+(dm.produit||"une création EUGCEO"):dm.type==="rdv"?"Votre demande de rendez-vous":"Votre message à EUGCEO";
   const sh=$("#sheet");
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Répondre</h2><button class="linkbtn" data-act="rp-send">Envoyer</button></div></div>
   <div class="wrap"><form class="f" id="rpForm" novalidate>
    <p class="note">À : <b>${esc(dm.nom)}</b> · ${esc(dm.email||"pas d'e-mail")}</p>
    ${dm.message?`<p class="note" style="white-space:pre-wrap;border-left:2px solid var(--line);padding-left:10px">${esc(dm.message)}</p>`:""}
    ${F("rp_sujet","Objet",`<input id="rp_sujet" value="${esc("EUGCEO · "+sujet)}">`)}
-   ${F("rp_texte","Message",`<textarea id="rp_texte" rows="10">${esc(`Bonjour ${prenom},\n\nMerci pour ton message.\n\n\n\nÀ très vite,\nEUGCEO`)}</textarea>`)}
+   ${F("rp_texte","Message",`<textarea id="rp_texte" rows="10">${esc(`Bonjour ${prenom},\n\nMerci pour votre message.\n\n\n\nÀ très vite,\nEUGCEO`)}</textarea>`)}
    <p class="err" id="formErr" hidden></p>
    <button class="btn" type="submit">Envoyer</button>
    ${dm.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(dm.telephone))}" target="_blank" rel="noopener">Répondre sur WhatsApp</a>`:""}
@@ -1591,11 +1591,11 @@ async function lienSolde(b){
     let d=data;if(error){try{d=await error.context.json()}catch(_){d={}}}
     b.disabled=false;
     if(!d||!d.url){box.innerHTML=`<p class="err">${d&&d.error==="non_configure"?"Le paiement en ligne n'est pas encore activé (clé Stripe manquante).":d&&d.error==="rien_a_payer"?"Il n'y a plus rien à payer sur cette vente.":"Le lien n'a pas pu être créé. Réessaie."}</p>`;return}
-    const prenom=(v.client||"").split(" ")[0];const txt=`Bonjour ${prenom},\n\nTa création est prête ! Voici le lien pour régler le solde de ${eur(d.montant)} avant l'expédition :\n${d.url}\n\nLe lien est valable 23 heures.\n\nÀ très vite,\nEUGCEO`;
+    const prenom=(v.client||"").split(" ")[0];const txt=`Bonjour ${prenom},\n\nVotre création est prête ! Voici le lien pour régler le solde de ${eur(d.montant)} avant l'expédition :\n${d.url}\n\nLe lien est valable 23 heures.\n\nÀ très vite,\nEUGCEO`;
     window.__slShare={title:"Solde EUGCEO",text:txt,url:d.url};
     box.innerHTML=`<div class="list" style="padding:12px;gap:10px;display:flex;flex-direction:column"><b>Lien prêt (${eur(d.montant)}, valable 23 h)</b>
       ${navigator.share?`<button type="button" class="btn" data-act="sl-share">Partager (WhatsApp, SMS…)</button>`:""}
-      ${v.email?`<a class="btn ghost" href="${esc(mailtoUrl(v.email,"EUGCEO · Solde de ta commande",txt))}">Envoyer par e-mail</a>`:""}
+      ${v.email?`<a class="btn ghost" href="${esc(mailtoUrl(v.email,"EUGCEO · Solde de votre commande",txt))}">Envoyer par e-mail</a>`:""}
       ${v.telephone?`<a class="btn ghost" href="https://wa.me/${esc(waNum(v.telephone))}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">WhatsApp</a>`:""}
       <button type="button" class="linkbtn" data-act="sl-copy">Copier le lien</button><span class="hint" style="overflow-wrap:anywhere">${esc(d.url)}</span>
       <span class="hint">Quand la cliente aura payé, la vente passera toute seule en « Payée ».</span></div>`;
