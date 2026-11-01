@@ -250,10 +250,11 @@ const L={
   natures:{"Capital social versé":1,"Apport en compte courant d'associé":1,"Emprunt reçu":1,"Subvention reçue":1,"Remboursement de TVA reçu":1,"Autre entrée d'argent":1,"Remboursement de compte courant":-1,"Remboursement d'emprunt":-1,"Paiement de la TVA":-1,"Paiement de l'impôt sur les sociétés":-1,"Autre sortie d'argent":-1},
   motifs:{"Retour cliente":1,"Perte ou défaut":-1,"Usage interne / démonstration":-1,"Échantillon offert":-1,"Inventaire : surplus trouvé":1,"Inventaire : manquant":-1,"Transformation (sortie)":-1,"Transformation (entrée)":1},
   destinations:["France métropolitaine","Union européenne","Guyane","Guadeloupe","Martinique","La Réunion","Mayotte","Suriname","Autre pays hors UE"],
-  packaging:["Aucun","Standard","Premium","Signature"],
+  packaging:["Aucun","Bundle","Standard","Premium","Signature"],
+  typesBundle:["Simple (non doublé)","Doublé","Super doublé"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.6,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.7,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -262,10 +263,13 @@ const BONUS={
   "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03},
   "Couleur spéciale":{"Naturelle":0,"Ginger":0.06,"Blond":0.05,"Burgundy":0.05,"Ombre":0.08,"Décoloré":0.07,"Mèches":0.04,"Fantasy":0.1},
   "Collection":{"Basique":0,"Premium":0.1,"Signature":0.25,"Unique":0.4},
-  "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2}
+  "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2},
+  "Type de bundle":{"Simple (non doublé)":0,"Doublé":0.1,"Super doublé":0.18},
+  "Texture":{"Straight":0,"Bob":0,"Ponytail":0,"Yaki Straight":0.02,"Body Wave":0.02,"Kinky Straight":0.03,"Loose Wave":0.03,"Water Wave":0.04,"Deep Wave":0.04,"Loose Deep":0.04,"Indian Curly":0.05,"Jerry Curly":0.05,"Burmese Curly":0.06,"Pixie Curly":0.06,"Kinky Curly":0.06,"Afro Curly":0.06,"Boucle Customisé":0.06}
 };
 const PALIERS={
-  longueur:[[8,0],[10,0.01],[12,0.02],[14,0.03],[16,0.05],[18,0.07],[20,0.1],[22,0.13],[24,0.16],[26,0.2],[28,0.24],[30,0.28],[32,0.32],[34,0.36],[36,0.4],[38,0.44],[40,0.48]],
+  longueur:[[0,-0.45],[10,-0.42],[12,-0.38],[14,-0.3],[16,-0.2],[18,-0.08],[20,0.04],[22,0.1],[24,0.16],[26,0.2],[28,0.24],[30,0.28],[32,0.32],[34,0.36],[36,0.4],[38,0.44],[40,0.48]],
+  longueurBundle:[[0,-0.12],[12,-0.08],[14,-0.06],[16,-0.04],[18,0],[20,0.03],[22,0.06],[24,0.09],[26,0.12],[28,0.15],[30,0.18],[32,0.21],[34,0.24],[36,0.27],[38,0.3],[40,0.33]],
   densite:[[2,0.15],[2.2,0.2],[2.5,0.28],[3,0.38]],
   prix:[[0,0.15],[20,0.12],[40,0.1],[60,0.08],[80,0.06],[100,0.04],[120,0.03],[140,0.02],[160,0.01],[180,0],[200,-0.01],[220,-0.02],[240,-0.03],[260,-0.04],[280,-0.05],[300,-0.06]]
 };
@@ -276,7 +280,7 @@ const TRAVAUX={"Pose":2,"Remise en forme":1,"Préparation de base":1.5,"Colorati
 function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle (Tissage)")return 0;if(["Demi-tête (Half Wig)","Ponytail (Queue de cheval)"].includes(p.construction))return 0.5;return 1.5}
 
 /* ---------- état ---------- */
-const S={devis:[],demandes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
+const S={devis:[],demandes:[],codes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -364,23 +368,28 @@ function heuresVente(d){const t=Array.isArray(d.travaux)?d.travaux:null;if(t)ret
 function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce((s,x)=>s+n(x.qte)*n(x.prix),0)):0}
 function coutVente(p,d){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);const pack=d.packaging;
-  const packC=pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
-  const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH)));const mat=matieresVente(d);const tr=pr?0:n(R.transport);
+  const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
+  const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH)));const mat=matieresVente(d);const tr=pr?0:isBundle(p)?n(R.transportBundle):n(R.transport);
   const revient=r2(n(p.prixAchat)+mo+mat+packC+tr);
   const fh=Array.isArray(d.travaux)?d.travaux.filter(x=>x.nom==="Remise en forme").reduce((s2,x)=>s2+n(x.heures),0):0;
   return {fh,achat:n(p.prixAchat),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
 }
 function prixPlancher(p,heures,pack){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);
-  const packC=pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
+  const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
   const h=heures===""||heures==null?n(R.tempsDefaut):n(heures);
-  const revient=n(p.prixAchat)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:n(R.transport));
+  const revient=n(p.prixAchat)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:isBundle(p)?n(R.transportBundle):n(R.transport));
   return {revient:r2(revient),plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
 }
+function isBundle(p){return !!p&&/^Bundle/.test(p.construction||"")}
+function bonusPoids(p){const a=n(p.poidsAnnonce),r=n(p.poidsReel);if(!a||!r)return 0;return r2(Math.max(-0.3,Math.min(0.1,r/a-1)))}
+function arrondiPrix(v){const a=n(S.reglages.arrondi);return a>0?Math.round(v/a)*a:Math.round(v)}
 function coefVente(p,couleurSpe,niveau,collection){
   if(!p)return 0;const b=(cat,v)=>(BONUS[cat]&&BONUS[cat][v])||0;const de=n(p.densite);
-  return r2(n(S.reglages.coefBase||1.6)+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
-    +palier(PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
+  const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.7):n(S.reglages.coefBase||1.45);
+  return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
+    +b("Texture",p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
+    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
@@ -391,7 +400,7 @@ function prixConseille(p,pp,couleurSpe,niveau,collection){
   if(isPose(p)){const f=forfaitPose(pp.heures);return {coef:c,prix:f,forfait:true,label:"Forfait pose"}}
   if(isRemise(p)){const R=S.reglages;const exRev=r2(Math.max(0,pp.heures-(pp.fh||0))*n(R.tauxPrest)+pp.mat+pp.pack);const extra=exRev>0?Math.round(exRev*c/(1-n(R.fraisVente))):0;
     return {coef:c,prix:n(R.remisePrix)+extra,forfait:"remise",extra,label:"Forfait remise en forme "+eur(n(R.remisePrix))+(extra?" + suppléments "+eur(extra)+" =":"")}}
-  return {coef:c,prix:Math.round(pp.revient*c/(1-n(S.reglages.fraisVente)))};
+  return {coef:c,prix:arrondiPrix(pp.revient*c/(1-n(S.reglages.fraisVente)))};
 }
 function aboOccurrences(a){
   const out=[];if(!a.debut)return out;
@@ -429,7 +438,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId)}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),parrainage:pParrainage}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -499,6 +508,7 @@ function vAccueil(){
     <h2>Réglages</h2>
     <div class="list">
       <button class="row" data-act="page" data-p="societe"><span class="t">Société</span><span class="v">›</span><span class="s">SIREN, adresse, exercice : utilisés sur les factures.</span></button>
+      <button class="row" data-act="page" data-p="parrainage"><span class="t">Parrainage</span><span class="v">›</span><span class="s">Le code de chaque cliente, ses filleules et sa cagnotte.</span></button>
       <button class="row" data-act="reglages"><span class="t">Réglages des prix</span><span class="v">›</span><span class="s">Taux horaire, transport, packaging, marge, coefficient.</span></button>
       <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Couleurs et modèles, avec leurs codes et bonus.</span></button>
       <button class="row" data-act="export-xlsx"><span class="t">Exporter pour Excel</span><span class="v">↓</span><span class="s">Un fichier .xlsx avec tout, pour un comptable.</span></button>
@@ -722,13 +732,19 @@ function fVente(d){
   ${F("produitId","Produit ou prestation",prodSelect("produitId",d.produitId))}
   <fieldset><legend>Fiche de création</legend>
     <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
-    <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||"Standard"))}</div>
+    <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||(isBundle(prod(d.produitId))?"Bundle":"Standard")))}</div>
     <div class="field"><span class="lbl">Travaux réalisés (temps)</span><span class="hint">Écris le temps comme tu le dis : 1h30, 35min, 2h, 0h45.</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
   </fieldset>
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="preview" id="pvVente"></div>
+  <fieldset><legend>Parrainage</legend>
+    ${F("codePromo","Code promo d'une autre cliente",inp("codePromo",d.codePromo,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"'),"Elle a −"+RP().pct+" % à partir de "+eur(RP().min)+" d'achat. Pas avec la cagnotte.")}
+    <label class="check" id="cagBox"><input type="checkbox" id="utiliserCagnotte"${d.cagnotteCode?" checked":""}> <span>Utiliser sa cagnotte sur cette vente</span></label>
+    <input type="hidden" name="cagnotteCode" id="cagnotteCode" value="${esc(d.cagnotteCode||"")}"><input type="hidden" name="cagnottePct" id="cagnottePct" value="${esc(d.cagnottePct||"")}"><input type="hidden" name="cagnotteLe" id="cagnotteLe" value="${esc(d.cagnotteLe||"")}">
+    <div class="preview" id="pvCode"></div>
+  </fieldset>
   <fieldset><legend>Paiement</legend>
     <div class="two">${F("statut","Statut",sel("statut",L.statutsVente,paid))}${F("paiement","Moyen",sel("paiement",L.paiements,d.paiement||"Carte bancaire"))}</div>
     ${F("dateEncaissement","Date d'encaissement",dateI("dateEncaissement",d.dateEncaissement||(d.id?"":today())),"Le jour où l'argent est arrivé (vente payée).")}
@@ -737,7 +753,8 @@ function fVente(d){
     ${F("avanceType","Type d'avance",sel("avanceType",["Aucune","Acompte","Arrhes"],d.avanceType||"Aucune"),"Acompte : la vente est ferme, la cliente doit tout payer. Arrhes : elle peut annuler en les perdant (statut « Annulée »).")}
     <div class="two">${F("avanceMontant","Montant (€)",money("avanceMontant",d.avanceMontant))}${F("avanceDate","Date du versement",dateI("avanceDate",d.avanceDate))}</div>
   </fieldset>
-  <details class="more"${d.adresse||d.ville?" open":""}><summary>Adresse pour la facture</summary><div>
+  <details class="more"${d.adresse||d.ville||d.email||d.telephone?" open":""}><summary>Coordonnées et adresse pour la facture</summary><div>
+    <div class="two">${F("email","E-mail",inp("email",d.email,'type="email" autocomplete="off"'))}${F("telephone","Téléphone",inp("telephone",d.telephone,'type="tel"'))}</div>
     ${F("adresse","Adresse",inp("adresse",d.adresse))}${F("ville","Code postal et ville",inp("ville",d.ville))}${F("destination","Destination",sel("destination",L.destinations,d.destination||"France métropolitaine"))}
   </div></details>
   ${F("commentaire","Commentaire",`<textarea id="commentaire" name="commentaire">${esc(d.commentaire||"")}</textarea>`)}`;
@@ -779,6 +796,8 @@ function fProduit(d){
   <div class="two">${F("laceTaille","Taille de lace",sel("laceTaille",L.laceTailles,d.laceTaille,"Pas de lace"))}${F("laceQualite","Qualité de lace",sel("laceQualite",L.laceQualites,d.laceQualite,"—"))}</div>
   <div class="two">${F("longueur","Longueur (pouces)",inp("longueur",d.longueur,'inputmode="numeric"'))}${F("densite","Densité (%)",money("densite",d.densite?(n(d.densite)<10?n(d.densite)*100:n(d.densite)):""),"ex. 250")}</div>
   ${F("cheveux","Qualité de cheveux",sel("cheveux",L.cheveux,d.cheveux,"—"))}
+  ${F("typeBundle","Type de bundle",sel("typeBundle",L.typesBundle,d.typeBundle,"—"),"Pour les bundles seulement.")}
+  <div class="two">${F("poidsAnnonce","Poids annoncé (g)",inp("poidsAnnonce",d.poidsAnnonce,'inputmode="numeric"'))}${F("poidsReel","Poids réel pesé (g)",inp("poidsReel",d.poidsReel,'inputmode="numeric"'),"Un poids sous l'annonce baisse le prix conseillé.")}</div>
   ${F("couleur","Couleur",inp("couleur",d.couleur,'list="dlCol" autocomplete="off"'))}
   <datalist id="dlCol">${colors.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
   <div class="two">${F("prixAchat","Prix d'achat (€)",money("prixAchat",d.prixAchat),"0 pour une prestation.")}${F("seuil","Seuil d'alerte",inp("seuil",d.seuil,'inputmode="numeric"'),"Alerte quand le stock descend à ce nombre.")}</div>
@@ -816,7 +835,7 @@ function fAbo(d){
   <div class="two">${F("jour","Jour du prélèvement",inp("jour",d.jour,'inputmode="numeric"'))}${F("moyen","Moyen",sel("moyen",L.paiements,d.moyen||"Carte bancaire"))}</div>
   <div class="two">${F("debut","Début",dateI("debut",d.debut||today()))}${F("fin","Fin (si arrêté)",dateI("fin",d.fin))}</div>`;
 }
-const NUMERIC=new Set(["prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite"]);
+const NUMERIC=new Set(["prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
 let current=null;
 function openChooser(){
   const sh=$("#sheet");
@@ -867,6 +886,7 @@ function livePreview(){
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
     $("#pvProd").innerHTML=code?`<span>Code créé automatiquement${p.type==="Prestation"?" (prestation : prix d'achat à 0)":""}</span><span class="code">${esc(code)}</span><span>${esc(designation(p))}</span>`:`<span>Le code apparaît dès que le modèle est rempli.</span>`;
   }
+  if(c==="ventes")pvCode(d);
   if(c==="ventes"){
     const p=prod(d.produitId);const box=$("#pvVente");
     if(!p){box.innerHTML=`<span>Choisis le produit pour voir le prix conseillé et le prix plancher.</span>`;return}
@@ -890,7 +910,8 @@ function livePreview(){
 }
 function validate(col,d){
   const e=[];
-  if(col==="ventes"){if(!d.client)e.push("le nom de la cliente");if(!d.produitId)e.push("le produit");if(!n(d.prixTTC))e.push("le prix");if(d.avanceType!=="Aucune"&&!n(d.avanceMontant))e.push("le montant de l'avance")}
+  if(col==="ventes"){if(!d.client)e.push("le nom de la cliente");if(!d.produitId)e.push("le produit");if(!n(d.prixTTC))e.push("le prix");if(d.avanceType!=="Aucune"&&!n(d.avanceMontant))e.push("le montant de l'avance");
+    const ck=checkCode(d);if(ck.err)return ck.err}
   if(col==="achats"){if(!d.produitId)e.push("le produit");if(!n(d.quantite))e.push("la quantité");if(!n(d.prixUnit))e.push("le prix unitaire");if(d.devise!=="EUR"&&!n(d.taux))e.push("le taux de change")}
   if(col==="depenses"){if(!d.fournisseur)e.push("le fournisseur");if(!d.categorie)e.push("la catégorie");if(!n(d.montant))e.push("le montant")}
   if(col==="produits"){if(!d.modele)e.push("le modèle")}
@@ -912,7 +933,8 @@ async function save(){
       eb.textContent="Ce produit existe déjà : "+ex.code+". Choisis-le dans la liste au lieu de le recréer.";eb.hidden=false;return}
     d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st)d.site=st}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
-    const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date)}
+    const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date);
+    d.codePromo=normCode(d.codePromo);if(!d.cagnotteCode){d.cagnottePct="";d.cagnotteLe=""}}
   if(col==="matieres"){const u=d.uniteAchat||"unité";const f=u==="L"||u==="kg"?1000:1;d.contAchat=n(d.contenance)||1;d.contenance=d.contAchat*f;d.unite=u==="L"?"ml":u==="kg"?"g":u;d.prix=Math.round(n(d.prixCond)/d.contenance*10000)/10000}
   if(col==="achats"&&!orig.ref)d.ref=nextRef("achats","A-",5);
   if((col==="achats"||col==="depenses")&&d.datePaiement)d.echeance=d.echeance||"";
@@ -927,6 +949,7 @@ async function save(){
     await ref.set(body);
     if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",traiteLe:new Date().toISOString()})}catch(_){}}
     if(devisId){try{await db.collection("devis").doc(devisId).update({venteId:ref.id})}catch(_){}}
+    if(col==="ventes")ensureCode(body.client,body.email,body.telephone);
     if(col==="produits"&&S.returnTo){toast("Produit créé : "+body.code);afterProduct(ref.id,body);return}
     closeSheet(true);toast(orig.id?"Modifié":"Enregistré");
   }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false;if(e&&e.code==="invalid_argument"){canWrite=false;render()}}
@@ -966,6 +989,9 @@ function openReglages(){
    <div class="two">${row("tauxH","Taux horaire création (€/h)")}${row("tauxPrest","Taux horaire prestation (€/h)")}</div>
    <div class="two">${row("transport","Transport + import par pièce (€)","Fret, douane, TVA import.")}${row("tempsDefaut","Temps par défaut (h)")}</div>
    <div class="three">${row("packStandard","Pack Standard (€)")}${row("packPremium","Pack Premium (€)")}${row("packSignature","Pack Signature (€)")}</div>
+   <fieldset><legend>Bundles</legend>
+    <div class="three">${row("coefBaseBundle","Coefficient de base")}${row("packBundle","Pack Bundle (€)")}${row("transportBundle","Transport + import (€)")}</div>
+    <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut, sa propre base de coefficient.</p></fieldset>
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
     <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
@@ -978,7 +1004,11 @@ function openReglages(){
     <div class="two">${row("remisePrix","Prix (€)")}${row("remiseH","Temps compris (heures)","Sert au prix de revient.")}</div>
     <p class="note">Comprend le nettoyage et le lissage ou la redéfinition des boucles. Tout autre travail ajouté dans la vente (coloration, coupe…) s'ajoute au forfait.</p></fieldset>
    ${row("coefBase","Coefficient de base","Le curseur de positionnement de la Maison. Chaque caractéristique du produit y ajoute un bonus.")}
-   <p class="note">Prix conseillé = prix de revient × coefficient ÷ (1 − frais de vente).</p>
+   ${row("arrondi","Arrondi du prix conseillé (€)","5 = arrondi aux 5 € les plus proches. 0 = à l'euro.")}
+   <fieldset><legend>Parrainage</legend>
+    <div class="two">${row("parrainPct","Remise filleule et gain marraine (%)")}${row("parrainMin","Achat minimum (€)")}</div>
+    <div class="two">${row("parrainPlafond","Plafond de la cagnotte (€)","La cagnotte ne déduit jamais plus que ce montant (création offerte à 100 %).")}${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</div></fieldset>
+   <p class="note">Prix conseillé = prix de revient × coefficient ÷ (1 − frais de vente), arrondi.</p>
    <p class="note">Prix plancher = (prix d'achat + temps × taux + packaging + transport) × (1 + marge) ÷ (1 − frais de vente).</p>
    <p class="err" id="formErr" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
@@ -1085,8 +1115,9 @@ document.addEventListener("input",e=>{
   if(e.target.closest("#tfForm"))tfPreview();
 });
 document.addEventListener("change",e=>{
+  if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&!current.id){const box=$("#trLines");const p=prod(e.target.value);if(box&&p){const base=box.querySelector(".line .trNom");const h=prepBase(p);
-    const pk=$("#packaging");if(pk&&isPrestation(p))pk.value="Aucun";
+    const pk=$("#packaging");if(pk&&isPrestation(p))pk.value="Aucun";else if(pk&&isBundle(p))pk.value="Bundle";else if(pk&&pk.value==="Bundle")pk.value="Standard";
     if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseH1)}));
     else if(isRemise(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Remise en forme",heures:n(S.reglages.remiseH)}));
     else if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
@@ -1123,6 +1154,86 @@ function soc(){return{...DEF_SOCIETE,...(S.societe||{})}}
 
 /* ---------- numérotation ---------- */
 function nextRef(col,prefix,digits){let max=0;for(const x of S[col]){const m=String(x.ref||x.numero||"").match(new RegExp("^"+prefix.replace(/[-]/g,"\\-")+"(\\d+)$"));if(m)max=Math.max(max,Number(m[1]))}return prefix+String(max+1).padStart(digits,"0")}
+/* ---------- parrainage : un code par cliente, -10 % pour la filleule, cagnotte pour la marraine ---------- */
+function RP(){const r=S.reglages||{};return{pct:n(r.parrainPct)||10,min:n(r.parrainMin)||150,plafond:n(r.parrainPlafond)||250,delai:n(r.parrainDelai)||14}}
+function normCode(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,20)}
+function nomSimple(s){return String(s||"").replace(/^\s*\[test\]\s*/i,"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim()}
+function estTest(nom){return/^\s*\[test\]/i.test(nom||"")}
+function codeDeCliente(nom,email){const em=String(email||"").toLowerCase().trim(),nm=nomSimple(nom),C=S.codes||[];
+  return(em&&C.find(c=>String(c.email||"").toLowerCase()===em))||(nm&&C.find(c=>nomSimple(c.cliente)===nm&&(!em||!c.email)))||null}
+function addDays(d,k){const x=new Date((d||today())+"T12:00:00");x.setDate(x.getDate()+k);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
+/* même calcul que la base (fonction _parrainage_etat) */
+function cagnotte(code,exclId){
+  const R=RP(),t=today();const vs=S.ventes.filter(v=>v.id!==exclId&&dansCA(v));
+  const dern=vs.filter(v=>v.cagnotteCode===code&&v.cagnotteLe).map(v=>v.cagnotteLe).sort().pop()||"";
+  const cmd=new Map();
+  for(const v of vs){if(v.codePromo!==code||estTest(v.client))continue;const k=v.paiementId||v.id;
+    const o=cmd.get(k)||{payee:true,d:"",cliente:v.client,date:v.date,total:0};o.payee=o.payee&&v.statut==="Payée";
+    const dd=v.dateEncaissement||v.date||"";if(dd>o.d)o.d=dd;o.total=r2(o.total+venteTotal(v));cmd.set(k,o)}
+  let nb=0,att=0;const list=[];
+  for(const o of cmd.values()){o.acquis=addDays(o.d,R.delai);o.ok=o.payee&&o.acquis<=t;o.compte=o.ok&&(!dern||o.acquis>dern);if(o.compte)nb++;if(!o.ok)att++;list.push(o)}
+  list.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  return{pct:Math.min(100,nb*R.pct),nb,enAttente:att,commandes:list,dern}
+}
+function sousTotalVente(d){return r2(Math.max(1,n(d.quantite)||1)*n(d.prixTTC))}
+function checkCode(d){
+  const R=RP();const site=current&&current.orig&&current.orig.origine==="site";
+  const code=normCode(d.codePromo);const own=codeDeCliente(d.client,d.email);
+  if(code&&d.cagnotteCode)return{err:"Pas de cumul : soit le code promo, soit la cagnotte."};
+  if(code){const c=(S.codes||[]).find(x=>x.id===code);
+    if(!c)return S.codesOk?{err:"Code promo inconnu : "+code+"."}:{};
+    if(own&&own.id===c.id)return{err:"C'est le code de "+(d.client||"la cliente")+" : elle ne peut pas utiliser son propre code."};
+    if(!site&&sousTotalVente(d)<R.min)return{err:"Le code promo demande un achat d'au moins "+eur(R.min)+" (ici "+eur(sousTotalVente(d))+")."};
+    return{ok:true,c,remise:r2(sousTotalVente(d)*R.pct/100)}}
+  return{};
+}
+function setRemise(d,want){const el=$("#remise");if(!el)return;if(el.value===""||(current.autoRemise!==undefined&&n(el.value)===current.autoRemise)){el.value=String(want).replace(".",",");d.remise=want}current.autoRemise=want}
+function pvCode(d){
+  const box=$("#pvCode");if(!box)return;const R=RP();const own=codeDeCliente(d.client,d.email);const out=[];
+  if(d.client&&!estTest(d.client))out.push(own?`<span>Code de ${esc(d.client.split(" ")[0])} : <span class="code">${esc(own.id)}</span></span>`:`<span>Son code de parrainage sera créé à l'enregistrement.</span>`);
+  const cg=own?cagnotte(own.id,current&&current.id):null;
+  const cb=$("#cagBox");if(cb)cb.hidden=!(d.cagnotteCode||(cg&&cg.pct>0));
+  if(cg&&(cg.pct>0||cg.enAttente))out.push(`<span>Cagnotte : <b>${cg.pct} %</b>${cg.pct?` (jusqu'à ${eur(R.plafond)})`:""}${cg.enAttente?` · ${cg.enAttente} filleule${cg.enAttente>1?"s":""} en attente (délai de ${R.delai} jours)`:""}</span>`);
+  if(d.cagnotteCode){const pct=n(d.cagnottePct);const want=r2(Math.min(sousTotalVente(d)*pct/100,R.plafond));setRemise(d,want);out.push(`<span>Cagnotte utilisée : ${pct} % → remise <b class="num">${eur(want)}</b>. Elle repartira à zéro.</span>`)}
+  const ck=checkCode(d);
+  if(ck.err)out.push(`<span class="err">${esc(ck.err)}</span>`);
+  else if(ck.ok){setRemise(d,ck.remise);out.push(`<span>Code ${esc(ck.c.id)} de ${esc(ck.c.cliente||"")} : −${R.pct} % → remise <b class="num">${eur(ck.remise)}</b>. ${esc((ck.c.cliente||"").split(" ")[0])} gagnera ${R.pct} % de cagnotte ${R.delai} jours après le paiement.</span>`)}
+  if(!d.cagnotteCode&&!ck.ok&&current.autoRemise!==undefined){const el=$("#remise");if(el&&n(el.value)===current.autoRemise){el.value="";d.remise=""}current.autoRemise=undefined}
+  box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une autre cliente, écris son code ici.</span>`;
+}
+function toggleCagnotte(on){
+  const d=formData();const own=codeDeCliente(d.client,d.email);const R=RP();
+  const cc=$("#cagnotteCode"),cp=$("#cagnottePct"),cl=$("#cagnotteLe"),box=$("#utiliserCagnotte");
+  if(on){
+    const cg=own?cagnotte(own.id,current&&current.id):null;
+    if(!cg||!cg.pct){box.checked=false;toast(own?"Sa cagnotte est vide pour l'instant":"Cette cliente n'a pas encore de code");return}
+    cc.value=own.id;cp.value=cg.pct;cl.value=d.date||today();const pc=$("#codePromo");if(pc)pc.value="";
+  }else{cc.value="";cp.value="";cl.value="";const el=$("#remise");if(el&&current.autoRemise!==undefined&&n(el.value)===current.autoRemise){el.value="";current.autoRemise=undefined}}
+  livePreview();
+}
+async function ensureCode(nom,email,tel){
+  if(!nom||estTest(nom)||!db)return null;const ex=codeDeCliente(nom,email);if(ex&&(!email||ex.email))return ex.id;
+  try{const{data,error}=await sb.rpc("code_cliente",{p_nom:nom,p_email:email||"",p_tel:tel||""});if(error)throw error;return data}catch(e){console.warn("code",e);return null}
+}
+let syncing=false;
+async function syncCodes(){
+  if(syncing||S.syncDone||!S.codesOk||!S.loaded.has("ventes")||!db)return;syncing=true;
+  try{const vus=new Set();
+    for(const v of S.ventes){if(!v.client||estTest(v.client)||v.statut==="Annulée")continue;const k=(v.email||"").toLowerCase()||nomSimple(v.client);if(vus.has(k))continue;vus.add(k);
+      if(!codeDeCliente(v.client,v.email))await ensureCode(v.client,v.email,v.telephone)}
+    S.syncDone=true}finally{syncing=false}
+}
+function pParrainage(){
+  const R=RP();
+  const rows=(S.codes||[]).map(c=>({c,g:cagnotte(c.id)})).sort((a,b)=>b.g.pct-a.g.pct||b.g.commandes.length-a.g.commandes.length||String(a.c.cliente||"").localeCompare(String(b.c.cliente||"")));
+  const actives=rows.filter(r=>r.g.commandes.length);
+  return`${pageHead("Parrainage","Chaque cliente reçoit d'office un code unique. Une autre cliente qui l'utilise a −"+R.pct+" % (à partir de "+eur(R.min)+" d'achat). La marraine gagne "+R.pct+" % de cagnotte par commande, "+R.delai+" jours après le paiement, jusqu'à 100 % (création offerte, "+eur(R.plafond)+" maximum). Sa cagnotte repart à zéro quand elle l'utilise.")}
+  <section class="hero"><p class="eyebrow">Codes</p><div class="money-big num">${rows.length}</div><p class="note">${actives.length} marraine${actives.length>1?"s":""} avec au moins une filleule</p></section>
+  <div class="list">${rows.map(({c,g})=>`<div class="row" style="cursor:default"><span class="t">${esc(c.cliente||c.email||"Cliente")}</span><span class="v"><span class="code">${esc(c.id)}</span></span>
+    <span class="s">${g.commandes.length?`${g.commandes.length} filleule${g.commandes.length>1?"s":""}`:"Pas encore de filleule"} · cagnotte <b>${g.pct} %</b>${g.enAttente?` · ${g.enAttente} en attente`:""}${g.dern?` · utilisée le ${dfr(g.dern)}`:""}${c.email?" · "+esc(c.email):""}
+    ${g.commandes.length?`<br>${g.commandes.map(o=>`${esc(o.cliente||"")} (${dfr(o.date)}, ${o.compte?"comptée":o.ok?"déjà utilisée":"acquise le "+dfr(o.acquis)})`).join(" · ")}`:""}</span></div>`).join("")||`<div class="empty">Aucun code pour l'instant : ils se créent tout seuls à chaque vente.</div>`}</div>
+  <p class="note">Les codes se créent automatiquement : à chaque vente enregistrée ici, et à chaque commande payée sur eugceo.fr (la cliente le reçoit dans son e-mail de confirmation et sur la page de remerciement). Une cliente ne peut pas utiliser son propre code. Les règles se changent dans Réglages des prix.</p>`;
+}
 function nextFacture(date){const y=(date||today()).slice(0,4);return nextRef("ventes","EC-"+y+"-",3)}
 
 /* ---------- exercice, encaissements ---------- */
@@ -1893,6 +2004,7 @@ async function startData(session){
   db.collection("site_contenu").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.siteContenu=o;render()},()=>{});
   db.collection("devis").onSnapshot(snap=>{S.devis=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
+  db.collection("codes_promo").onSnapshot(snap=>{S.codes=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render();syncCodes()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};render()},()=>{});
