@@ -143,3 +143,7 @@ grant execute on function public.parrainage_infos(text) to authenticated;
 -- Reconnaissance de la cliente par e-mail OU téléphone (9 derniers chiffres), sinon par le nom.
 -- Version appliquée : migration « parrainage_telephone » (tel_simple, est_titulaire,
 -- code_cliente et _parrainage_etat mis à jour, code_verifier avec p_tel).
+
+-- Novembre 2026 : passage au programme « ambassadrices » (migration « ambassadrices ») :
+-- codes créés à la main pour les clientes choisies, cagnotte en euros (gain = % de ce que paie la cliente),
+-- une seule utilisation de code par cliente (deja_parrainee), plus de code automatique pour chaque cliente.

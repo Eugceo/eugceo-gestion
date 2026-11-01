@@ -202,13 +202,19 @@ Deno.serve(async (req: Request) => {
           designation: d.titre,
           quantite: d.qte,
           prixTTC: num(d.prixInitial) || d.prix,
-          remise: r2(((num(d.prixInitial) || d.prix) - d.prix) * d.qte),
-          ...(P.promo?.type === "parrainage" ? { codePromo: P.promo.code } : {}),
+          remise: d.remise ?? r2(((num(d.prixInitial) || d.prix) - d.prix) * d.qte),
+          ...(P.promo?.type === "parrainage"
+            ? {
+              codePromo: P.promo.code,
+              parrainPct: P.promo.pct,
+              parrainGainPct: P.promo.gain,
+            }
+            : {}),
           ...(P.promo?.type === "cagnotte"
             ? {
               cagnotteCode: P.promo.code,
+              cagnotteMontant: num(d.remise),
               cagnotteLe: d0,
-              cagnottePct: P.promo.pct,
             }
             : {}),
           port,
@@ -227,7 +233,7 @@ Deno.serve(async (req: Request) => {
           }${
             P.promo
               ? P.promo.type === "cagnotte"
-                ? ` · cagnotte ${P.promo.pct} % utilisée`
+                ? ` · cagnotte −${eur(num(d.remise))}`
                 : ` · code ${P.promo.code} −${P.promo.pct} %`
               : ""
           }`,
@@ -241,18 +247,6 @@ Deno.serve(async (req: Request) => {
       });
     });
     await admin.from("ventes").insert(ventes);
-    // code de parrainage de la cliente (créé d'office s'il n'existe pas)
-    let codeCliente = "";
-    try {
-      const { data: cc } = await admin.rpc("code_cliente", {
-        p_nom: P.client?.nom || cd.name || "",
-        p_email: email,
-        p_tel: tel,
-      });
-      codeCliente = cc || "";
-    } catch (e) {
-      console.error("code", String(e));
-    }
     await admin.from("reservations").update({ statut: "payee" }).eq(
       "session_id",
       s.id,
@@ -266,16 +260,9 @@ Deno.serve(async (req: Request) => {
       }`
     ).join("\n") + (P.promo
       ? P.promo.type === "cagnotte"
-        ? `\nCagnotte utilisée : ${P.promo.pct} % (−${eur(num(P.promo.montant))})`
+        ? `\nCagnotte utilisée : −${eur(num(P.promo.montant))}`
         : `\nCode ${P.promo.code} : −${P.promo.pct} % (−${eur(num(P.promo.montant))})`
       : "");
-    let RP: any = {};
-    try {
-      RP = (await admin.rpc("parrainage_reglages")).data || {};
-    } catch (_) { /* valeurs par défaut */ }
-    const parrainTxt = codeCliente
-      ? `\n\nVotre code de parrainage : ${codeCliente}\nOffrez-le à vos proches : elles ont −${num(RP.pct) || 10} % sur leur commande (à partir de ${num(RP.min) || 150} €), et vous gagnez ${num(RP.pct) || 10} % de cagnotte pour chaque commande passée avec votre code, jusqu'à une création offerte. Votre cagnotte s'utilise quand vous voulez, sur eugceo.fr.`
-      : "";
     const livTxt = P.livraison === "retrait"
       ? "Retrait sur rendez-vous : nous vous contactons pour fixer le créneau."
       : `Livraison : ${
@@ -288,7 +275,6 @@ Deno.serve(async (req: Request) => {
         payeLe: now,
         montantRecu: r2(num(s.amount_total) / 100),
         venteIds: ids,
-        codeCliente,
       },
       updated_at: now,
     }).eq("id", s.id);
@@ -313,7 +299,7 @@ Deno.serve(async (req: Request) => {
       "EUGCEO · Merci pour votre commande",
       `Bonjour ${prenom},\n\nMerci pour votre commande, votre paiement de ${
         eur(num(s.amount_total) / 100)
-      } est bien reçu.\n\n${recap}\n\n${livTxt}\n\nLes créations disponibles sont expédiées sous 48 heures ouvrées. Les créations sur commande sont préparées en 15 à 30 jours ; nous vous enverrons le lien pour régler le solde avant l'expédition.${parrainTxt}\n\nÀ très vite,\nEUGCEO`,
+      } est bien reçu.\n\n${recap}\n\n${livTxt}\n\nLes créations disponibles sont expédiées sous 48 heures ouvrées. Les créations sur commande sont préparées en 15 à 30 jours ; nous vous enverrons le lien pour régler le solde avant l'expédition.\n\nÀ très vite,\nEUGCEO`,
     );
     await mail(
       "contact@eugceo.fr",

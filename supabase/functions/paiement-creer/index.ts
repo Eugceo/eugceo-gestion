@@ -132,15 +132,27 @@ Deno.serve(async (req: Request) => {
         base.push({ p, qte, prix });
       }
       const sousTotal = r2(base.reduce((s, x) => s + x.prix * x.qte, 0));
-      // 2) code de parrainage ou cagnotte (pas de cumul)
-      let rate = 0, promo: any = null;
-      const code = String(b.code || "").trim().toUpperCase().replace(/\s+/g, "")
+      // 2) code d'ambassadrice ou cagnotte (pas de cumul), jamais sous le prix plancher
+      const { data: pl } = await admin.from("produits").select(
+        "id, plancher:data->>plancherSite",
+      ).in("id", base.map((x) => x.p.id));
+      const plancher = new Map((pl || []).map((r: any) => [r.id, num(r.plancher)]));
+      // marge disponible par ligne (sans plancher connu : 50 % du prix au plus)
+      const room = base.map((x) => {
+        const f = plancher.get(x.p.id) || x.prix * 0.5;
+        return Math.max(0, r2((x.prix - f) * x.qte));
+      });
+      const remiseLigne = base.map(() => 0);
+      let promo: any = null;
+      const code = String(b.code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
         .slice(0, 20);
       if (code) {
         const { data: e } = await admin.rpc("_parrainage_etat", {
           p_code: code,
         });
-        if (!e) return json(req, { error: "code_inconnu" }, 400);
+        if (!e || e.actif === false) {
+          return json(req, { error: "code_inconnu" }, 400);
+        }
         // titulaire : même e-mail, ou même téléphone, ou même nom si ni e-mail ni téléphone connus
         const { data: proprio } = await admin.rpc("est_titulaire", {
           c: e,
@@ -150,37 +162,53 @@ Deno.serve(async (req: Request) => {
         });
         if (b.cagnotte === true) {
           if (!proprio) return json(req, { error: "cagnotte_autre" }, 400);
-          const cp = num(e.pct);
-          if (!(cp > 0)) return json(req, { error: "cagnotte_vide" }, 400);
-          const montant = r2(
-            Math.min(sousTotal * cp / 100, num(e.plafond) || 250),
-          );
-          rate = montant / sousTotal;
-          promo = { type: "cagnotte", code: e.code, pct: cp, montant };
+          const solde = num(e.solde);
+          if (!(solde > 0)) return json(req, { error: "cagnotte_vide" }, 400);
+          const roomTot = room.reduce((a, x) => a + x, 0);
+          const montant = r2(Math.min(solde, roomTot));
+          if (!(montant > 0)) return json(req, { error: "cagnotte_plancher" }, 400);
+          let reste = montant;
+          base.forEach((_, i) => {
+            const v = i === base.length - 1
+              ? reste
+              : r2(montant * room[i] / roomTot);
+            remiseLigne[i] = Math.min(v, room[i]);
+            reste = r2(reste - remiseLigne[i]);
+          });
+          promo = { type: "cagnotte", code: e.code };
         } else {
           if (proprio) return json(req, { error: "code_perso" }, 400);
           if (sousTotal < num(e.min)) {
             return json(req, { error: "code_min", min: num(e.min) }, 400);
           }
-          const rp = num(e.remise) || 10;
-          rate = rp / 100;
+          const { data: deja } = await admin.rpc("deja_parrainee", {
+            p_nom: nom,
+            p_email: email,
+            p_tel: tel,
+          });
+          if (deja === true) return json(req, { error: "code_deja" }, 400);
+          const pf = num(e.remise) || 10;
+          base.forEach((x, i) => {
+            remiseLigne[i] = Math.min(r2(x.prix * x.qte * pf / 100), room[i]);
+          });
           promo = {
             type: "parrainage",
             code: e.code,
-            pct: rp,
-            montant: r2(sousTotal * rate),
+            pct: pf,
+            gain: num(e.gain) || 10,
           };
         }
       }
-      const promoTxt = promo
-        ? (promo.type === "cagnotte"
-          ? ` · cagnotte ${promo.pct} % utilisée`
-          : ` · code ${promo.code} −${promo.pct} %`)
-        : "";
       // 3) lignes Stripe
       const lines: any[] = [], resv: any[] = [], details: any[] = [];
-      for (const { p, qte, prix: prixInitial } of base) {
-        const prix = r2(prixInitial * (1 - rate));
+      base.forEach(({ p, qte, prix: prixInitial }, i) => {
+        const prix = r2(prixInitial - remiseLigne[i] / qte);
+        const remise = r2((prixInitial - prix) * qte);
+        const promoTxt = remise > 0
+          ? (promo.type === "cagnotte"
+            ? ` · cagnotte −${fr(remise)} €`
+            : ` · code ${promo.code} −${promo.pct} %`)
+          : "";
         const t = titre(p);
         const surCommande = p.site?.mode === "commande" || p.disponible < qte;
         if (!surCommande) {
@@ -190,10 +218,8 @@ Deno.serve(async (req: Request) => {
               unit_amount: cents(prix),
               product_data: {
                 name: t,
-                ...(promo
-                  ? {
-                    description: `Prix ${fr(prixInitial)} €${promoTxt}`,
-                  }
+                ...(remise > 0
+                  ? { description: `Prix ${fr(prixInitial)} €${promoTxt}` }
                   : {}),
               },
             },
@@ -206,6 +232,7 @@ Deno.serve(async (req: Request) => {
             qte,
             prix,
             prixInitial,
+            remise,
             mode: "stock",
             paye: r2(prix * qte),
           });
@@ -218,7 +245,7 @@ Deno.serve(async (req: Request) => {
               product_data: {
                 name: `${t} · acompte ${pct} %`,
                 description: `Création sur commande (prix ${fr(prix)} €${
-                  promo ? ", au lieu de " + fr(prixInitial) + " €" : ""
+                  remise > 0 ? ", au lieu de " + fr(prixInitial) + " €" : ""
                 }). Solde à régler avant l'expédition.${promoTxt}`,
               },
             },
@@ -230,12 +257,14 @@ Deno.serve(async (req: Request) => {
             qte,
             prix,
             prixInitial,
+            remise,
             mode: "commande",
             acompte: ac,
             paye: r2(ac * qte),
           });
         }
-      }
+      });
+      if (promo) promo.montant = r2(details.reduce((a, d) => a + d.remise, 0));
       const port = liv === "fr"
         ? num(R?.livraisonFR)
         : liv === "dom"

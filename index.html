@@ -438,7 +438,7 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),parrainage:pParrainage}[S.page];
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices}[S.page];
     if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
@@ -508,7 +508,7 @@ function vAccueil(){
     <h2>Réglages</h2>
     <div class="list">
       <button class="row" data-act="page" data-p="societe"><span class="t">Société</span><span class="v">›</span><span class="s">SIREN, adresse, exercice : utilisés sur les factures.</span></button>
-      <button class="row" data-act="page" data-p="parrainage"><span class="t">Parrainage</span><span class="v">›</span><span class="s">Le code de chaque cliente, ses filleules et sa cagnotte.</span></button>
+      <button class="row" data-act="page" data-p="ambassadrices"><span class="t">Ambassadrices</span><span class="v">›</span><span class="s">Leurs codes, les ventes apportées et leur cagnotte.</span></button>
       <button class="row" data-act="reglages"><span class="t">Réglages des prix</span><span class="v">›</span><span class="s">Taux horaire, transport, packaging, marge, coefficient.</span></button>
       <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Couleurs et modèles, avec leurs codes et bonus.</span></button>
       <button class="row" data-act="export-xlsx"><span class="t">Exporter pour Excel</span><span class="v">↓</span><span class="s">Un fichier .xlsx avec tout, pour un comptable.</span></button>
@@ -599,7 +599,8 @@ const FORMS={
   financement:{title:"Apport ou remboursement",fields:fFin},
   mouvements:{title:"Correction de stock",fields:fMouv},
   abonnements:{title:"Abonnement",fields:fAbo},
-  matieres:{title:"Matière première",fields:fMatiere}
+  matieres:{title:"Matière première",fields:fMatiere},
+  codes_promo:{title:"Ambassadrice",fields:fAmb}
 };
 function fMatiere(d){
   const pc=d.prixCond!==undefined?d.prixCond:d.prix;const ct=d.contenance||1;
@@ -739,10 +740,10 @@ function fVente(d){
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="preview" id="pvVente"></div>
-  <fieldset><legend>Parrainage</legend>
-    ${F("codePromo","Code promo d'une autre cliente",inp("codePromo",d.codePromo,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"'),"Elle a −"+RP().pct+" % à partir de "+eur(RP().min)+" d'achat. Pas avec la cagnotte.")}
+  <fieldset><legend>Ambassadrice</legend>
+    ${F("codePromo","Code d'une ambassadrice",inp("codePromo",d.codePromo,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"'),"Une seule fois par cliente, à partir du minimum d'achat. Pas avec une cagnotte.")}
     <label class="check" id="cagBox"><input type="checkbox" id="utiliserCagnotte"${d.cagnotteCode?" checked":""}> <span>Utiliser sa cagnotte sur cette vente</span></label>
-    <input type="hidden" name="cagnotteCode" id="cagnotteCode" value="${esc(d.cagnotteCode||"")}"><input type="hidden" name="cagnottePct" id="cagnottePct" value="${esc(d.cagnottePct||"")}"><input type="hidden" name="cagnotteLe" id="cagnotteLe" value="${esc(d.cagnotteLe||"")}">
+    <input type="hidden" name="cagnotteCode" id="cagnotteCode" value="${esc(d.cagnotteCode||"")}"><input type="hidden" name="cagnotteLe" id="cagnotteLe" value="${esc(d.cagnotteLe||"")}">
     <div class="preview" id="pvCode"></div>
   </fieldset>
   <fieldset><legend>Paiement</legend>
@@ -864,7 +865,7 @@ function openForm(col,id,prefill){
   ${id&&col==="ventes"?`<button class="btn ghost" type="button" data-act="facture" data-id="${esc(id)}">Voir la facture${d.numero?" "+esc(d.numero):""}</button>`:""}
   ${id&&col==="ventes"&&!ro&&venteReste(d)>0?`<button class="btn ghost" type="button" data-act="solde-link" data-id="${esc(id)}">Lien de paiement du solde (${eur(venteReste(d))})</button><div id="soldeBox"></div>`:""}
   ${id&&col==="ventes"&&d.origine==="site"?`<p class="note">Vente créée automatiquement par un paiement sur eugceo.fr${d.email?" · "+esc(d.email):""}${d.telephone?" · "+esc(d.telephone):""}.</p>`:""}
-  ${id&&!ro?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
+  ${id&&!ro&&col!=="codes_promo"?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
   ${id?`<p class="note" id="byline"></p>`:""}
   </form></div>`;
   sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
@@ -917,6 +918,7 @@ function validate(col,d){
   if(col==="produits"){if(!d.modele)e.push("le modèle")}
   if(col==="financement"){if(!n(d.montant))e.push("le montant")}
   if(col==="mouvements"){if(!d.produitId)e.push("le produit");if(!n(d.quantite))e.push("la quantité")}
+  if(col==="codes_promo"){if(!current.id){const c=normCode(d.code);if(c.length<3)return"Le code doit faire au moins 3 lettres ou chiffres.";if((S.codes||[]).some(x=>x.id===c))return"Le code "+c+" existe déjà."}if(!d.cliente)e.push("le nom");if(!d.email&&!telSimple(d.telephone))e.push("son e-mail ou son téléphone")}
   if(col==="matieres"){if(!d.nom)e.push("le nom");if(!n(d.prixCond))e.push("le prix payé")}
   if(col==="abonnements"){if(!d.fournisseur)e.push("le fournisseur");if(!n(d.montant))e.push("le montant");if(!d.debut)e.push("la date de début")}
   if(d.date===""&&"date"in d)e.push("la date");
@@ -934,7 +936,11 @@ async function save(){
     d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st)d.site=st}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date);
-    d.codePromo=normCode(d.codePromo);if(!d.cagnotteCode){d.cagnottePct="";d.cagnotteLe=""}}
+    d.codePromo=normCode(d.codePromo);
+    if(d.codePromo){const c=(S.codes||[]).find(x=>x.id===d.codePromo);const T=tauxAmb(c);const keep=orig.codePromo===d.codePromo;d.parrainPct=keep&&orig.parrainPct!=null?orig.parrainPct:T.pf;d.parrainGainPct=keep&&orig.parrainGainPct!=null?orig.parrainGainPct:T.pg}else{d.parrainPct="";d.parrainGainPct=""}
+    if(d.cagnotteCode){const amb=(S.codes||[]).find(x=>x.id===d.cagnotteCode);const st=amb?etatAmb(amb,id):{solde:0};d.cagnotteMontant=Math.min(n(d.remise),st.solde);d.cagnotteLe=d.cagnotteLe||d.date}else{d.cagnotteMontant="";d.cagnotteLe=""}}
+  if(col==="codes_promo"){d.actif=d.actif!=="Non";if(!id){d.code=normCode(d.code);d.creeLe=new Date().toISOString()}}
+  if(col==="produits"){const pp=plancherSite({...orig,...d});if(pp!=="")d.plancherSite=pp}
   if(col==="matieres"){const u=d.uniteAchat||"unité";const f=u==="L"||u==="kg"?1000:1;d.contAchat=n(d.contenance)||1;d.contenance=d.contAchat*f;d.unite=u==="L"?"ml":u==="kg"?"g":u;d.prix=Math.round(n(d.prixCond)/d.contenance*10000)/10000}
   if(col==="achats"&&!orig.ref)d.ref=nextRef("achats","A-",5);
   if((col==="achats"||col==="depenses")&&d.datePaiement)d.echeance=d.echeance||"";
@@ -945,11 +951,10 @@ async function save(){
   body.modifieLe=new Date().toISOString();if(!orig.id){body.creeLe=body.modifieLe;if(myId)body.par=myId}
   const btns=document.querySelectorAll('[data-act="save"],#form .btn[type="submit"]');btns.forEach(b=>b.disabled=true);
   try{
-    const ref=id?db.collection(col).doc(id):db.collection(col).doc();
+    const ref=id?db.collection(col).doc(id):col==="codes_promo"?db.collection(col).doc(d.code):db.collection(col).doc();
     await ref.set(body);
     if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",traiteLe:new Date().toISOString()})}catch(_){}}
     if(devisId){try{await db.collection("devis").doc(devisId).update({venteId:ref.id})}catch(_){}}
-    if(col==="ventes")ensureCode(body.client,body.email,body.telephone);
     if(col==="produits"&&S.returnTo){toast("Produit créé : "+body.code);afterProduct(ref.id,body);return}
     closeSheet(true);toast(orig.id?"Modifié":"Enregistré");
   }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false;if(e&&e.code==="invalid_argument"){canWrite=false;render()}}
@@ -1005,9 +1010,9 @@ function openReglages(){
     <p class="note">Comprend le nettoyage et le lissage ou la redéfinition des boucles. Tout autre travail ajouté dans la vente (coloration, coupe…) s'ajoute au forfait.</p></fieldset>
    ${row("coefBase","Coefficient de base","Le curseur de positionnement de la Maison. Chaque caractéristique du produit y ajoute un bonus.")}
    ${row("arrondi","Arrondi du prix conseillé (€)","5 = arrondi aux 5 € les plus proches. 0 = à l'euro.")}
-   <fieldset><legend>Parrainage</legend>
-    <div class="two">${row("parrainPct","Remise filleule et gain marraine (%)")}${row("parrainMin","Achat minimum (€)")}</div>
-    <div class="two">${row("parrainPlafond","Plafond de la cagnotte (€)","La cagnotte ne déduit jamais plus que ce montant (création offerte à 100 %).")}${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</div></fieldset>
+   <fieldset><legend>Ambassadrices (valeurs par défaut)</legend>
+    <div class="two">${row("parrainPct","Remise cliente et gain ambassadrice (%)")}${row("parrainMin","Achat minimum (€)")}</div>
+    ${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</fieldset>
    <p class="note">Prix conseillé = prix de revient × coefficient ÷ (1 − frais de vente), arrondi.</p>
    <p class="note">Prix plancher = (prix d'achat + temps × taux + packaging + transport) × (1 + marge) ÷ (1 − frais de vente).</p>
    <p class="err" id="formErr" hidden></p>
@@ -1099,6 +1104,7 @@ document.addEventListener("click",e=>{
   else if(a==="del"){del(b)}
   else if(a==="pointer"){pointer(b)}
   else if(a==="reglages"){openReglages()}
+  else if(a==="new-amb"){openForm("codes_promo",null,{actif:true})}
   else if(a==="tr-add"){$("#trLines").insertAdjacentHTML("beforeend",trLine({nom:"Coloration",heures:TRAVAUX["Coloration"]}));livePreview()}
   else if(a==="mt-add"){$("#mtLines").insertAdjacentHTML("beforeend",mtLine({qte:1}));livePreview()}
   else if(a==="line-rm"){b.closest(".line").remove();livePreview()}
@@ -1154,87 +1160,95 @@ function soc(){return{...DEF_SOCIETE,...(S.societe||{})}}
 
 /* ---------- numérotation ---------- */
 function nextRef(col,prefix,digits){let max=0;for(const x of S[col]){const m=String(x.ref||x.numero||"").match(new RegExp("^"+prefix.replace(/[-]/g,"\\-")+"(\\d+)$"));if(m)max=Math.max(max,Number(m[1]))}return prefix+String(max+1).padStart(digits,"0")}
-/* ---------- parrainage : un code par cliente, -10 % pour la filleule, cagnotte pour la marraine ---------- */
-function RP(){const r=S.reglages||{};return{pct:n(r.parrainPct)||10,min:n(r.parrainMin)||150,plafond:n(r.parrainPlafond)||250,delai:n(r.parrainDelai)||14}}
+/* ---------- ambassadrices : code choisi, -X % pour la cliente (une fois), cagnotte en euros pour l'ambassadrice ---------- */
+function RP(){const r=S.reglages||{};return{pct:n(r.parrainPct)||10,min:n(r.parrainMin)||150,delai:n(r.parrainDelai)||14}}
 function normCode(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,20)}
 function nomSimple(s){return String(s||"").replace(/^\s*\[test\]\s*/i,"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim()}
-function estTest(nom){return/^\s*\[test\]/i.test(nom||"")}
 function telSimple(t){const d=String(t||"").replace(/\D/g,"");return d.length>=9?d.slice(-9):""}
-/* la cliente est reconnue par son e-mail, ou son téléphone, ou son nom si aucun des deux n'est connu */
-function codeDeCliente(nom,email,tel){const em=String(email||"").toLowerCase().trim(),tl=telSimple(tel),nm=nomSimple(nom),C=S.codes||[];
-  return(em&&C.find(c=>String(c.email||"").toLowerCase()===em))||(tl&&C.find(c=>telSimple(c.telephone)===tl))||(nm&&C.find(c=>nomSimple(c.cliente)===nm&&(!em||!c.email)&&(!tl||!telSimple(c.telephone))))||null}
+function estTest(nom){return/^\s*\[test\]/i.test(nom||"")}
+/* même règle que la base (est_titulaire) : même e-mail, ou même téléphone, ou même nom si ni e-mail ni téléphone connus */
+function estTitulaire(c,nom,email,tel){const em=String(email||"").toLowerCase().trim(),tl=telSimple(tel),nm=nomSimple(nom);
+  return!!((em&&String(c.email||"").toLowerCase()===em)||(tl&&telSimple(c.telephone)===tl)||(!c.email&&!telSimple(c.telephone)&&nm&&nomSimple(c.cliente)===nm))}
+function ambDe(nom,email,tel){return(S.codes||[]).find(c=>estTitulaire(c,nom,email,tel))||null}
+function tauxAmb(c){const R=RP();const g=k=>c&&c[k]!==""&&c[k]!=null?n(c[k]):null;return{pf:g("pctFilleule")??R.pct,pg:g("pctGain")??R.pct,min:g("min")??R.min}}
 function addDays(d,k){const x=new Date((d||today())+"T12:00:00");x.setDate(x.getDate()+k);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
-/* même calcul que la base (fonction _parrainage_etat) */
-function cagnotte(code,exclId){
-  const R=RP(),t=today();const vs=S.ventes.filter(v=>v.id!==exclId&&dansCA(v));
-  const dern=vs.filter(v=>v.cagnotteCode===code&&v.cagnotteLe).map(v=>v.cagnotteLe).sort().pop()||"";
-  const cmd=new Map();
-  for(const v of vs){if(v.codePromo!==code||estTest(v.client))continue;const k=v.paiementId||v.id;
-    const o=cmd.get(k)||{payee:true,d:"",cliente:v.client,date:v.date,total:0};o.payee=o.payee&&v.statut==="Payée";
-    const dd=v.dateEncaissement||v.date||"";if(dd>o.d)o.d=dd;o.total=r2(o.total+venteTotal(v));cmd.set(k,o)}
-  let nb=0,att=0;const list=[];
-  for(const o of cmd.values()){o.acquis=addDays(o.d,R.delai);o.ok=o.payee&&o.acquis<=t;o.compte=o.ok&&(!dern||o.acquis>dern);if(o.compte)nb++;if(!o.ok)att++;list.push(o)}
+function netCreations(v){return r2(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)-n(v.remise))}
+/* même calcul que la base (_parrainage_etat) */
+function etatAmb(c,exclId){
+  const R=RP(),t=today(),T=tauxAmb(c);const vs=S.ventes.filter(v=>v.id!==exclId&&dansCA(v));const cmd=new Map();
+  for(const v of vs){if(v.codePromo!==c.id||estTest(v.client))continue;const k=v.paiementId||v.id;
+    const o=cmd.get(k)||{payee:true,d:"",cliente:v.client,date:v.date,ca:0,gain:0};o.payee=o.payee&&v.statut==="Payée";
+    const dd=v.dateEncaissement||v.date||"";if(dd>o.d)o.d=dd;const net=netCreations(v);o.ca=r2(o.ca+net);
+    o.gain=r2(o.gain+net*(v.parrainGainPct!==""&&v.parrainGainPct!=null?n(v.parrainGainPct):T.pg)/100);cmd.set(k,o)}
+  let gains=0,att=0,ca=0;const list=[];
+  for(const o of cmd.values()){o.acquis=addDays(o.d,R.delai);o.ok=o.payee&&o.acquis<=t;if(o.ok)gains+=o.gain;else att++;ca+=o.ca;list.push(o)}
   list.sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  return{pct:Math.min(100,nb*R.pct),nb,enAttente:att,commandes:list,dern}
+  const utilise=r2(vs.filter(v=>v.cagnotteCode===c.id).reduce((s2,v)=>s2+n(v.cagnotteMontant),0));
+  return{...T,gains:r2(gains),utilise,solde:Math.max(0,r2(gains-utilise)),enAttente:att,commandes:list,ca:r2(ca)}
 }
+function dejaParrainee(d,exclId){return S.ventes.some(v=>v.id!==exclId&&v.codePromo&&dansCA(v)&&(d.email||telSimple(d.telephone)||d.client)&&estTitulaire({cliente:v.client,email:v.email,telephone:v.telephone},d.client,d.email,d.telephone))}
 function sousTotalVente(d){return r2(Math.max(1,n(d.quantite)||1)*n(d.prixTTC))}
+/* marge disponible avant le prix plancher, pour cette vente */
+function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2((n(d.prixTTC)-pp.plancher)*q)):sousTotalVente(d)}
 function checkCode(d){
-  const R=RP();const site=current&&current.orig&&current.orig.origine==="site";
-  const code=normCode(d.codePromo);const own=codeDeCliente(d.client,d.email,d.telephone);
-  if(code&&d.cagnotteCode)return{err:"Pas de cumul : soit le code promo, soit la cagnotte."};
-  if(code){const c=(S.codes||[]).find(x=>x.id===code);
-    if(!c)return S.codesOk?{err:"Code promo inconnu : "+code+"."}:{};
-    if(own&&own.id===c.id)return{err:"C'est le code de "+(d.client||"la cliente")+" : elle ne peut pas utiliser son propre code."};
-    if(!site&&sousTotalVente(d)<R.min)return{err:"Le code promo demande un achat d'au moins "+eur(R.min)+" (ici "+eur(sousTotalVente(d))+")."};
-    return{ok:true,c,remise:r2(sousTotalVente(d)*R.pct/100)}}
-  return{};
+  const site=current&&current.orig&&current.orig.origine==="site";const edit=current&&current.orig&&current.orig.codePromo;
+  const code=normCode(d.codePromo);
+  if(code&&d.cagnotteCode)return{err:"Pas de cumul : soit le code d'une ambassadrice, soit la cagnotte."};
+  if(!code)return{};
+  const c=(S.codes||[]).find(x=>x.id===code);
+  if(!c)return{err:"Code inconnu : "+code+"."};
+  if(c.actif===false&&!edit)return{err:"Le code "+code+" est désactivé."};
+  if(estTitulaire(c,d.client,d.email,d.telephone))return{err:"C'est le code de "+(c.cliente||"cette ambassadrice")+" : elle ne peut pas l'utiliser pour elle-même."};
+  const T=tauxAmb(c);
+  if(!site&&!edit&&sousTotalVente(d)<T.min)return{err:"Ce code demande un achat d'au moins "+eur(T.min)+" (ici "+eur(sousTotalVente(d))+")."};
+  if(!site&&dejaParrainee(d,current&&current.id))return{err:(d.client||"Cette cliente")+" a déjà profité d'un code d'ambassadrice : c'est une fois par cliente."};
+  return{ok:true,c,T,remise:Math.min(r2(sousTotalVente(d)*T.pf/100),margeVente(d))};
 }
 function setRemise(d,want){const el=$("#remise");if(!el)return;if(el.value===""||(current.autoRemise!==undefined&&n(el.value)===current.autoRemise)){el.value=String(want).replace(".",",");d.remise=want}current.autoRemise=want}
 function pvCode(d){
-  const box=$("#pvCode");if(!box)return;const R=RP();const own=codeDeCliente(d.client,d.email,d.telephone);const out=[];
-  if(d.client&&!estTest(d.client))out.push(own?`<span>Code de ${esc(d.client.split(" ")[0])} : <span class="code">${esc(own.id)}</span></span>`:`<span>Son code de parrainage sera créé à l'enregistrement.</span>`);
-  const cg=own?cagnotte(own.id,current&&current.id):null;
-  const cb=$("#cagBox");if(cb)cb.hidden=!(d.cagnotteCode||(cg&&cg.pct>0));
-  if(cg&&(cg.pct>0||cg.enAttente))out.push(`<span>Cagnotte : <b>${cg.pct} %</b>${cg.pct?` (jusqu'à ${eur(R.plafond)})`:""}${cg.enAttente?` · ${cg.enAttente} filleule${cg.enAttente>1?"s":""} en attente (délai de ${R.delai} jours)`:""}</span>`);
-  if(d.cagnotteCode){const pct=n(d.cagnottePct);const want=r2(Math.min(sousTotalVente(d)*pct/100,R.plafond));setRemise(d,want);out.push(`<span>Cagnotte utilisée : ${pct} % → remise <b class="num">${eur(want)}</b>. Elle repartira à zéro.</span>`)}
+  const box=$("#pvCode");if(!box)return;const out=[];const amb=ambDe(d.client,d.email,d.telephone);
+  const st=amb?etatAmb(amb,current&&current.id):null;
+  const cb=$("#cagBox");if(cb)cb.hidden=!(d.cagnotteCode||(st&&st.solde>0));
+  if(amb)out.push(`<span>${esc(d.client||amb.cliente)} est ambassadrice (code <span class="code">${esc(amb.id)}</span>) : cagnotte <b class="num">${eur(st.solde)}</b>${st.enAttente?` · ${st.enAttente} commande${st.enAttente>1?"s":""} en attente`:""}</span>`);
+  if(d.cagnotteCode&&amb){const want=Math.min(st.solde,margeVente(d));setRemise(d,want);out.push(`<span>Cagnotte utilisée : remise <b class="num">${eur(want)}</b>${want<st.solde?` (le reste, ${eur(r2(st.solde-want))}, est gardé)`:""}.</span>`)}
   const ck=checkCode(d);
   if(ck.err)out.push(`<span class="err">${esc(ck.err)}</span>`);
-  else if(ck.ok){setRemise(d,ck.remise);out.push(`<span>Code ${esc(ck.c.id)} de ${esc(ck.c.cliente||"")} : −${R.pct} % → remise <b class="num">${eur(ck.remise)}</b>. ${esc((ck.c.cliente||"").split(" ")[0])} gagnera ${R.pct} % de cagnotte ${R.delai} jours après le paiement.</span>`)}
+  else if(ck.ok){setRemise(d,ck.remise);out.push(`<span>Code ${esc(ck.c.id)} (${esc(ck.c.cliente||"")}) : −${ck.T.pf} % → remise <b class="num">${eur(ck.remise)}</b>. L'ambassadrice gagnera ${ck.T.pg} % de ce que paie la cliente, ${RP().delai} jours après le paiement.</span>`)}
   if(!d.cagnotteCode&&!ck.ok&&current.autoRemise!==undefined){const el=$("#remise");if(el&&n(el.value)===current.autoRemise){el.value="";d.remise=""}current.autoRemise=undefined}
-  box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une autre cliente, écris son code ici.</span>`;
+  box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une ambassadrice, écris son code ici.</span>`;
 }
 function toggleCagnotte(on){
-  const d=formData();const own=codeDeCliente(d.client,d.email,d.telephone);const R=RP();
-  const cc=$("#cagnotteCode"),cp=$("#cagnottePct"),cl=$("#cagnotteLe"),box=$("#utiliserCagnotte");
-  if(on){
-    const cg=own?cagnotte(own.id,current&&current.id):null;
-    if(!cg||!cg.pct){box.checked=false;toast(own?"Sa cagnotte est vide pour l'instant":"Cette cliente n'a pas encore de code");return}
-    cc.value=own.id;cp.value=cg.pct;cl.value=d.date||today();const pc=$("#codePromo");if(pc)pc.value="";
-  }else{cc.value="";cp.value="";cl.value="";const el=$("#remise");if(el&&current.autoRemise!==undefined&&n(el.value)===current.autoRemise){el.value="";current.autoRemise=undefined}}
+  const d=formData();const amb=ambDe(d.client,d.email,d.telephone);
+  const cc=$("#cagnotteCode"),cl=$("#cagnotteLe"),box=$("#utiliserCagnotte");
+  if(on){const st=amb?etatAmb(amb,current&&current.id):null;
+    if(!st||!st.solde){box.checked=false;toast(amb?"Sa cagnotte est vide pour l'instant":"Cette cliente n'est pas ambassadrice");return}
+    cc.value=amb.id;cl.value=d.date||today();const pc=$("#codePromo");if(pc)pc.value="";
+  }else{cc.value="";cl.value="";const el=$("#remise");if(el&&current.autoRemise!==undefined&&n(el.value)===current.autoRemise){el.value="";current.autoRemise=undefined}}
   livePreview();
 }
-async function ensureCode(nom,email,tel){
-  if(!nom||estTest(nom)||!db)return null;const ex=codeDeCliente(nom,email,tel);if(ex&&(!email||ex.email)&&(!telSimple(tel)||telSimple(ex.telephone)))return ex.id;
-  try{const{data,error}=await sb.rpc("code_cliente",{p_nom:nom,p_email:email||"",p_tel:tel||""});if(error)throw error;return data}catch(e){console.warn("code",e);return null}
+/* prix plancher de chaque produit en ligne, gardé pour le paiement sur le site (jamais montré au public) */
+function plancherSite(p){const pp=prixPlancher(p,prepBase(p),isPrestation(p)?"Aucun":isBundle(p)?"Bundle":"Standard");return pp?pp.plancher:""}
+let syncPl=false;
+async function syncPlanchers(){
+  if(syncPl||!db||!canWrite||!S.reglagesOk||!S.loaded.has("produits"))return;syncPl=true;
+  try{for(const p of S.produits){if(!(p.site&&p.site.enLigne))continue;const v=plancherSite(p);if(v!==""&&n(p.plancherSite)!==v){try{await db.collection("produits").doc(p.id).update({plancherSite:v})}catch(_){}}}}finally{syncPl=false}
 }
-let syncing=false;
-async function syncCodes(){
-  if(syncing||S.syncDone||!S.codesOk||!S.loaded.has("ventes")||!db)return;syncing=true;
-  try{const vus=new Set();
-    for(const v of S.ventes){if(!v.client||estTest(v.client)||v.statut==="Annulée")continue;const k=(v.email||"").toLowerCase()||telSimple(v.telephone)||nomSimple(v.client);if(vus.has(k))continue;vus.add(k);
-      if(!codeDeCliente(v.client,v.email,v.telephone))await ensureCode(v.client,v.email,v.telephone)}
-    S.syncDone=true}finally{syncing=false}
+function fAmb(d){const R=RP();
+  return`${d.id?`<p class="note">Code <span class="code">${esc(d.id)}</span></p>`:F("code","Code (celui qu'elle partagera)",inp("code",d.code,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" required'),"Lettres et chiffres, par exemple AWA10.")}
+  ${F("cliente","Nom et prénom",inp("cliente",d.cliente,'autocomplete="off" required'))}
+  <div class="two">${F("email","E-mail",inp("email",d.email,'type="email" autocomplete="off"'))}${F("telephone","Téléphone",inp("telephone",d.telephone,'type="tel"'))}</div>
+  <p class="hint">L'e-mail ou le téléphone sert à la reconnaître : elle ne peut pas utiliser son propre code, et c'est comme ça qu'elle accède à sa cagnotte sur le site.</p>
+  <div class="two">${F("pctFilleule","Remise pour la cliente (%)",inp("pctFilleule",d.pctFilleule,'inputmode="decimal" placeholder="'+R.pct+'"'))}${F("pctGain","Gain de l'ambassadrice (%)",inp("pctGain",d.pctGain,'inputmode="decimal" placeholder="'+R.pct+'"'))}</div>
+  ${F("min","Achat minimum (€)",inp("min",d.min,'inputmode="decimal" placeholder="'+R.min+'"'),"Laisse vide pour garder les valeurs des Réglages des prix.")}
+  ${F("actif","Code actif",sel("actif",["Oui","Non"],d.actif===false||d.actif==="Non"?"Non":"Oui"),"Un code désactivé ne marche plus, mais sa cagnotte reste utilisable.")}`;
 }
-function pParrainage(){
-  const R=RP();
-  const rows=(S.codes||[]).map(c=>({c,g:cagnotte(c.id)})).sort((a,b)=>b.g.pct-a.g.pct||b.g.commandes.length-a.g.commandes.length||String(a.c.cliente||"").localeCompare(String(b.c.cliente||"")));
-  const actives=rows.filter(r=>r.g.commandes.length);
-  return`${pageHead("Parrainage","Chaque cliente reçoit d'office un code unique. Une autre cliente qui l'utilise a −"+R.pct+" % (à partir de "+eur(R.min)+" d'achat). La marraine gagne "+R.pct+" % de cagnotte par commande, "+R.delai+" jours après le paiement, jusqu'à 100 % (création offerte, "+eur(R.plafond)+" maximum). Sa cagnotte repart à zéro quand elle l'utilise.")}
-  <section class="hero"><p class="eyebrow">Codes</p><div class="money-big num">${rows.length}</div><p class="note">${actives.length} marraine${actives.length>1?"s":""} avec au moins une filleule</p></section>
-  <div class="list">${rows.map(({c,g})=>`<div class="row" style="cursor:default"><span class="t">${esc(c.cliente||c.email||"Cliente")}</span><span class="v"><span class="code">${esc(c.id)}</span></span>
-    <span class="s">${g.commandes.length?`${g.commandes.length} filleule${g.commandes.length>1?"s":""}`:"Pas encore de filleule"} · cagnotte <b>${g.pct} %</b>${g.enAttente?` · ${g.enAttente} en attente`:""}${g.dern?` · utilisée le ${dfr(g.dern)}`:""}${c.email?" · "+esc(c.email):""}${c.telephone?" · "+esc(c.telephone):""}
-    ${g.commandes.length?`<br>${g.commandes.map(o=>`${esc(o.cliente||"")} (${dfr(o.date)}, ${o.compte?"comptée":o.ok?"déjà utilisée":"acquise le "+dfr(o.acquis)})`).join(" · ")}`:""}</span></div>`).join("")||`<div class="empty">Aucun code pour l'instant : ils se créent tout seuls à chaque vente.</div>`}</div>
-  <p class="note">Les codes se créent automatiquement : à chaque vente enregistrée ici, et à chaque commande payée sur eugceo.fr (la cliente le reçoit dans son e-mail de confirmation et sur la page de remerciement). Une cliente ne peut pas utiliser son propre code. Les règles se changent dans Réglages des prix.</p>`;
+function pAmbassadrices(){
+  const R=RP();const rows=(S.codes||[]).map(c=>({c,e:etatAmb(c)})).sort((a,b)=>(b.c.actif!==false)-(a.c.actif!==false)||b.e.ca-a.e.ca||String(a.c.cliente||"").localeCompare(String(b.c.cliente||"")));
+  return`${pageHead("Ambassadrices","Les clientes choisies qui font connaître la Maison. Une cliente qui utilise leur code a une remise sur ses créations, une seule fois, à partir d'un minimum d'achat. L'ambassadrice gagne un pourcentage de ce que paie la cliente, en euros, "+R.delai+" jours après le paiement. Sa cagnotte s'utilise sur ses propres achats, jamais sous le prix plancher.")}
+  ${db&&canWrite?`<button type="button" class="btn" data-act="new-amb">+ Nouvelle ambassadrice</button>`:""}
+  <div class="list">${rows.map(({c,e})=>`<button class="row" data-act="edit" data-col="codes_promo" data-id="${esc(c.id)}"><span class="t">${esc(c.cliente||"Ambassadrice")}${c.actif===false?' <span class="chip">désactivé</span>':""}</span><span class="v"><span class="code">${esc(c.id)}</span></span>
+    <span class="s">−${e.pf} % cliente · ${e.pg} % pour elle · dès ${eur(e.min)}<br>${e.commandes.length?`${e.commandes.length} commande${e.commandes.length>1?"s":""} · ${eur(e.ca)} de ventes apportées`:"Pas encore de commande"} · cagnotte <b>${eur(e.solde)}</b>${e.enAttente?` · ${e.enAttente} en attente`:""}${e.utilise?` · ${eur(e.utilise)} déjà utilisés`:""}</span></button>`).join("")||`<div class="empty">Aucune ambassadrice pour l'instant.</div>`}</div>
+  <p class="note">Les taux par défaut se changent dans Réglages des prix ; chaque ambassadrice peut avoir les siens.</p>`;
 }
 function nextFacture(date){const y=(date||today()).slice(0,4);return nextRef("ventes","EC-"+y+"-",3)}
 
@@ -2001,15 +2015,15 @@ async function startData(session){
   db=dbAdapter;assets=storageAdapter;canWrite=true;dbState="ok";render();
   if(started)return;started=true;
   for(const col of COLS){
-    db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded.add(col);render()},()=>{toast("Données momentanément indisponibles");render()});
+    db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded.add(col);render();if(col==="produits")syncPlanchers()},()=>{toast("Données momentanément indisponibles");render()});
   }
   db.collection("site_contenu").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.siteContenu=o;render()},()=>{});
   db.collection("devis").onSnapshot(snap=>{S.devis=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
-  db.collection("codes_promo").onSnapshot(snap=>{S.codes=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render();syncCodes()},()=>{});
+  db.collection("codes_promo").onSnapshot(snap=>{S.codes=S.codes_promo=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
-  db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};render()},()=>{});
+  db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};S.reglagesOk=true;render();syncPlanchers()},()=>{});
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&db)loaders.forEach(f=>f())});
 document.addEventListener("submit",e=>{const id=e.target.id;
