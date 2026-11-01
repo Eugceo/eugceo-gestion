@@ -139,3 +139,7 @@ revoke all on function public.code_cliente(text,text,text) from public, anon;
 grant execute on function public.code_cliente(text,text,text) to authenticated, service_role;
 revoke all on function public.parrainage_infos(text) from public, anon;
 grant execute on function public.parrainage_infos(text) to authenticated;
+
+-- Reconnaissance de la cliente par e-mail OU téléphone (9 derniers chiffres), sinon par le nom.
+-- Version appliquée : migration « parrainage_telephone » (tel_simple, est_titulaire,
+-- code_cliente et _parrainage_etat mis à jour, code_verifier avec p_tel).

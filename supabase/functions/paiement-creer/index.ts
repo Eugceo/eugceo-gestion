@@ -30,9 +30,6 @@ const num = (v: unknown) => {
 const r2 = (x: number) => Math.round(x * 100) / 100;
 const cents = (x: number) => Math.round(x * 100);
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
-const nomSimple = (s: unknown) =>
-  String(s ?? "").replace(/^\s*\[test\]\s*/i, "").normalize("NFD")
-    .replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 function titre(p: any) {
   const s = p.site || {};
   if (s.titre) return String(s.titre);
@@ -144,9 +141,13 @@ Deno.serve(async (req: Request) => {
           p_code: code,
         });
         if (!e) return json(req, { error: "code_inconnu" }, 400);
-        const proprio = (e.email &&
-          String(e.email).toLowerCase() === email.toLowerCase()) ||
-          (!e.email && nomSimple(e.cliente) === nomSimple(nom));
+        // titulaire : même e-mail, ou même téléphone, ou même nom si ni e-mail ni téléphone connus
+        const { data: proprio } = await admin.rpc("est_titulaire", {
+          c: e,
+          p_nom: nom,
+          p_email: email,
+          p_tel: tel,
+        });
         if (b.cagnotte === true) {
           if (!proprio) return json(req, { error: "cagnotte_autre" }, 400);
           const cp = num(e.pct);

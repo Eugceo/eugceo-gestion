@@ -1159,8 +1159,10 @@ function RP(){const r=S.reglages||{};return{pct:n(r.parrainPct)||10,min:n(r.parr
 function normCode(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,20)}
 function nomSimple(s){return String(s||"").replace(/^\s*\[test\]\s*/i,"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim()}
 function estTest(nom){return/^\s*\[test\]/i.test(nom||"")}
-function codeDeCliente(nom,email){const em=String(email||"").toLowerCase().trim(),nm=nomSimple(nom),C=S.codes||[];
-  return(em&&C.find(c=>String(c.email||"").toLowerCase()===em))||(nm&&C.find(c=>nomSimple(c.cliente)===nm&&(!em||!c.email)))||null}
+function telSimple(t){const d=String(t||"").replace(/\D/g,"");return d.length>=9?d.slice(-9):""}
+/* la cliente est reconnue par son e-mail, ou son téléphone, ou son nom si aucun des deux n'est connu */
+function codeDeCliente(nom,email,tel){const em=String(email||"").toLowerCase().trim(),tl=telSimple(tel),nm=nomSimple(nom),C=S.codes||[];
+  return(em&&C.find(c=>String(c.email||"").toLowerCase()===em))||(tl&&C.find(c=>telSimple(c.telephone)===tl))||(nm&&C.find(c=>nomSimple(c.cliente)===nm&&(!em||!c.email)&&(!tl||!telSimple(c.telephone))))||null}
 function addDays(d,k){const x=new Date((d||today())+"T12:00:00");x.setDate(x.getDate()+k);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
 /* même calcul que la base (fonction _parrainage_etat) */
 function cagnotte(code,exclId){
@@ -1178,7 +1180,7 @@ function cagnotte(code,exclId){
 function sousTotalVente(d){return r2(Math.max(1,n(d.quantite)||1)*n(d.prixTTC))}
 function checkCode(d){
   const R=RP();const site=current&&current.orig&&current.orig.origine==="site";
-  const code=normCode(d.codePromo);const own=codeDeCliente(d.client,d.email);
+  const code=normCode(d.codePromo);const own=codeDeCliente(d.client,d.email,d.telephone);
   if(code&&d.cagnotteCode)return{err:"Pas de cumul : soit le code promo, soit la cagnotte."};
   if(code){const c=(S.codes||[]).find(x=>x.id===code);
     if(!c)return S.codesOk?{err:"Code promo inconnu : "+code+"."}:{};
@@ -1189,7 +1191,7 @@ function checkCode(d){
 }
 function setRemise(d,want){const el=$("#remise");if(!el)return;if(el.value===""||(current.autoRemise!==undefined&&n(el.value)===current.autoRemise)){el.value=String(want).replace(".",",");d.remise=want}current.autoRemise=want}
 function pvCode(d){
-  const box=$("#pvCode");if(!box)return;const R=RP();const own=codeDeCliente(d.client,d.email);const out=[];
+  const box=$("#pvCode");if(!box)return;const R=RP();const own=codeDeCliente(d.client,d.email,d.telephone);const out=[];
   if(d.client&&!estTest(d.client))out.push(own?`<span>Code de ${esc(d.client.split(" ")[0])} : <span class="code">${esc(own.id)}</span></span>`:`<span>Son code de parrainage sera créé à l'enregistrement.</span>`);
   const cg=own?cagnotte(own.id,current&&current.id):null;
   const cb=$("#cagBox");if(cb)cb.hidden=!(d.cagnotteCode||(cg&&cg.pct>0));
@@ -1202,7 +1204,7 @@ function pvCode(d){
   box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une autre cliente, écris son code ici.</span>`;
 }
 function toggleCagnotte(on){
-  const d=formData();const own=codeDeCliente(d.client,d.email);const R=RP();
+  const d=formData();const own=codeDeCliente(d.client,d.email,d.telephone);const R=RP();
   const cc=$("#cagnotteCode"),cp=$("#cagnottePct"),cl=$("#cagnotteLe"),box=$("#utiliserCagnotte");
   if(on){
     const cg=own?cagnotte(own.id,current&&current.id):null;
@@ -1212,15 +1214,15 @@ function toggleCagnotte(on){
   livePreview();
 }
 async function ensureCode(nom,email,tel){
-  if(!nom||estTest(nom)||!db)return null;const ex=codeDeCliente(nom,email);if(ex&&(!email||ex.email))return ex.id;
+  if(!nom||estTest(nom)||!db)return null;const ex=codeDeCliente(nom,email,tel);if(ex&&(!email||ex.email)&&(!telSimple(tel)||telSimple(ex.telephone)))return ex.id;
   try{const{data,error}=await sb.rpc("code_cliente",{p_nom:nom,p_email:email||"",p_tel:tel||""});if(error)throw error;return data}catch(e){console.warn("code",e);return null}
 }
 let syncing=false;
 async function syncCodes(){
   if(syncing||S.syncDone||!S.codesOk||!S.loaded.has("ventes")||!db)return;syncing=true;
   try{const vus=new Set();
-    for(const v of S.ventes){if(!v.client||estTest(v.client)||v.statut==="Annulée")continue;const k=(v.email||"").toLowerCase()||nomSimple(v.client);if(vus.has(k))continue;vus.add(k);
-      if(!codeDeCliente(v.client,v.email))await ensureCode(v.client,v.email,v.telephone)}
+    for(const v of S.ventes){if(!v.client||estTest(v.client)||v.statut==="Annulée")continue;const k=(v.email||"").toLowerCase()||telSimple(v.telephone)||nomSimple(v.client);if(vus.has(k))continue;vus.add(k);
+      if(!codeDeCliente(v.client,v.email,v.telephone))await ensureCode(v.client,v.email,v.telephone)}
     S.syncDone=true}finally{syncing=false}
 }
 function pParrainage(){
@@ -1230,7 +1232,7 @@ function pParrainage(){
   return`${pageHead("Parrainage","Chaque cliente reçoit d'office un code unique. Une autre cliente qui l'utilise a −"+R.pct+" % (à partir de "+eur(R.min)+" d'achat). La marraine gagne "+R.pct+" % de cagnotte par commande, "+R.delai+" jours après le paiement, jusqu'à 100 % (création offerte, "+eur(R.plafond)+" maximum). Sa cagnotte repart à zéro quand elle l'utilise.")}
   <section class="hero"><p class="eyebrow">Codes</p><div class="money-big num">${rows.length}</div><p class="note">${actives.length} marraine${actives.length>1?"s":""} avec au moins une filleule</p></section>
   <div class="list">${rows.map(({c,g})=>`<div class="row" style="cursor:default"><span class="t">${esc(c.cliente||c.email||"Cliente")}</span><span class="v"><span class="code">${esc(c.id)}</span></span>
-    <span class="s">${g.commandes.length?`${g.commandes.length} filleule${g.commandes.length>1?"s":""}`:"Pas encore de filleule"} · cagnotte <b>${g.pct} %</b>${g.enAttente?` · ${g.enAttente} en attente`:""}${g.dern?` · utilisée le ${dfr(g.dern)}`:""}${c.email?" · "+esc(c.email):""}
+    <span class="s">${g.commandes.length?`${g.commandes.length} filleule${g.commandes.length>1?"s":""}`:"Pas encore de filleule"} · cagnotte <b>${g.pct} %</b>${g.enAttente?` · ${g.enAttente} en attente`:""}${g.dern?` · utilisée le ${dfr(g.dern)}`:""}${c.email?" · "+esc(c.email):""}${c.telephone?" · "+esc(c.telephone):""}
     ${g.commandes.length?`<br>${g.commandes.map(o=>`${esc(o.cliente||"")} (${dfr(o.date)}, ${o.compte?"comptée":o.ok?"déjà utilisée":"acquise le "+dfr(o.acquis)})`).join(" · ")}`:""}</span></div>`).join("")||`<div class="empty">Aucun code pour l'instant : ils se créent tout seuls à chaque vente.</div>`}</div>
   <p class="note">Les codes se créent automatiquement : à chaque vente enregistrée ici, et à chaque commande payée sur eugceo.fr (la cliente le reçoit dans son e-mail de confirmation et sur la page de remerciement). Une cliente ne peut pas utiliser son propre code. Les règles se changent dans Réglages des prix.</p>`;
 }
