@@ -720,14 +720,14 @@ function fVente(d){
   return`${F("date","Date de la vente",dateI("date",d.date||today()))}
   ${F("client","Cliente (nom et prénom)",inp("client",d.client,'autocomplete="off" required'))}
   ${F("produitId","Produit ou prestation",prodSelect("produitId",d.produitId))}
-  <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
-  <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <fieldset><legend>Fiche de création</legend>
     <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
     <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||"Standard"))}</div>
     <div class="field"><span class="lbl">Travaux réalisés (temps)</span><span class="hint">Écris le temps comme tu le dis : 1h30, 35min, 2h, 0h45.</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
   </fieldset>
+  <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
+  <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="preview" id="pvVente"></div>
   <fieldset><legend>Paiement</legend>
     <div class="two">${F("statut","Statut",sel("statut",L.statutsVente,paid))}${F("paiement","Moyen",sel("paiement",L.paiements,d.paiement||"Carte bancaire"))}</div>
