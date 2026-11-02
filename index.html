@@ -383,7 +383,7 @@ const L={
   typesBundle:["Simple (non doublé)","Doublé","Super doublé"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.7,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -516,7 +516,7 @@ function bonusPoids(p){const a=n(p.poidsAnnonce),r=n(p.poidsReel);if(!a||!r)retu
 function arrondiPrix(v){const a=n(S.reglages.arrondi);return a>0?Math.round(v/a)*a:Math.round(v)}
 function coefVente(p,couleurSpe,niveau,collection){
   if(!p)return 0;const b=(cat,v)=>(BONUS[cat]&&BONUS[cat][v])||0;const de=n(p.densite);
-  const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.7):n(S.reglages.coefBase||1.45);
+  const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.5):n(S.reglages.coefBase||1.45);
   return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
     +b("Texture",p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
     +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
