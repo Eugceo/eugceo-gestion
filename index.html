@@ -51,6 +51,7 @@ img{max-width:100%}[hidden]{display:none!important}
 .line.tr{grid-template-columns:minmax(0,1fr) 5.2em 0 auto}
 .line.tr .trLib{grid-column:1/-1;grid-row:2}
 .line.mt{grid-template-columns:minmax(0,1fr) 4.2em auto auto}
+.line.av{grid-template-columns:minmax(0,1fr) 6.5em auto}
 .line select,.line input{padding:8px 8px;font-size:15px}
 .line .u{color:var(--muted);font-size:13px}
 .line .rm{padding:6px;color:var(--muted)}
@@ -726,6 +727,9 @@ function readLines(){
   const matieres=[...document.querySelectorAll("#mtLines .line")].map(l=>{const sel=l.querySelector(".mtId");const o=sel.selectedOptions[0];const mm=S.matieres.find(x=>x.id===sel.value);return{id:sel.value,nom:mm?mm.nom:(o?o.textContent:""),prix:mm?n(mm.prix):n(o&&o.dataset.prix),qte:n(l.querySelector(".mtQ").value)}}).filter(x=>x.id&&x.qte>0);
   return{travaux,matieres};
 }
+function avLine(x){x=x||{};return`<div class="line av"><select class="avMoyen" aria-label="Moyen">${L.paiements.map(o=>`<option${o===(x.moyen||"Espèces")?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="avM" inputmode="decimal" placeholder="€" value="${x.montant===""||x.montant==null?"":String(x.montant).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+function readAv(){return[...document.querySelectorAll("#avLines .line")].map(l=>({moyen:l.querySelector(".avMoyen").value,montant:n(l.querySelector(".avM").value)})).filter(x=>x.montant>0)}
+function detailAv(v){return Array.isArray(v.avanceDetail)&&v.avanceDetail.length?v.avanceDetail.map(x=>eur(n(x.montant))+" "+String(x.moyen||"").toLowerCase()).join(" + "):""}
 function fVente(d){
   const paid=d.statut||"Payée";
   return`${F("date","Date de la vente",dateI("date",d.date||today()))}
@@ -753,6 +757,7 @@ function fVente(d){
   <fieldset><legend>Avance versée</legend>
     ${F("avanceType","Type d'avance",sel("avanceType",["Aucune","Acompte","Arrhes"],d.avanceType||"Aucune"),"Acompte : la vente est ferme, la cliente doit tout payer. Arrhes : elle peut annuler en les perdant (statut « Annulée »).")}
     <div class="two">${F("avanceMontant","Montant (€)",money("avanceMontant",d.avanceMontant))}${F("avanceDate","Date du versement",dateI("avanceDate",d.avanceDate))}</div>
+    <div class="field"><span class="lbl">Payée comment ?</span><span class="hint">Si l'avance a été payée en plusieurs fois ou de plusieurs façons (ex. 35 € en espèces + 65 € par virement), détaille ici : le montant se calcule tout seul.</span><div class="lines" id="avLines">${(Array.isArray(d.avanceDetail)?d.avanceDetail:[]).map(avLine).join("")}</div><button type="button" class="linkbtn addline" data-act="av-add">+ Ajouter un moyen de paiement</button></div>
   </fieldset>
   <details class="more"${d.adresse||d.ville||d.email||d.telephone?" open":""}><summary>Coordonnées et adresse pour la facture</summary><div>
     <div class="two">${F("email","E-mail",inp("email",d.email,'type="email" autocomplete="off"'))}${F("telephone","Téléphone",inp("telephone",d.telephone,'type="tel"'))}</div>
@@ -877,6 +882,7 @@ function closeSheet(keepReturn){if(!keepReturn&&S.returnTo&&current&&current.col
 function formData(){
   const o={};$("#form").querySelectorAll("input[name],select[name],textarea[name]").forEach(e=>{let v=e.value.trim();if(NUMERIC.has(e.name))v=v===""?"":n(v);o[e.name]=v});
   if(current&&current.col==="ventes"&&$("#trLines")){const l=readLines();o.travaux=l.travaux;o.matieres=l.matieres;o.heures=r2(l.travaux.reduce((s,x)=>s+x.heures,0))}
+  if(current&&current.col==="ventes"&&$("#avLines")){const av=readAv();o.avanceDetail=av;if(av.length){o.avanceMontant=r2(av.reduce((t,x)=>t+x.montant,0));const el=$("#avanceMontant");if(el&&n(el.value)!==o.avanceMontant)el.value=String(o.avanceMontant).replace(".",",");if(o.avanceType==="Aucune"){o.avanceType="Acompte";const at=$("#avanceType");if(at)at.value="Acompte"}}}
   return o;
 }
 function livePreview(){
@@ -1107,6 +1113,7 @@ document.addEventListener("click",e=>{
   else if(a==="new-amb"){openForm("codes_promo",null,{actif:true})}
   else if(a==="tr-add"){$("#trLines").insertAdjacentHTML("beforeend",trLine({nom:"Coloration",heures:TRAVAUX["Coloration"]}));livePreview()}
   else if(a==="mt-add"){$("#mtLines").insertAdjacentHTML("beforeend",mtLine({qte:1}));livePreview()}
+  else if(a==="av-add"){const box=$("#avLines");box.insertAdjacentHTML("beforeend",avLine({moyen:box.children.length?"Virement":"Espèces"}));const i=box.lastElementChild.querySelector(".avM");if(i)i.focus();livePreview()}
   else if(a==="line-rm"){b.closest(".line").remove();livePreview()}
   else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
   else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
@@ -1850,7 +1857,7 @@ function pFacture(id){
     ${n(v.remise)?`<tr><td>Remise</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
     ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody>
     <tfoot><tr><td colspan="3" class="r"><b>Total${s.tva==="Oui"?" TTC":""}</b></td><td class="r num"><b>${eur(tot)}</b></td></tr>
-    ${av?`<tr><td colspan="3" class="r">${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}</td><td class="r num">− ${eur(av)}</td></tr>`:""}
+    ${av?`<tr><td colspan="3" class="r">${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?" ("+esc(detailAv(v))+")":""}</td><td class="r num">− ${eur(av)}</td></tr>`:""}
     <tr><td colspan="3" class="r">${paid?"Reste à payer":"Reste à payer"}</td><td class="r num"><b>${eur(paid?0:Math.max(0,tot-av))}</b></td></tr></tfoot></table>
    <footer class="inv-f">${tvaLine?`<p>${tvaLine}</p>`:""}${paid?"":`<p>${esc(s.conditions)}</p>`}${s.iban&&!paid?`<p>IBAN : ${esc(s.iban)}</p>`:""}${s.mention?`<p class="inv-small">${esc(s.mention)}</p>`:""}</footer>
   </article>`;
@@ -1904,7 +1911,7 @@ function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{c
 async function exportExcel(){
   try{await loadXlsx()}catch(_){toast("Export impossible hors connexion");return}
   const X=window.XLSX;const wb=X.utils.book_new();const add=(name,rows)=>X.utils.book_append_sheet(wb,X.utils.json_to_sheet(rows.length?rows:[{"(vide)":""}]),name);
-  add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
+  add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Détail avance":detailAv(v),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
   add("Achats",S.achats.map(a=>{const p=prod(a.produitId);return{"N°":a.ref||"",Date:a.date,Fournisseur:a.fournisseur,"N° facture":a.numFacture||"",Pays:a.pays||"",Code:p?p.code:"",Quantité:n(a.quantite),"Prix unitaire":n(a.prixUnit),Devise:a.devise||"EUR",Taux:n(a.taux)||"","Frais d'approche":n(a.frais),"Coût total (€)":achatTotal(a),"Payé le":a.datePaiement||"",Moyen:a.moyen||"","Reçu le":a.dateReception||"",Commentaire:a.commentaire||""}}));
   add("Dépenses",S.depenses.map(d=>({"N°":d.ref||"",Date:d.date,Fournisseur:d.fournisseur,"N° facture":d.numFacture||"",Catégorie:d.categorie||"",Description:d.description||"",Montant:n(d.montant),"Payé le":d.datePaiement||"",Moyen:d.moyen||"",Justificatif:d.justificatif?"Oui":"Non",Commentaire:d.commentaire||""})));
   add("Abonnements",S.abonnements.map(a=>({Fournisseur:a.fournisseur,Description:a.description||"",Catégorie:a.categorie||"",Montant:n(a.montant),Fréquence:a.frequence||"",Jour:a.jour||"",Début:a.debut||"",Fin:a.fin||"","Mois payés":(a.mois||[]).join(", ")})));
