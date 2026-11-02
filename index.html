@@ -924,7 +924,7 @@ function validate(col,d){
   if(col==="produits"){if(!d.modele)e.push("le modèle")}
   if(col==="financement"){if(!n(d.montant))e.push("le montant")}
   if(col==="mouvements"){if(!d.produitId)e.push("le produit");if(!n(d.quantite))e.push("la quantité")}
-  if(col==="codes_promo"){if(!current.id){const c=normCode(d.code);if(c.length<3)return"Le code doit faire au moins 3 lettres ou chiffres.";if((S.codes||[]).some(x=>x.id===c))return"Le code "+c+" existe déjà."}if(!d.cliente)e.push("le nom");if(!d.email&&!telSimple(d.telephone))e.push("son e-mail ou son téléphone")}
+  if(col==="codes_promo"){if(!current.id){if(!normCode(d.code)&&d.cliente)d.code=codeAuto(d.cliente);const c=normCode(d.code);if(c.length<3)return"Le code doit faire au moins 3 lettres ou chiffres.";if((S.codes||[]).some(x=>x.id===c))return"Le code "+c+" existe déjà."}if(!d.cliente)e.push("le nom");if(!d.email&&!telSimple(d.telephone))e.push("son e-mail ou son téléphone")}
   if(col==="matieres"){if(!d.nom)e.push("le nom");if(!n(d.prixCond))e.push("le prix payé")}
   if(col==="abonnements"){if(!d.fournisseur)e.push("le fournisseur");if(!n(d.montant))e.push("le montant");if(!d.debut)e.push("la date de début")}
   if(d.date===""&&"date"in d)e.push("la date");
@@ -1122,6 +1122,8 @@ document.addEventListener("click",e=>{
 $("#plusBtn").addEventListener("click",openChooser);
 document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else save()});
 document.addEventListener("input",e=>{
+  if(e.target.id==="cliente"&&current&&current.col==="codes_promo"&&!current.id){const c=$("#code");if(c&&(!c.value||c.value===current.autoCode)){current.autoCode=e.target.value.trim()?codeAuto(e.target.value):"";c.value=current.autoCode}}
+  if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
@@ -1240,8 +1242,11 @@ async function syncPlanchers(){
   if(syncPl||!db||!canWrite||!S.reglagesOk||!S.loaded.has("produits"))return;syncPl=true;
   try{for(const p of S.produits){if(!(p.site&&p.site.enLigne))continue;const v=plancherSite(p);if(v!==""&&n(p.plancherSite)!==v){try{await db.collection("produits").doc(p.id).update({plancherSite:v})}catch(_){}}}}finally{syncPl=false}
 }
+/* code automatique : prénom (8 lettres max) + 2 chiffres, jamais déjà pris */
+function codeAuto(nom){const pre=(nomSimple(nom).split(" ")[0]||"").replace(/[^a-z]/g,"").slice(0,8).toUpperCase()||"EUG";const pris=new Set((S.codes||[]).map(c=>c.id));
+  for(let i=0;i<300;i++){const c=pre+String(Math.floor(Math.random()*(i<100?100:1000))).padStart(i<100?2:3,"0");if(!pris.has(c))return c}return pre+Date.now().toString().slice(-4)}
 function fAmb(d){const R=RP();
-  return`${d.id?`<p class="note">Code <span class="code">${esc(d.id)}</span></p>`:F("code","Code (celui qu'elle partagera)",inp("code",d.code,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" required'),"Lettres et chiffres, par exemple AWA10.")}
+  return`${d.id?`<p class="note">Code <span class="code">${esc(d.id)}</span></p>`:F("code","Code",inp("code",d.code,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" placeholder="Créé automatiquement"'),"Il se crée tout seul à partir de son prénom (ex. AWA27). Tu peux aussi l'écrire toi-même.")}
   ${F("cliente","Nom et prénom",inp("cliente",d.cliente,'autocomplete="off" required'))}
   <div class="two">${F("email","E-mail",inp("email",d.email,'type="email" autocomplete="off"'))}${F("telephone","Téléphone",inp("telephone",d.telephone,'type="tel"'))}</div>
   <p class="hint">L'e-mail ou le téléphone sert à la reconnaître : elle ne peut pas utiliser son propre code, et c'est comme ça qu'elle accède à sa cagnotte sur le site.</p>
