@@ -231,9 +231,11 @@ Deno.serve(async (req: Request) => {
           commentaire: `Commande en ligne (Stripe ${s.id.slice(-8)})${
             stock ? "" : " · création sur commande, acompte payé"
           }${
-            P.promo
+            P.promo && num(d.remise) > 0
               ? P.promo.type === "cagnotte"
                 ? ` · cagnotte −${eur(num(d.remise))}`
+                : P.promo.type === "lot"
+                ? ` · remise lot de ${P.promo.taille} bundles`
                 : ` · code ${P.promo.code} −${P.promo.pct} %`
               : ""
           }`,
@@ -261,6 +263,8 @@ Deno.serve(async (req: Request) => {
     ).join("\n") + (P.promo
       ? P.promo.type === "cagnotte"
         ? `\nCagnotte utilisée : −${eur(num(P.promo.montant))}`
+        : P.promo.type === "lot"
+        ? `\nRemise lot de ${P.promo.taille} bundles : −${eur(num(P.promo.montant))}`
         : `\nCode ${P.promo.code} : −${P.promo.pct} % (−${eur(num(P.promo.montant))})`
       : "");
     const livTxt = P.livraison === "retrait"

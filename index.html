@@ -189,7 +189,8 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .iv-row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .iv-lbl{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:#a8883a;margin-bottom:6px}
 .iv-client{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;line-height:1.2}
-.iv-right{text-align:right}.iv-num{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;letter-spacing:.04em;line-height:1.2;font-variant-numeric:lining-nums}
+.iv-right{text-align:right}.iv-num{font-family:Poppins,system-ui,sans-serif;font-size:16px;font-weight:500;letter-spacing:.08em;line-height:1.4;margin-bottom:2px}
+.iv-mini{display:block;font-size:8.5px;color:#8a8a8a;letter-spacing:.02em;margin-top:1px}
 .iv-small{font-size:11px;color:#6b6b6b}.iv-code{letter-spacing:.06em}
 .iv-paid{display:inline-block;margin-top:8px;padding:3px 10px;border:1px solid #C4A046;color:#8a6d22;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
 .iv-tbl{width:100%;border-collapse:collapse}
@@ -197,10 +198,10 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .iv-tbl td{padding:12px 4px;border-bottom:1px solid #ece6dc;vertical-align:top}
 .iv-tbl .r{text-align:right}.iv-tbl .num,.iv-total .num,.iv-sub .num{white-space:nowrap}
 .iv-des{font-weight:500}
-.iv-total{display:flex;justify-content:space-between;align-items:center;background:#111;color:#fff;padding:14px 18px;margin-left:auto;min-width:min(100%,300px)}
+.iv-total{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 0;margin-left:auto;min-width:min(100%,300px)}
 .iv-total span{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#C4A046}
-.iv-total b{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:600;letter-spacing:0;font-variant-numeric:lining-nums}
-.iv-sub{margin-left:auto;min-width:min(100%,300px);display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:-10px}
+.iv-total b{font-family:Poppins,system-ui,sans-serif;font-size:19px;font-weight:600;letter-spacing:.01em}
+.iv-sub{margin-left:auto;min-width:min(100%,300px);display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:-12px}
 .iv-sub>div{display:flex;justify-content:space-between;gap:12px;padding:0 4px}
 .iv-reste{font-weight:600;border-top:1px solid #ece6dc;padding-top:6px!important}
 .iv-merci{text-align:center;font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:19px;margin:6px 0 0}
@@ -270,7 +271,7 @@ const L={
   typesBundle:["Simple (non doublé)","Doublé","Super doublé"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.7,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.7,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -1032,6 +1033,8 @@ function openReglages(){
     <p class="note">Comprend le nettoyage et le lissage ou la redéfinition des boucles. Tout autre travail ajouté dans la vente (coloration, coupe…) s'ajoute au forfait.</p></fieldset>
    ${row("coefBase","Coefficient de base","Le curseur de positionnement de la Maison. Chaque caractéristique du produit y ajoute un bonus.")}
    ${row("arrondi","Arrondi du prix conseillé (€)","5 = arrondi aux 5 € les plus proches. 0 = à l'euro.")}
+   <fieldset><legend>Lot de bundles</legend>
+    <div class="two">${row("lotBundleTaille","Nombre de bundles par lot")}${row("lotBundleRemise","Remise par lot (€)","Appliquée toute seule sur le site et dans l'app. 0 = pas de remise.")}</div></fieldset>
    <fieldset><legend>Ambassadrices (valeurs par défaut)</legend>
     <div class="two">${row("parrainPct","Remise cliente et gain ambassadrice (%)")}${row("parrainMin","Achat minimum (€)")}</div>
     ${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</fieldset>
@@ -1214,6 +1217,7 @@ function etatAmb(c,exclId){
   return{...T,gains:r2(gains),utilise,solde:Math.max(0,r2(gains-utilise)),enAttente:att,commandes:list,ca:r2(ca)}
 }
 function dejaParrainee(d,exclId){return S.ventes.some(v=>v.id!==exclId&&v.codePromo&&dansCA(v)&&(d.email||telSimple(d.telephone)||d.client)&&estTitulaire({cliente:v.client,email:v.email,telephone:v.telephone},d.client,d.email,d.telephone))}
+function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise);if(!isBundle(p)||!(rm>0))return 0;return Math.min(Math.floor(Math.max(1,n(d.quantite)||1)/t)*rm,margeVente(d))}
 function sousTotalVente(d){return r2(Math.max(1,n(d.quantite)||1)*n(d.prixTTC))}
 /* marge disponible avant le prix plancher, pour cette vente */
 function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2((n(d.prixTTC)-pp.plancher)*q)):sousTotalVente(d)}
@@ -1241,7 +1245,9 @@ function pvCode(d){
   const ck=checkCode(d);
   if(ck.err)out.push(`<span class="err">${esc(ck.err)}</span>`);
   else if(ck.ok){setRemise(d,ck.remise);out.push(`<span>Code ${esc(ck.c.id)} (${esc(ck.c.cliente||"")}) : −${ck.T.pf} % → remise <b class="num">${eur(ck.remise)}</b>. L'ambassadrice gagnera ${ck.T.pg} % de ce que paie la cliente, ${RP().delai} jours après le paiement.</span>`)}
-  if(!d.cagnotteCode&&!ck.ok&&current.autoRemise!==undefined){const el=$("#remise");if(el&&n(el.value)===current.autoRemise){el.value="";d.remise=""}current.autoRemise=undefined}
+  const lot=!d.cagnotteCode&&!ck.ok&&!ck.err?lotVente(d):0;
+  if(lot>0){setRemise(d,lot);const R=S.reglages||{};out.push(`<span>Lot de ${n(R.lotBundleTaille)||3} bundles : remise <b class="num">${eur(lot)}</b> appliquée.</span>`)}
+  else if(!d.cagnotteCode&&!ck.ok&&current.autoRemise!==undefined){const el=$("#remise");if(el&&n(el.value)===current.autoRemise){el.value="";d.remise=""}current.autoRemise=undefined}
   box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une ambassadrice, écris son code ici.</span>`;
 }
 function toggleCagnotte(on){
@@ -1878,14 +1884,14 @@ function pFacture(id){
    <div class="iv-rule"></div>
    <section class="iv-row">
     <div><div class="iv-lbl">Facturé à</div><div class="iv-client">${esc(v.client)}</div><div class="iv-small">${esc(v.adresse||"")}${v.adresse?"<br>":""}${esc(v.ville||"")}${v.email?(v.adresse||v.ville?"<br>":"")+esc(v.email):""}</div></div>
-    <div class="iv-right"><div class="iv-lbl">Facture</div><div class="iv-num">${esc(v.numero||"(non numérotée)")}</div><div class="iv-small">Le ${dfr(v.date)}<br>${nature}</div>${paid?`<div class="iv-paid">Payée le ${dfr(v.dateEncaissement||v.date)}${v.paiement?" · "+esc(v.paiement.toLowerCase()):""}</div>`:""}</div>
+    <div class="iv-right"><div class="iv-lbl">Facture</div><div class="iv-num">${esc(v.numero||"(non numérotée)")}</div><div class="iv-small">Le ${dfr(v.date)}<br>${nature}</div>${paid?`<div class="iv-paid">Payée le ${dfr(v.dateEncaissement||v.date)}</div>${v.paiement?`<div class="iv-mini">${esc(v.paiement.toLowerCase())}</div>`:""}`:""}</div>
    </section>
    <table class="iv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
     <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
     ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
     ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
    <div class="iv-total"><span>Total${s.tva==="Oui"?" TTC":""}</span><b class="num">${eur(tot)}</b></div>
-   ${av||!paid?`<div class="iv-sub">${av?`<div><span>${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?" ("+esc(detailAv(v))+")":""}</span><span class="num">− ${eur(av)}</span></div>`:""}<div class="iv-reste"><span>Reste à payer</span><span class="num">${eur(reste)}</span></div></div>`:""}
+   ${av||!paid?`<div class="iv-sub">${av?`<div><span>${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?`<span class="iv-mini">${esc(detailAv(v))}</span>`:""}</span><span class="num">− ${eur(av)}</span></div>`:""}<div class="iv-reste"><span>Reste à payer</span><span class="num">${eur(reste)}</span></div></div>`:""}
    <p class="iv-merci">Merci pour votre confiance.</p>
    <footer class="iv-f"><div class="iv-rule"></div>
     ${paid?"":`${s.conditions?`<p>${esc(s.conditions)}</p>`:""}${s.iban?`<p>IBAN : ${esc(s.iban)}</p>`:""}`}

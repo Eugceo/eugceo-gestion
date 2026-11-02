@@ -142,6 +142,14 @@ Deno.serve(async (req: Request) => {
         const f = plancher.get(x.p.id) || x.prix * 0.5;
         return Math.max(0, r2((x.prix - f) * x.qte));
       });
+      // remise automatique par lot de bundles (ex. 15 € par lot de 3)
+      const isB = (p: any) => /^Bundle/.test(p.construction || "");
+      const nbB = base.reduce((a, x) => a + (isB(x.p) ? x.qte : 0), 0);
+      const lotT = num(R?.lotTaille) || 3, lotR = num(R?.lotRemise);
+      const lotTotal = lotR > 0 ? Math.floor(nbB / lotT) * lotR : 0;
+      const lotLigne = base.map((x, i) =>
+        lotTotal > 0 && isB(x.p) ? Math.min(r2(lotTotal * x.qte / nbB), room[i]) : 0
+      );
       const remiseLigne = base.map(() => 0);
       let promo: any = null;
       const code = String(b.code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
@@ -199,6 +207,12 @@ Deno.serve(async (req: Request) => {
           };
         }
       }
+      // un seul avantage par commande : on garde le plus intéressant pour la cliente
+      const somme = (t: number[]) => t.reduce((a, x) => a + x, 0);
+      if (lotTotal > 0 && somme(lotLigne) > somme(remiseLigne)) {
+        lotLigne.forEach((v, i) => remiseLigne[i] = v);
+        promo = { type: "lot", lots: Math.floor(nbB / lotT), taille: lotT };
+      }
       // 3) lignes Stripe
       const lines: any[] = [], resv: any[] = [], details: any[] = [];
       base.forEach(({ p, qte, prix: prixInitial }, i) => {
@@ -207,6 +221,8 @@ Deno.serve(async (req: Request) => {
         const promoTxt = remise > 0
           ? (promo.type === "cagnotte"
             ? ` · cagnotte −${fr(remise)} €`
+            : promo.type === "lot"
+            ? ` · remise lot de ${promo.taille} bundles`
             : ` · code ${promo.code} −${promo.pct} %`)
           : "";
         const t = titre(p);
@@ -296,7 +312,7 @@ Deno.serve(async (req: Request) => {
         cancel_url: `${SITE}/#/panier`,
         phone_number_collection: { enabled: true },
         line_items: Object.fromEntries(lines.map((l, i) => [i, l])),
-        metadata: { type: "commande", ...(promo ? { code: promo.code } : {}) },
+        metadata: { type: "commande", ...(promo?.code ? { code: promo.code } : {}) },
         payment_intent_data: {
           description: "Commande EUGCEO",
           metadata: { type: "commande" },
