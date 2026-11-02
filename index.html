@@ -383,7 +383,7 @@ const L={
   typesBundle:["Simple (non doublé)","Doublé","Super doublé"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -496,10 +496,24 @@ function coutMoyen(p){
 }
 function heuresVente(d){const t=Array.isArray(d.travaux)?d.travaux:null;if(t)return t.reduce((s,x)=>s+n(x.heures),0);return d.heures===""||d.heures==null?n(S.reglages.tempsDefaut):n(d.heures)}
 function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce((s,x)=>s+n(x.qte)*n(x.prix),0)):0}
+/* ---------- prix de vente = prix de base (customisation standard comprise) + suppléments ---------- */
+const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissage","Lissage"],["layers","Layers (dégradé)"],["customisation","Customisation"],["bouclage","Bouclage"],["coupe","Coupe"],["plucking","Plucking"]];
+function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
+function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");return pc&&pc.prix?pc.prix:0}
+function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
+/* détail du prix d'une vente (hors prestations) : par pièce */
+function prixVenteDetail(p,d){
+  if(!p||isPrestation(p))return null;const q=Math.max(1,n(d.quantite)||1);const bu=isBundle(p);const base=prixBaseDe(p);
+  const col=(BONUS["Collection"]&&BONUS["Collection"][d.collection])||0;
+  const lignes=[];for(const t of (Array.isArray(d.travaux)?d.travaux:[])){const tf=supTarif(t.nom,bu);if(tf>0)lignes.push({nom:t.nom,montant:r2(tf*(bu?q:1))})}
+  const mat=r2(matieresVente(d)*(n(S.reglages.coefMatieres)||2));
+  const total=r2(base*q*(1+col)+lignes.reduce((a,x)=>a+x.montant,0)+mat);
+  return{base,col,colMontant:r2(base*q*col),lignes,mat,q,total,unit:r2(total/q)};
+}
 function coutVente(p,d){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);const pack=d.packaging;
   const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
-  const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH)));const mat=matieresVente(d);const tr=pr?0:isBundle(p)?n(R.transportBundle):n(R.transport);
+  const qv=Math.max(1,n(d.quantite)||1);const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH))/qv);const mat=r2(matieresVente(d)/qv);const tr=pr?0:isBundle(p)?n(R.transportBundle):n(R.transport);
   const revient=r2(n(p.prixAchat)+mo+mat+packC+tr);
   const fh=Array.isArray(d.travaux)?d.travaux.filter(x=>x.nom==="Remise en forme").reduce((s2,x)=>s2+n(x.heures),0):0;
   return {fh,achat:n(p.prixAchat),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
@@ -877,7 +891,7 @@ function fVente(d){
   ${F("client","Cliente (nom et prénom)",inp("client",d.client,'autocomplete="off" required'))}
   ${F("produitId","Produit ou prestation",prodSelect("produitId",d.produitId))}
   <fieldset><legend>Fiche de création</legend>
-    <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}${F("niveau","Niveau de travail",sel("niveau",Object.keys(BONUS["Niveau de travail"]),d.niveau||"Standard"))}</div>
+    <div class="two">${F("couleurSpe","Couleur obtenue",`<select id="couleurSpe" name="couleurSpe"><option value="Naturelle">Naturelle (pas de changement)</option>${refCouleurs().map(c=>`<option${c.nom===d.couleurSpe?" selected":""}>${esc(c.nom)}</option>`).join("")}${d.couleurSpe&&d.couleurSpe!=="Naturelle"&&!refCouleurs().some(c=>c.nom===d.couleurSpe)?`<option selected>${esc(d.couleurSpe)}</option>`:""}</select>`,"Liste modifiable dans Accueil → Référentiel.")}</div>
     <div class="two">${F("collection","Collection",sel("collection",Object.keys(BONUS["Collection"]),d.collection||"Basique"))}${F("packaging","Packaging",sel("packaging",L.packaging,d.packaging||(isBundle(prod(d.produitId))?"Bundle":"Standard")))}</div>
     <div class="field"><span class="lbl">Travaux réalisés (temps)</span><span class="hint">Écris le temps comme tu le dis : 1h30, 35min, 2h, 0h45.</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
@@ -954,6 +968,7 @@ function fProduit(d){
   ${F("couleur","Couleur",inp("couleur",d.couleur,'list="dlCol" autocomplete="off"'))}
   <datalist id="dlCol">${colors.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
   <div class="two">${F("prixAchat","Prix d'achat (€)",money("prixAchat",d.prixAchat),"0 pour une prestation.")}${F("seuil","Seuil d'alerte",inp("seuil",d.seuil,'inputmode="numeric"'),"Alerte quand le stock descend à ce nombre.")}</div>
+  ${F("prixBase","Prix de base, customisation comprise (€)",money("prixBase",d.prixBase),`Le prix de vente normal de cet article, préparation de base comprise. Dans une vente, il s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent.${d.modele&&!isPrestation(d)?" Prix conseillé : "+eur(prixBaseConseille(d))+".":""}`)}
   <div class="preview" id="pvProd"></div>
   <details class="more"${n(d.stockDepart)?" open":""}><summary>Déjà en stock au départ</summary><div>
     <div class="two">${F("stockDepart","Quantité au départ",inp("stockDepart",d.stockDepart||0,'inputmode="numeric"'))}${F("coutDepart","Coût unitaire (€)",money("coutDepart",d.coutDepart))}</div>
@@ -990,7 +1005,7 @@ function fAbo(d){
   <div class="field"><span class="lbl">Mois avec un montant différent</span><span class="hint">Par exemple le premier mois facturé au prorata. Les autres mois gardent le montant habituel.</span><div class="lines" id="abLines">${Object.entries(d.montantsMois||{}).sort().map(([k,v])=>abLine(k,v)).join("")}</div><button type="button" class="linkbtn addline" data-act="ab-add">+ Ajouter un mois</button></div>`;
 }
 function abLine(k,v){return`<div class="line av"><input type="month" class="abK" value="${esc(k||ym(today()))}" aria-label="Mois"><input class="abV" inputmode="decimal" placeholder="€" value="${v===undefined||v===""?"":String(v).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
-const NUMERIC=new Set(["prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
+const NUMERIC=new Set(["prixBase","prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
 let current=null;
 function openChooser(){
   const sh=$("#sheet");
@@ -1045,6 +1060,8 @@ function livePreview(){
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
     $("#pvProd").innerHTML=code?`<span>Code créé automatiquement${p.type==="Prestation"?" (prestation : prix d'achat à 0)":""}</span><span class="code">${esc(code)}</span><span>${esc(designation(p))}</span>`:`<span>Le code apparaît dès que le modèle est rempli.</span>`;
   }
+  if(c==="ventes"){const p0=prod(d.produitId);const det=prixVenteDetail(p0,d);const el=$("#prixTTC");
+    if(det&&el){if(el.value===""||(current.autoPrix!==undefined&&n(el.value)===current.autoPrix)){el.value=String(det.unit).replace(".",",");d.prixTTC=det.unit}current.autoPrix=det.unit}}
   if(c==="ventes")pvCode(d);
   if(c==="ventes"){
     const p=prod(d.produitId);const box=$("#pvVente");
@@ -1053,8 +1070,10 @@ function livePreview(){
     const net=n(d.prixTTC)?(qte*n(d.prixTTC)-n(d.remise))/qte:0;const sq=stockQty(p);
     const tot=r2(qte*n(d.prixTTC)-n(d.remise)+n(d.port));
     box.innerHTML=`<span>${esc(designation(p))}${sq===null?"":` · <b>${sq}</b> en stock`}</span>
-      ${pc.forfait===true&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>
-      <span>Prix plancher <b class="num">${eur(pp.plancher)}</b> · coef. ${String(pc.coef).replace(".",",")}</span>
+      ${pc.forfait===true&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}${(()=>{const det=prixVenteDetail(p,d);if(!det)return`<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>`;
+        const parts=[`base ${eur(det.base)}${det.q>1?" × "+det.q:""}`].concat(det.colMontant?[`collection ${d.collection} ${eur(det.colMontant)}`]:[]).concat(det.lignes.map(x=>`${x.nom.toLowerCase()} ${eur(x.montant)}`)).concat(det.mat?[`matières ${eur(det.mat)}`]:[]);
+        return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b>${det.q>1?` · soit <b class="num">${eur(det.unit)}</b> par pièce`:""} <button type="button" class="linkbtn" data-act="use-price" data-v="${det.unit}">Utiliser ce prix</button></span>`})()}
+      <span>Prix plancher <b class="num">${eur(pp.plancher)}</b>${isPrestation(p)?" · coef. "+String(pc.coef).replace(".",","):" par pièce"}</span>
       <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
       ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
       ${net&&net<pp.plancher?`<span class="chip bad" style="align-self:flex-start">Sous le prix plancher</span>`:""}
@@ -1091,7 +1110,7 @@ async function save(){
     if(!id&&d.type==="Marchandise"&&same.length){const ex=same[0];
       if(ex.statut==="Archivé"){try{await db.collection("produits").doc(ex.id).update({statut:"Actif",modifieLe:new Date().toISOString()});toast("Cette référence existait (archivée) : elle est réactivée");afterProduct(ex.id)}catch(e){eb.textContent=dbErr(e);eb.hidden=false}return}
       eb.textContent="Ce produit existe déjà : "+ex.code+". Choisis-le dans la liste au lieu de le recréer.";eb.hidden=false;return}
-    d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st)d.site=st}
+    d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st){if(st.prix===""&&n(d.prixBase)>0)st.prix=n(d.prixBase);d.site=st}}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date);
     if(d.etape==="Expédiée"&&orig.etape!=="Expédiée"&&!d.expedieLe)d.expedieLe=today();
@@ -1173,6 +1192,10 @@ function openReglages(){
     <p class="note">Comprend le nettoyage et le lissage ou la redéfinition des boucles. Tout autre travail ajouté dans la vente (coloration, coupe…) s'ajoute au forfait.</p></fieldset>
    ${row("coefBase","Coefficient de base","Le curseur de positionnement de la Maison. Chaque caractéristique du produit y ajoute un bonus.")}
    ${row("arrondi","Arrondi du prix conseillé (€)","5 = arrondi aux 5 € les plus proches. 0 = à l'euro.")}
+   <fieldset><legend>Suppléments ajoutés au prix de base</legend>
+    <p class="note">Dans une vente, chaque travail ajouté (coloration, coupe…) ajoute son supplément au prix de base. Pour les bundles, le supplément est par bundle. La préparation de base est comprise dans le prix de base.</p>
+    ${SUPS.map(([k,l])=>`<div class="two">${row("sup_"+k+"_p",l+" · perruque (€)")}${row("sup_"+k+"_b",l+" · par bundle (€)")}</div>`).join("")}
+    ${row("coefMatieres","Matières : coût × ","Les matières utilisées (teinture, oxydant…) s'ajoutent au prix à leur coût multiplié par ce nombre.")}</fieldset>
    <fieldset><legend>Lot de bundles</legend>
     <div class="two">${row("lotBundleTaille","Nombre de bundles par lot")}${row("lotBundleRemise","Remise par lot (€)","Appliquée toute seule sur le site et dans l'app. 0 = pas de remise.")}</div></fieldset>
    <fieldset><legend>Ambassadrices (valeurs par défaut)</legend>
