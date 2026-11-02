@@ -386,7 +386,7 @@ const L={
 const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
-  "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":0.03,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
+  "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":-0.1,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
   "Taille de lace":{"13x6":0.12,"13x4":0.1,"7x7":0.08,"6x6":0.06,"5x5":0.04,"4x4":0.02,"2x6":0.03,"2x4":0.02,"T-Part":0.03},
   "Qualité de lace":{"Ultra HD Lace":0.15,"HD Lace":0.1,"Transparent Lace":0.07},
   "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03},
@@ -397,9 +397,9 @@ const BONUS={
   "Texture":{"Straight":0,"Bob":0,"Ponytail":0,"Yaki Straight":0.02,"Body Wave":0.02,"Kinky Straight":0.03,"Loose Wave":0.03,"Water Wave":0.04,"Deep Wave":0.04,"Loose Deep":0.04,"Indian Curly":0.05,"Jerry Curly":0.05,"Burmese Curly":0.06,"Pixie Curly":0.06,"Kinky Curly":0.06,"Afro Curly":0.06,"Boucle Customisé":0.06}
 };
 const PALIERS={
-  longueur:[[0,-0.45],[10,-0.42],[12,-0.38],[14,-0.3],[16,-0.2],[18,-0.08],[20,0.04],[22,0.1],[24,0.16],[26,0.2],[28,0.24],[30,0.28],[32,0.32],[34,0.36],[36,0.4],[38,0.44],[40,0.48]],
+  longueur:[[0,-0.45],[10,-0.42],[12,-0.38],[14,-0.3],[16,-0.2],[18,-0.08],[20,-0.06],[22,-0.03],[24,0],[26,0.02],[28,0.05],[30,0.08],[32,0.11],[34,0.14],[36,0.17],[38,0.2],[40,0.23]],
   longueurBundle:[[0,-0.12],[12,-0.08],[14,-0.06],[16,-0.04],[18,0],[20,0.03],[22,0.06],[24,0.09],[26,0.12],[28,0.15],[30,0.18],[32,0.21],[34,0.24],[36,0.27],[38,0.3],[40,0.33]],
-  densite:[[2,0.15],[2.2,0.2],[2.5,0.28],[3,0.38]],
+  densite:[[2,0.08],[2.2,0.11],[2.5,0.15],[3,0.22]],
   prix:[[0,0.15],[20,0.12],[40,0.1],[60,0.08],[80,0.06],[100,0.04],[120,0.03],[140,0.02],[160,0.01],[180,0],[200,-0.01],[220,-0.02],[240,-0.03],[260,-0.04],[280,-0.05],[300,-0.06]]
 };
 function palier(t,v){if(v===""||v==null)return 0;v=n(v);let b=null;for(const [k,x] of t){if(v>=k)b=x}return b===null?0:b}
@@ -1060,6 +1060,9 @@ function formData(){
 function livePreview(){
   if(!current)return;const c=current.col;const f=$("#form");if(!f)return;const d=formData();
   if(c==="produits"){
+    {const pb=$("#prixBase");if(pb){const pr0={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
+      if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want)h.textContent="Calculé automatiquement à partir du prix d'achat et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}
     const p={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const code=codeFor(p,current.id,current.orig.code);
     const b0=baseCode(p);const ex=!current.id&&p.type==="Marchandise"&&b0?S.produits.find(x=>x.code===b0):null;
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
