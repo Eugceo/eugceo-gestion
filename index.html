@@ -364,7 +364,7 @@ function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle
 
 /* ---------- état ---------- */
 const S={devis:[],demandes:[],codes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
-navRestore();
+NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];navRestore();
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -517,7 +517,7 @@ function aReporter(){let c=0;for(const k of COLS)for(const d of S[k])if(d.excel&
 /* ---------- rendu ---------- */
 let rq=0;function render(){cancelAnimationFrame(rq);rq=requestAnimationFrame(doRender)}
 /* garde l'écran affiché pour le retrouver après un rechargement */
-const NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];
+var NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];
 function navSave(){try{const o={};NAV_KEYS.forEach(k=>o[k]=S[k]);o.y=window.scrollY;sessionStorage.setItem("eug_nav",JSON.stringify(o))}catch(_){}}
 function navRestore(){try{const o=JSON.parse(sessionStorage.getItem("eug_nav")||"null");if(!o)return;NAV_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});S._scrollY=o.y||0}catch(_){}}
 window.addEventListener("pagehide",navSave);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")navSave()});
