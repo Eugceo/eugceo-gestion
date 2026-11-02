@@ -236,10 +236,70 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 a.btn{text-decoration:none}
 .line.dv{grid-template-columns:minmax(0,1fr) 3.6em 5.4em auto}
 .dem .msg.rep{border-left:2px solid var(--line);padding-left:10px;color:var(--muted)}
+
+/* ===== Couche « grande maison » : or, noir, blanc, finesse ===== */
+:root{--gold:#C4A046;--gold-d:#9b7c2e;--hair:#ece6dc;--shadow:0 1px 2px rgba(17,17,17,.04),0 8px 24px rgba(17,17,17,.05)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--hair:#2c2a26;--shadow:none}}
+.intro{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .9s,visibility 0s .9s}
+.intro svg{width:92px;height:56px;animation:ecIn 1.4s cubic-bezier(.22,.8,.24,1) both}
+.intro span{font:500 17px/1 var(--display);letter-spacing:.6em;padding-left:.6em;color:#111;animation:motIn 1.4s .3s cubic-bezier(.22,.8,.24,1) both}
+.intro small{font:500 9px/1 var(--body);letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;color:var(--gold-d);animation:motIn 1.4s .6s cubic-bezier(.22,.8,.24,1) both}
+.intro.fini{opacity:0;visibility:hidden}
+@keyframes ecIn{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes motIn{from{opacity:0;transform:translateY(8px);letter-spacing:.9em}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.intro{display:none}}
+header.top{border-bottom:0;box-shadow:inset 0 -1px 0 rgba(196,160,70,.55)}
+header.top .wrap{align-items:center}
+.hd-ec{width:26px;height:16px;flex:none;margin-right:-4px}
+header.top .brand{letter-spacing:.42em;font-size:12px}
+header.top h1{font-family:var(--display);font-weight:500;letter-spacing:.02em}
+.hero{background:#111;color:#fff;border-radius:16px;padding:22px 20px;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(17,17,17,.18)}
+.hero::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.hero .eyebrow{color:var(--gold)!important;letter-spacing:.28em}
+.money-big{font-family:var(--display);font-variant-numeric:lining-nums;font-weight:500}
+.tile{background:var(--bg);border:1px solid var(--hair);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.tile>span:first-child{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-d)}
+.tile b{font-size:19px;letter-spacing:-.01em}
+.list{background:var(--bg);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow)}
+.row{border-top-color:var(--hair);transition:background .15s}
+.row:hover{background:rgba(196,160,70,.06)}
+.row .t{font-weight:500}
+section>h2,.pagehead h2,.ptitle,main h2{font-family:var(--display);font-weight:500;letter-spacing:.01em}
+section>h2::after{content:"";display:block;width:28px;height:1px;background:var(--gold);margin-top:6px}
+.seg button{background:var(--bg);border-color:var(--hair);transition:all .15s}
+.seg button[aria-pressed="true"]{background:#111;color:var(--gold);border-color:#111}
+.monthbar .iconbtn,.iconbtn{border-color:var(--hair)}
+nav.tabs{background:rgba(255,255,255,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--hair)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) nav.tabs{background:rgba(17,17,17,.92)}}
+nav.tabs [data-tab][aria-current="page"]{color:var(--fg)}
+nav.tabs [data-tab][aria-current="page"] svg{stroke:var(--gold-d)}
+nav.tabs [data-tab][aria-current="page"]::after{content:"";display:block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin:3px auto 0}
+nav.tabs .plus{background:#111;color:var(--gold);box-shadow:0 0 0 3px var(--bg),0 0 0 4px rgba(196,160,70,.7),0 8px 20px rgba(17,17,17,.25)}
+.btn{letter-spacing:.04em;transition:background .2s,color .2s,box-shadow .2s}
+.btn:not(.ghost):not(.danger):hover{background:#111;color:var(--gold);box-shadow:0 6px 18px rgba(17,17,17,.2)}
+.btn.ghost{background:transparent;border-color:var(--hair);color:var(--fg)}
+.btn.ghost:hover{border-color:var(--gold);color:var(--gold-d)}
+.field>label,.field .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select,.field textarea,.line input,.line select{background:var(--bg);border:1px solid var(--hair);border-radius:10px;transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus,.field textarea:focus,.line input:focus,.line select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(196,160,70,.18)}
+fieldset{border:1px solid var(--hair);border-radius:14px}
+fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-d);padding:0 6px}
+.preview{background:linear-gradient(180deg,rgba(196,160,70,.07),rgba(196,160,70,.02));border:1px solid rgba(196,160,70,.28);border-radius:12px}
+.sheet-head{border-bottom:1px solid var(--hair)}
+.sheet-head h2{font-family:var(--display);font-weight:500}
+.choice{background:var(--bg);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.choice:hover{border-color:var(--gold);transform:translateY(-1px)}
+.choice b{font-family:var(--display);font-size:20px;font-weight:500}
+.chip{border-radius:999px}
+.toast{background:#111;color:#fff;border:1px solid rgba(196,160,70,.5)}
+.empty{font-family:var(--display);font-style:italic;font-size:17px}
+.code{letter-spacing:.06em}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span><button type="button" class="reload" id="reloadBtn" title="Recharger l'app" aria-label="Recharger l'app"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ec" viewBox="29 39 42 25"><path fill="#C4A046" d="M45.1 62H30.62Q30.52 62 30.52 61.8Q30.52 61.59 30.62 61.59Q31.78 61.59 32.37 61.42Q32.97 61.25 33.17 60.74Q33.37 60.23 33.37 59.25V43.5Q33.37 42.52 33.17 42.02Q32.97 41.53 32.37 41.34Q31.78 41.16 30.62 41.16Q30.52 41.16 30.52 40.95Q30.52 40.75 30.62 40.75H44.49Q44.83 40.75 44.83 41.06L44.9 45.34Q44.9 45.44 44.71 45.46Q44.53 45.48 44.49 45.37Q44.25 43.5 43.17 42.53Q42.08 41.57 40.31 41.57H38.58Q37.56 41.57 37.01 41.74Q36.47 41.91 36.26 42.36Q36.06 42.82 36.06 43.64V59.11Q36.06 59.93 36.25 60.39Q36.43 60.84 36.94 61.03Q37.45 61.22 38.37 61.22H40.62Q42.55 61.22 43.81 60.08Q45.07 58.94 45.55 56.83Q45.55 56.73 45.75 56.76Q45.95 56.8 45.95 56.9Q45.82 57.82 45.72 59.11Q45.61 60.4 45.61 61.49Q45.61 62 45.1 62ZM43.2 54.18Q43.2 52.72 42.37 52.02Q41.53 51.32 39.7 51.32H34.77V50.54H39.8Q41.53 50.54 42.35 49.95Q43.17 49.35 43.17 48.09Q43.17 48.03 43.35 48.03Q43.54 48.03 43.54 48.09Q43.54 49.15 43.52 49.73Q43.51 50.3 43.51 50.95Q43.51 51.73 43.56 52.51Q43.61 53.3 43.61 54.18Q43.61 54.25 43.4 54.25Q43.2 54.25 43.2 54.18ZM61.73 40.38Q63.02 40.38 64.13 40.49Q65.23 40.61 66.2 40.89Q67.17 41.16 68.05 41.6Q68.33 41.7 68.38 41.82Q68.43 41.94 68.46 42.35L68.9 46.63Q68.9 46.7 68.72 46.75Q68.53 46.8 68.5 46.67Q67.65 43.84 65.91 42.4Q64.18 40.95 61.49 40.95Q58.77 40.95 56.73 42.21Q54.69 43.47 53.54 45.77Q52.38 48.06 52.38 51.19Q52.38 53.5 53.09 55.44Q53.81 57.38 55.08 58.82Q56.36 60.27 58.04 61.05Q59.72 61.83 61.66 61.83Q64.38 61.83 66.06 60.47Q67.75 59.11 68.77 56.32Q68.84 56.22 69.01 56.25Q69.18 56.29 69.18 56.39L68.8 60.27Q68.77 60.67 68.68 60.78Q68.6 60.88 68.36 61.01Q66.63 61.8 65.05 62.12Q63.46 62.44 61.66 62.44Q58.06 62.44 55.25 61.03Q52.45 59.62 50.85 57.12Q49.25 54.62 49.25 51.32Q49.25 48.88 50.19 46.87Q51.12 44.86 52.82 43.4Q54.52 41.94 56.78 41.16Q59.04 40.38 61.73 40.38Z"/></symbol></svg>
+<div class="intro" id="intro" aria-hidden="true"><svg><use href="#ec"/></svg><span>EUGCEO</span><small>Gestion</small></div>
+<header class="top"><div class="wrap"><svg class="hd-ec" aria-hidden="true"><use href="#ec"/></svg><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span><button type="button" class="reload" id="reloadBtn" title="Recharger l'app" aria-label="Recharger l'app"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div></header>
 <div class="majbar" id="majBar" hidden>Une nouvelle version de l'app est prête. <button type="button" id="majBtn">Mettre à jour</button></div>
 <main><div class="wrap" id="view"></div></main>
 <nav class="tabs" aria-label="Sections"><div class="wrap">
@@ -304,6 +364,7 @@ function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle
 
 /* ---------- état ---------- */
 const S={devis:[],demandes:[],codes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
+navRestore();
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -455,8 +516,14 @@ function aReporter(){let c=0;for(const k of COLS)for(const d of S[k])if(d.excel&
 
 /* ---------- rendu ---------- */
 let rq=0;function render(){cancelAnimationFrame(rq);rq=requestAnimationFrame(doRender)}
+/* garde l'écran affiché pour le retrouver après un rechargement */
+const NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];
+function navSave(){try{const o={};NAV_KEYS.forEach(k=>o[k]=S[k]);o.y=window.scrollY;sessionStorage.setItem("eug_nav",JSON.stringify(o))}catch(_){}}
+function navRestore(){try{const o=JSON.parse(sessionStorage.getItem("eug_nav")||"null");if(!o)return;NAV_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});S._scrollY=o.y||0}catch(_){}}
+window.addEventListener("pagehide",navSave);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")navSave()});
 function doRender(){
-  const titles={accueil:"Accueil",ventes:"Ventes",stock:"Stock",frais:"Argent"};
+  const titles={accueil:"Accueil",ventes:"Ventes",stock:"Stock",frais:"Argent"};setTimeout(navSave,0);
+  if(S._scrollY&&S.loaded.size>=3){const y=S._scrollY;S._scrollY=0;setTimeout(()=>window.scrollTo(0,y),60)}
   $("#screenTitle").textContent=titles[S.tab];
   document.querySelectorAll("nav.tabs [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===S.tab?"page":"false"));
   $("#plusBtn").disabled=!(db&&canWrite);
@@ -2153,6 +2220,9 @@ sb.auth.onAuthStateChange((ev,session)=>{
   if(session){if($("#login").dataset.keep!=="1")hideLogin();startData(session)}
 });
 sb.auth.getSession().then(({data})=>{if(data.session){startData(data.session)}else{dbState="login";render();showLogin("in")}});
+/* ouverture : EC + EUGCEO, une fois par session */
+(function(){const it=document.getElementById("intro");if(!it)return;let vu=false;try{vu=sessionStorage.getItem("eug_intro")==="1";sessionStorage.setItem("eug_intro","1")}catch(_){}
+  if(vu||matchMedia("(prefers-reduced-motion: reduce)").matches){it.remove();return}setTimeout(()=>it.classList.add("fini"),2600);setTimeout(()=>it.remove(),3600)})();
 /* bouton recharger (utile quand l'app est installée sur l'ordinateur, sans barre du navigateur) */
 document.getElementById("reloadBtn").addEventListener("click",()=>location.reload());
 document.getElementById("majBtn").addEventListener("click",()=>location.reload());
