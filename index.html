@@ -470,7 +470,9 @@ function designation(p){
 function prod(id){return S.produits.find(p=>p.id===id)}
 
 /* ---------- calculs ---------- */
-function venteTotal(v){return r2(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)-n(v.remise)+n(v.port))}
+/* montant des créations avant remise : quantité × prix unitaire + suppléments (coloration, matières…) */
+function venteBrut(v){return r2(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)+n(v.supplements))}
+function venteTotal(v){return r2(venteBrut(v)-n(v.remise)+n(v.port))}
 function venteEncaisse(v){
   const t=venteTotal(v);
   if(v.statut==="Payée")return t;
@@ -508,8 +510,10 @@ function prixVenteDetail(p,d){
   const lignes=[];for(const t of (Array.isArray(d.travaux)?d.travaux:[])){const tf=supTarif(t.nom,bu);if(tf>0)lignes.push({nom:t.nom,montant:r2(tf*(bu?q:1))})}
   const mat=r2(matieresVente(d)*(n(S.reglages.coefMatieres)||2));
   const total=r2(base*q*(1+col)+lignes.reduce((a,x)=>a+x.montant,0)+mat);
-  return{base,col,colMontant:r2(base*q*col),lignes,mat,q,total,unit:r2(total/q)};
+  const sup=[];if(col)sup.push({nom:"Collection "+d.collection,montant:r2(base*q*col)});lignes.forEach(x=>sup.push(x));if(mat)sup.push({nom:"Matières",montant:mat});
+  return{base,col,colMontant:r2(base*q*col),lignes,mat,q,total,unit:r2(total/q),sup,supTotal:r2(sup.reduce((a,x)=>a+x.montant,0))};
 }
+function supTexte(L){return Array.isArray(L)&&L.length?L.map(x=>x.nom+" "+eur(n(x.montant))).join(" + "):""}
 function coutVente(p,d){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);const pack=d.packaging;
   const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
@@ -897,6 +901,7 @@ function fVente(d){
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
   </fieldset>
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
+  ${F("supplements","Suppléments (€)",money("supplements",d.supplements),`<span id="supHint">${esc(supTexte(d.supDetail))||"Coloration, coupe, matières… se calculent tout seuls depuis la fiche de création."}</span>`)}
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="preview" id="pvVente"></div>
   <fieldset><legend>Ambassadrice</legend>
@@ -1005,7 +1010,7 @@ function fAbo(d){
   <div class="field"><span class="lbl">Mois avec un montant différent</span><span class="hint">Par exemple le premier mois facturé au prorata. Les autres mois gardent le montant habituel.</span><div class="lines" id="abLines">${Object.entries(d.montantsMois||{}).sort().map(([k,v])=>abLine(k,v)).join("")}</div><button type="button" class="linkbtn addline" data-act="ab-add">+ Ajouter un mois</button></div>`;
 }
 function abLine(k,v){return`<div class="line av"><input type="month" class="abK" value="${esc(k||ym(today()))}" aria-label="Mois"><input class="abV" inputmode="decimal" placeholder="€" value="${v===undefined||v===""?"":String(v).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
-const NUMERIC=new Set(["prixBase","prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
+const NUMERIC=new Set(["supplements","prixBase","prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
 let current=null;
 function openChooser(){
   const sh=$("#sheet");
@@ -1061,18 +1066,20 @@ function livePreview(){
     $("#pvProd").innerHTML=code?`<span>Code créé automatiquement${p.type==="Prestation"?" (prestation : prix d'achat à 0)":""}</span><span class="code">${esc(code)}</span><span>${esc(designation(p))}</span>`:`<span>Le code apparaît dès que le modèle est rempli.</span>`;
   }
   if(c==="ventes"){const p0=prod(d.produitId);const det=prixVenteDetail(p0,d);const el=$("#prixTTC");
-    if(det&&el){if(el.value===""||(current.autoPrix!==undefined&&n(el.value)===current.autoPrix)){el.value=String(det.unit).replace(".",",");d.prixTTC=det.unit}current.autoPrix=det.unit}}
+    if(det&&el){if(el.value===""||(current.autoPrix!==undefined&&n(el.value)===current.autoPrix)){el.value=String(det.base).replace(".",",");d.prixTTC=det.base}current.autoPrix=det.base;
+      const es=$("#supplements");if(es){if(es.value===""||(current.autoSup!==undefined&&n(es.value)===current.autoSup)){es.value=det.supTotal?String(det.supTotal).replace(".",","):"";d.supplements=det.supTotal}current.autoSup=det.supTotal}
+      const h=$("#supHint");if(h)h.textContent=supTexte(det.sup)||"Aucun supplément : coloration, coupe, matières… s'ajoutent ici tout seuls.";}}
   if(c==="ventes")pvCode(d);
   if(c==="ventes"){
     const p=prod(d.produitId);const box=$("#pvVente");
     if(!p){box.innerHTML=`<span>Choisis le produit pour voir le prix conseillé et le prix plancher.</span>`;return}
     const pp=coutVente(p,d);const pc=prixConseille(p,pp,d.couleurSpe,d.niveau,d.collection);const qte=Math.max(1,n(d.quantite)||1);
-    const net=n(d.prixTTC)?(qte*n(d.prixTTC)-n(d.remise))/qte:0;const sq=stockQty(p);
-    const tot=r2(qte*n(d.prixTTC)-n(d.remise)+n(d.port));
+    const net=n(d.prixTTC)?(venteBrut(d)-n(d.remise))/qte:0;const sq=stockQty(p);
+    const tot=venteTotal(d);
     box.innerHTML=`<span>${esc(designation(p))}${sq===null?"":` · <b>${sq}</b> en stock`}</span>
       ${pc.forfait===true&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}${(()=>{const det=prixVenteDetail(p,d);if(!det)return`<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>`;
         const parts=[`base ${eur(det.base)}${det.q>1?" × "+det.q:""}`].concat(det.colMontant?[`collection ${d.collection} ${eur(det.colMontant)}`]:[]).concat(det.lignes.map(x=>`${x.nom.toLowerCase()} ${eur(x.montant)}`)).concat(det.mat?[`matières ${eur(det.mat)}`]:[]);
-        return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b>${det.q>1?` · soit <b class="num">${eur(det.unit)}</b> par pièce`:""} <button type="button" class="linkbtn" data-act="use-price" data-v="${det.unit}">Utiliser ce prix</button></span>`})()}
+        return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b></span>`})()}
       <span>Prix plancher <b class="num">${eur(pp.plancher)}</b>${isPrestation(p)?" · coef. "+String(pc.coef).replace(".",","):" par pièce"}</span>
       <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
       ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
@@ -1113,6 +1120,7 @@ async function save(){
     d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st){if(st.prix===""&&n(d.prixBase)>0)st.prix=n(d.prixBase);d.site=st}}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date);
+    {const det=prixVenteDetail(p,d);const sp=n(d.supplements);d.supDetail=sp>0?(det&&Math.abs(det.supTotal-sp)<0.01?det.sup:[{nom:"Suppléments",montant:sp}]):[]}
     if(d.etape==="Expédiée"&&orig.etape!=="Expédiée"&&!d.expedieLe)d.expedieLe=today();
     if(["Livrée","Retirée en main propre"].includes(d.etape)&&!orig.livreLe)d.livreLe=today();
     d.codePromo=normCode(d.codePromo);
@@ -1370,7 +1378,7 @@ function estTitulaire(c,nom,email,tel){const em=String(email||"").toLowerCase().
 function ambDe(nom,email,tel){return(S.codes||[]).find(c=>estTitulaire(c,nom,email,tel))||null}
 function tauxAmb(c){const R=RP();const g=k=>c&&c[k]!==""&&c[k]!=null?n(c[k]):null;return{pf:g("pctFilleule")??R.pct,pg:g("pctGain")??R.pct,min:g("min")??R.min}}
 function addDays(d,k){const x=new Date((d||today())+"T12:00:00");x.setDate(x.getDate()+k);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
-function netCreations(v){return r2(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)-n(v.remise))}
+function netCreations(v){return r2(venteBrut(v)-n(v.remise))}
 /* même calcul que la base (_parrainage_etat) */
 function etatAmb(c,exclId){
   const R=RP(),t=today(),T=tauxAmb(c);const vs=S.ventes.filter(v=>v.id!==exclId&&dansCA(v));const cmd=new Map();
@@ -1386,9 +1394,9 @@ function etatAmb(c,exclId){
 }
 function dejaParrainee(d,exclId){return S.ventes.some(v=>v.id!==exclId&&v.codePromo&&dansCA(v)&&(d.email||telSimple(d.telephone)||d.client)&&estTitulaire({cliente:v.client,email:v.email,telephone:v.telephone},d.client,d.email,d.telephone))}
 function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise);if(!isBundle(p)||!(rm>0))return 0;return Math.min(Math.floor(Math.max(1,n(d.quantite)||1)/t)*rm,margeVente(d))}
-function sousTotalVente(d){return r2(Math.max(1,n(d.quantite)||1)*n(d.prixTTC))}
+function sousTotalVente(d){return venteBrut(d)}
 /* marge disponible avant le prix plancher, pour cette vente */
-function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2((n(d.prixTTC)-pp.plancher)*q)):sousTotalVente(d)}
+function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2(venteBrut(d)-pp.plancher*q)):sousTotalVente(d)}
 function checkCode(d){
   const site=current&&current.orig&&current.orig.origine==="site";const edit=current&&current.orig&&current.orig.codePromo;
   const code=normCode(d.codePromo);
@@ -2010,7 +2018,7 @@ function controles(){
   for(const k of ["siren","adresse","cpVille","president"])if(!s[k]){out.push({lvl:"warn",t:"Paramètres de la société incomplets",s:"Il manque des informations obligatoires sur les factures.",act:"societe"});break}
   for(const v of S.ventes){
     if(v.statut==="En attente de paiement"&&ago(v.date,30))out.push({lvl:"warn",t:"Vente en attente depuis plus de 30 jours",s:esc(v.client)+" · "+dfr(v.date)+" · reste "+eur(venteReste(v)),col:"ventes",id:v.id});
-    if(dansCA(v)&&n(v.plancher)&&(Math.max(1,n(v.quantite)||1)*n(v.prixTTC)-n(v.remise))/Math.max(1,n(v.quantite)||1)<n(v.plancher))out.push({lvl:"warn",t:"Vente sous le prix plancher",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
+    if(dansCA(v)&&n(v.plancher)&&(venteBrut(v)-n(v.remise))/Math.max(1,n(v.quantite)||1)<n(v.plancher))out.push({lvl:"warn",t:"Vente sous le prix plancher",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
     if(v.statut==="Payée"&&!v.dateEncaissement)out.push({lvl:"info",t:"Vente payée sans date d'encaissement",s:esc(v.client)+" · "+dfr(v.date),col:"ventes",id:v.id});
   }
   for(const d of S.depenses)if(!d.justificatif&&!d.commentaire)out.push({lvl:"info",t:"Dépense sans justificatif",s:esc(d.fournisseur)+" · "+dfr(d.date)+" · "+eur(n(d.montant)),col:"depenses",id:d.id});
@@ -2056,6 +2064,7 @@ function pFacture(id){
    </section>
    <table class="iv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
     <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
+    ${(Array.isArray(v.supDetail)&&v.supDetail.length?v.supDetail:(n(v.supplements)?[{nom:"Suppléments",montant:n(v.supplements)}]:[])).map(x=>`<tr><td>${esc(x.nom)}</td><td></td><td></td><td class="r num">${eur(n(x.montant))}</td></tr>`).join("")}
     ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
     ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
    <div class="iv-total"><span>Total${s.tva==="Oui"?" TTC":""}</span><b class="num">${eur(tot)}</b></div>
@@ -2204,7 +2213,7 @@ function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{c
 async function exportExcel(){
   try{await loadXlsx()}catch(_){toast("Export impossible hors connexion");return}
   const X=window.XLSX;const wb=X.utils.book_new();const add=(name,rows)=>X.utils.book_append_sheet(wb,X.utils.json_to_sheet(rows.length?rows:[{"(vide)":""}]),name);
-  add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Détail avance":detailAv(v),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
+  add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Suppléments:n(v.supplements),"Détail suppléments":supTexte(v.supDetail),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Détail avance":detailAv(v),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
   add("Achats",S.achats.map(a=>{const p=prod(a.produitId);return{"N°":a.ref||"",Date:a.date,Fournisseur:a.fournisseur,"N° facture":a.numFacture||"",Pays:a.pays||"",Code:p?p.code:"",Quantité:n(a.quantite),"Prix unitaire":n(a.prixUnit),Devise:a.devise||"EUR",Taux:n(a.taux)||"","Frais d'approche":n(a.frais),"Coût total (€)":achatTotal(a),"Payé le":a.datePaiement||"",Moyen:a.moyen||"","Reçu le":a.dateReception||"",Commentaire:a.commentaire||""}}));
   add("Dépenses",S.depenses.map(d=>({"N°":d.ref||"",Date:d.date,Fournisseur:d.fournisseur,"N° facture":d.numFacture||"",Catégorie:d.categorie||"",Description:d.description||"",Montant:n(d.montant),"Payé le":d.datePaiement||"",Moyen:d.moyen||"",Justificatif:d.justificatif?"Oui":"Non",Commentaire:d.commentaire||""})));
   add("Abonnements",S.abonnements.map(a=>({Fournisseur:a.fournisseur,Description:a.description||"",Catégorie:a.categorie||"",Montant:n(a.montant),Fréquence:a.frequence||"",Jour:a.jour||"",Début:a.debut||"",Fin:a.fin||"","Mois payés":(a.mois||[]).join(", "),"Total payé":aboPaid(a),"Montants particuliers":Object.entries(a.montantsMois||{}).map(([k,v])=>k+" : "+n(v)+" €").join(", ")})));

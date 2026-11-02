@@ -428,7 +428,9 @@ Deno.serve(async (req: Request) => {
       if (!v) return json(req, { error: "introuvable" }, 404);
       const d: any = v.data;
       const q = Math.max(1, num(d.quantite) || 1);
-      const total = r2(q * num(d.prixTTC) - num(d.remise) + num(d.port));
+      const total = r2(
+        q * num(d.prixTTC) + num(d.supplements) - num(d.remise) + num(d.port),
+      );
       const av = d.avanceType && d.avanceType !== "Aucune"
         ? num(d.avanceMontant)
         : 0;
