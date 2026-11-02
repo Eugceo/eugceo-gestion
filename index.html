@@ -264,6 +264,9 @@ header.top h1{font-family:var(--display);font-weight:500;letter-spacing:.02em}
 .row{border-top-color:var(--hair);transition:background .15s}
 .row:hover{background:rgba(196,160,70,.06)}
 .row .t{font-weight:500}
+.sitebtn{margin-top:4px;background:none;border:1px solid var(--hair);border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;color:var(--fg);cursor:pointer}
+.sitebtn:hover{border-color:var(--gold);color:var(--gold-d)}
+.sitebtn.on{border-color:rgba(196,160,70,.6);color:var(--gold-d);background:rgba(196,160,70,.08)}
 section>h2,.pagehead h2,.ptitle,main h2{font-family:var(--display);font-weight:500;letter-spacing:.01em}
 section>h2::after{content:"";display:block;width:28px;height:1px;background:var(--gold);margin-top:6px}
 .seg button{background:var(--bg);border-color:var(--hair);transition:all .15s}
@@ -659,7 +662,9 @@ function vStock(){
   const q=S.q.trim().toLowerCase();if(q)L2=L2.filter(x=>(x.p.code+" "+designation(x.p)).toLowerCase().includes(q));
   L2.sort((a,b)=>(a.p.code||"").localeCompare(b.p.code||""));
   const rows=L2.map(({p,q})=>{const ec=q===null?0:enCommande(p);const chip=(q===null?`<span class="chip">prestation</span>`:q<=0?`<span class="chip bad">rupture</span>`:q<=n(p.seuil)?`<span class="chip warn">sous le seuil</span>`:"")+(ec?` <span class="chip">${ec} en attente</span>`:"");
-    return`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span></button>`}).join("");
+    const enL=p.site&&p.site.enLigne;
+    const sb=db&&canWrite&&f!=="archives"?`<span class="s"><button type="button" class="sitebtn${enL?" on":""}" data-act="site-add" data-id="${esc(p.id)}">${enL?"✓ Sur le site":"+ Ajouter au site"}</button></span>`:"";
+    return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span>${sb}</div>`}).join("");
   return`${banner()}${filterBar("stockFilter",f,STOCK_FILTERS)}
   <input class="search" id="q" type="search" placeholder="Chercher un code ou un modèle" value="${esc(S.q)}">
   ${loadingOr("produits",`<div class="list">${rows||`<div class="empty">Rien ici. Touche « + » puis « Produit » pour créer une référence.</div>`}</div>`)}
@@ -961,6 +966,7 @@ function openForm(col,id,prefill){
   <p class="err" id="formErr" hidden></p>
   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
   ${id&&col==="ventes"?`<button class="btn ghost" type="button" data-act="facture" data-id="${esc(id)}">Voir la facture${d.numero?" "+esc(d.numero):""}</button>`:""}
+  ${id&&col==="ventes"&&!ro&&livPossible(d)?`<button class="btn ghost" type="button" data-act="liv-add" data-id="${esc(id)}">Ajouter des frais de livraison</button><p class="note">Si la cliente avait choisi le retrait mais veut finalement être livrée : les frais s'ajoutent à la vente et un lien de paiement est créé.</p><div id="livBox"></div>`:""}
   ${id&&col==="ventes"&&!ro&&venteReste(d)>0?`<button class="btn ghost" type="button" data-act="solde-link" data-id="${esc(id)}">Lien de paiement du solde (${eur(venteReste(d))})</button><div id="soldeBox"></div>`:""}
   ${id&&col==="ventes"&&d.origine==="site"?`<p class="note">Vente créée automatiquement par un paiement sur eugceo.fr${d.email?" · "+esc(d.email):""}${d.telephone?" · "+esc(d.telephone):""}.</p>`:""}
   ${id&&!ro&&(col!=="codes_promo"||!S.ventes.some(v=>v.codePromo===id||v.cagnotteCode===id))?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
@@ -1209,6 +1215,8 @@ document.addEventListener("click",e=>{
   else if(a==="del"){del(b)}
   else if(a==="pointer"){pointer(b)}
   else if(a==="reglages"){openReglages()}
+  else if(a==="site-add"){siteAdd(b)}
+  else if(a==="liv-add"){ajouterLivraison(b)}
   else if(a==="new-amb"){openForm("codes_promo",null,{actif:true})}
   else if(a==="tr-add"){$("#trLines").insertAdjacentHTML("beforeend",trLine({nom:"Coloration",heures:TRAVAUX["Coloration"]}));livePreview()}
   else if(a==="mt-add"){$("#mtLines").insertAdjacentHTML("beforeend",mtLine({qte:1}));livePreview()}
@@ -1246,6 +1254,7 @@ document.addEventListener("change",e=>{
   else if(e.target.closest("#form"))livePreview();
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches&&e.target.matches('.row[role="button"]'))e.target.click()});
 
 
 /* ---------- référentiel modifiable (modèles, couleurs) ---------- */
@@ -1828,13 +1837,13 @@ function transfoBloc(p){
 
 /* ---------- lien de paiement du solde (Stripe) ---------- */
 async function lienSolde(b){
-  const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v)return;b.disabled=true;const box=$("#soldeBox");box.innerHTML=`<p class="note">Création du lien…</p>`;
+  const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v)return;b.disabled=true;const box=$("#"+(b.dataset.box||"soldeBox"));box.innerHTML=`<p class="note">Création du lien…</p>`;
   try{
     const{data,error}=await sb.functions.invoke("paiement-creer",{body:{type:"solde",venteId:v.id}});
     let d=data;if(error){try{d=await error.context.json()}catch(_){d={}}}
     b.disabled=false;
     if(!d||!d.url){box.innerHTML=`<p class="err">${d&&d.error==="non_configure"?"Le paiement en ligne n'est pas encore activé (clé Stripe manquante).":d&&d.error==="rien_a_payer"?"Il n'y a plus rien à payer sur cette vente.":"Le lien n'a pas pu être créé. Réessaie."}</p>`;return}
-    const prenom=(v.client||"").split(" ")[0];const txt=`Bonjour ${prenom},\n\nVotre création est prête ! Voici le lien pour régler le solde de ${eur(d.montant)} avant l'expédition :\n${d.url}\n\nLe lien est valable 23 heures.\n\nÀ très vite,\nEUGCEO`;
+    const prenom=(v.client||"").split(" ")[0];const txt=b.dataset.liv?`Bonjour ${prenom},\n\nComme convenu, voici le lien pour régler les frais de livraison de ${eur(d.montant)} :\n${d.url}\n\nLe lien est valable 23 heures. Nous expédions votre création dès le paiement reçu.\n\nÀ très vite,\nEUGCEO`:`Bonjour ${prenom},\n\nVotre création est prête ! Voici le lien pour régler le solde de ${eur(d.montant)} avant l'expédition :\n${d.url}\n\nLe lien est valable 23 heures.\n\nÀ très vite,\nEUGCEO`;
     window.__slShare={title:"Solde EUGCEO",text:txt,url:d.url};
     box.innerHTML=`<div class="list" style="padding:12px;gap:10px;display:flex;flex-direction:column"><b>Lien prêt (${eur(d.montant)}, valable 23 h)</b>
       ${navigator.share?`<button type="button" class="btn" data-act="sl-share">Partager (WhatsApp, SMS…)</button>`:""}
@@ -2040,6 +2049,31 @@ function villeAuto(el){
       toast(noms.length+" communes pour "+m[1]+" : choisis dans la liste");el.blur();el.focus();
     }catch(_){}
   },350);
+}
+/* « Ajouter au site » depuis la liste du stock */
+async function siteAdd(b){
+  const p=S.produits.find(x=>x.id===b.dataset.id);if(!p)return;const st=p.site||{};
+  const ouvrir=(msg)=>{openForm("produits",p.id);setTimeout(()=>{const box=$("#siteBox");if(box){const c=$("#site_enLigne");if(c&&!st.enLigne)c.checked=true;
+    const pr=$("#site_prix");if(pr&&!pr.value){try{const pc=prixConseille(p,coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:[]}),"Naturelle","Standard","Basique");if(pc&&pc.prix)pr.value=String(pc.prix).replace(".",",")}catch(_){}}
+    box.scrollIntoView({behavior:"smooth",block:"start"});if(msg)toast(msg,6000)}},120)};
+  if(st.enLigne){ouvrir("");return}
+  if(!(n(st.prix)>0)){ouvrir("Vérifie le prix proposé, ajoute des photos, puis Enregistrer : la création sera en ligne.");return}
+  b.disabled=true;
+  try{await db.collection("produits").doc(p.id).update({site:{...st,enLigne:true},modifieLe:new Date().toISOString()});toast(Array.isArray(st.photos)&&st.photos.length?"En ligne sur eugceo.fr":"En ligne sur eugceo.fr · pense à ajouter des photos",5000)}catch(e){b.disabled=false;toast(dbErr(e))}
+}
+/* livraison ajoutée après coup (cliente qui avait choisi le retrait) : frais + lien de paiement */
+function livPossible(v){if(!v||v.statut!=="Payée")return false;const sib=v.paiementId?S.ventes.filter(x=>x.paiementId===v.paiementId):[v];return!sib.some(x=>n(x.port)>0)}
+async function ajouterLivraison(b){
+  const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v||!livPossible(v))return;
+  if(!v.adresse){toast("Ajoute d'abord son adresse dans « Coordonnées et adresse », enregistre, puis recommence.",8000);return}
+  const dom=v.destination&&v.destination!=="France métropolitaine";const R=S.reglages||{};const frais=n(dom?R.livraisonDOM:R.livraisonFR)||(dom?16.99:12.99);
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmer : ajouter "+eur(frais)+" de livraison";return}
+  b.disabled=true;const deja=venteTotal(v);
+  try{await db.collection("ventes").doc(v.id).update({port:frais,avanceType:"Acompte",avanceMontant:deja,avanceDate:v.dateEncaissement||v.date,avanceDetail:[],statut:"En attente de paiement",dateEncaissement:"",livraisonAjoutee:frais,
+      commentaire:((v.commentaire||"")+" · livraison ajoutée après coup ("+eur(frais)+")").replace(/^ · /,""),modifieLe:new Date().toISOString()});
+    const i=S.ventes.findIndex(x=>x.id===v.id);if(i>=0)S.ventes[i]={...v,port:frais,avanceType:"Acompte",avanceMontant:deja,statut:"En attente de paiement"};
+    b.textContent="Livraison ajoutée";b.dataset.box="livBox";b.dataset.liv="1";await lienSolde(b);
+  }catch(e){b.disabled=false;toast(dbErr(e))}
 }
 function loadLib(src,ok){return ok()?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
 /* facture en PDF (A4), à partir de la facture affichée */
