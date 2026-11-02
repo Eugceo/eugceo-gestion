@@ -312,7 +312,7 @@ function monthName(k){const [y,m]=k.split("-").map(Number);return new Date(y,m-1
 function addMonths(k,d){let [y,m]=k.split("-").map(Number);m+=d;while(m>12){m-=12;y++}while(m<1){m+=12;y--}return y+"-"+String(m).padStart(2,"0")}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function $(sel,root=document){return root.querySelector(sel)}
-function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2600)}
+function toast(msg,ms){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,ms||(/\(/.test(msg)?15000:2600))}
 function initials(s){s=String(s||"").trim();if(!s)return"";const i=s.indexOf(" ");const a=s[0]+(i>=0?(s[i+1]||""):(s[1]||""));return a.toUpperCase().replace(/[ÉÈÊ]/g,"E")}
 
 /* ---------- codes produits (même règle que le classeur) ---------- */
