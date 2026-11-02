@@ -180,16 +180,31 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .line.rf{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.rm2{grid-template-columns:minmax(0,1fr) 6em auto}
 .line.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.invoice{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:18px;font-size:13px;line-height:1.5}
-.inv-h{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.inv-brand{font-family:var(--display);font-size:26px;letter-spacing:.3em;font-weight:600}
-.inv-small{font-size:11.5px;color:#5c5c5c}
-.inv-meta{text-align:right}.inv-title{font-family:var(--display);font-size:24px;font-weight:600}
-.inv-tbl{width:100%;border-collapse:collapse}
-.inv-tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5e4c42;border-bottom:1px solid #111;padding:6px 4px;text-align:left}
-.inv-tbl td{padding:8px 4px;border-bottom:1px solid #e3ddd6}.inv-tbl tfoot td{border-bottom:0}
-.inv-tbl .r{text-align:right}.inv-tbl .num{white-space:nowrap}
-.inv-f{border-top:1px solid #e3ddd6;padding-top:10px;font-size:12px}.inv-f p{margin:2px 0}
+.invoice{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:40px 32px 28px;display:flex;flex-direction:column;gap:22px;font-family:Poppins,system-ui,sans-serif;font-size:12.5px;line-height:1.55}
+.iv-top{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.iv-ec{width:46px;height:28px}.iv-ec path{fill:#C4A046}
+.iv-brand{font-family:"Cormorant Garamond",Georgia,serif;font-size:30px;letter-spacing:.42em;font-weight:500;margin-right:-.42em}
+.iv-tag{font-size:9.5px;letter-spacing:.4em;text-transform:uppercase;color:#8a7a5a;margin-right:-.4em}
+.iv-rule{height:1px;background:linear-gradient(90deg,transparent,#C4A046 18%,#C4A046 82%,transparent)}
+.iv-row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.iv-lbl{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:#a8883a;margin-bottom:6px}
+.iv-client{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;line-height:1.2}
+.iv-right{text-align:right}.iv-num{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;letter-spacing:.04em;line-height:1.2;font-variant-numeric:lining-nums}
+.iv-small{font-size:11px;color:#6b6b6b}.iv-code{letter-spacing:.06em}
+.iv-paid{display:inline-block;margin-top:8px;padding:3px 10px;border:1px solid #C4A046;color:#8a6d22;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.iv-tbl{width:100%;border-collapse:collapse}
+.iv-tbl th{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:#a8883a;font-weight:500;border-bottom:1px solid #111;padding:8px 4px;text-align:left}
+.iv-tbl td{padding:12px 4px;border-bottom:1px solid #ece6dc;vertical-align:top}
+.iv-tbl .r{text-align:right}.iv-tbl .num,.iv-total .num,.iv-sub .num{white-space:nowrap}
+.iv-des{font-weight:500}
+.iv-total{display:flex;justify-content:space-between;align-items:center;background:#111;color:#fff;padding:14px 18px;margin-left:auto;min-width:min(100%,300px)}
+.iv-total span{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#C4A046}
+.iv-total b{font-family:"Cormorant Garamond",Georgia,serif;font-size:24px;font-weight:600;letter-spacing:0;font-variant-numeric:lining-nums}
+.iv-sub{margin-left:auto;min-width:min(100%,300px);display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:-10px}
+.iv-sub>div{display:flex;justify-content:space-between;gap:12px;padding:0 4px}
+.iv-reste{font-weight:600;border-top:1px solid #ece6dc;padding-top:6px!important}
+.iv-merci{text-align:center;font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:19px;margin:6px 0 0}
+.iv-f{margin-top:auto;display:flex;flex-direction:column;gap:3px;text-align:center;font-size:9.5px;color:#7a7a7a;letter-spacing:.02em}.iv-f p{margin:0}.iv-f .iv-rule{margin-bottom:10px}
 @media print{
   header.top,nav.tabs,.noprint,.toast,body::before{display:none!important}
   html,body{background:#fff!important}
@@ -1051,6 +1066,8 @@ document.addEventListener("click",e=>{
   if(a==="page"){S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
+  if(a==="fact-pdf"){factPdfDl(b);return}
+  if(a==="fact-mail"){factMail(b);return}
   if(a==="doc-pick"){pickDoc(b);return}
   if(a==="recu"){marquerRecu(b);return}
   if(a==="payer"){marquerPaye(b);return}
@@ -1851,21 +1868,31 @@ function pFacture(id){
   const persoTxt=[v.couleurSpe&&v.couleurSpe!=="Naturelle"?"couleur "+v.couleurSpe:"",...perso.map(x=>x.toLowerCase())].filter(Boolean);
   const nature=p&&isPrestation(p)?"Prestation de services":"Vente de biens";
   const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";
-  return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+  const reste=paid?0:Math.max(0,r2(tot-av));
+  return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
     <button class="linkbtn back" data-act="page" data-p="factures">‹ Factures</button>
-    <button class="btn" style="width:auto" data-act="print">Imprimer / PDF</button></div>
-  <article class="invoice">
-   <header class="inv-h"><div><div class="inv-brand">${esc(s.denomination)}</div><div class="inv-small">${esc(s.forme)} au capital de ${eur(n(s.capital))}<br>${esc(s.adresse)}<br>${esc(s.cpVille)}<br>SIREN ${esc(s.siren)} · RCS ${esc(s.villeRcs)}${s.tvaIntra?"<br>TVA "+esc(s.tvaIntra):""}<br>${esc(s.email)}${s.site?" · "+esc(s.site):""}</div></div>
-    <div class="inv-meta"><div class="inv-title">Facture</div><div>N° <b>${esc(v.numero||"(non numérotée)")}</b></div><div>Date : ${dfr(v.date)}</div><div class="inv-small">${nature}</div>${paid?`<div>Payée le ${dfr(v.dateEncaissement||v.date)}${v.paiement?" · "+esc(v.paiement.toLowerCase()):""}</div>`:""}</div></header>
-   <section class="inv-client"><div class="inv-small">Facturé à</div><div><b>${esc(v.client)}</b><br>${esc(v.adresse||"")}${v.adresse?"<br>":""}${esc(v.ville||"")}</div></section>
-   <table class="inv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
-    <tbody><tr><td>${esc(des)}${persoTxt.length?`<div class="inv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="inv-small code">${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
-    ${n(v.remise)?`<tr><td>Remise</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
-    ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody>
-    <tfoot><tr><td colspan="3" class="r"><b>Total${s.tva==="Oui"?" TTC":""}</b></td><td class="r num"><b>${eur(tot)}</b></td></tr>
-    ${av?`<tr><td colspan="3" class="r">${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?" ("+esc(detailAv(v))+")":""}</td><td class="r num">− ${eur(av)}</td></tr>`:""}
-    <tr><td colspan="3" class="r">${paid?"Reste à payer":"Reste à payer"}</td><td class="r num"><b>${eur(paid?0:Math.max(0,tot-av))}</b></td></tr></tfoot></table>
-   <footer class="inv-f">${tvaLine?`<p>${tvaLine}</p>`:""}${paid?"":`<p>${esc(s.conditions)}</p>`}${s.iban&&!paid?`<p>IBAN : ${esc(s.iban)}</p>`:""}${s.mention?`<p class="inv-small">${esc(s.mention)}</p>`:""}</footer>
+    <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="width:auto" data-act="fact-pdf" data-id="${esc(v.id)}">Télécharger le PDF</button><button class="btn ghost" style="width:auto" data-act="print">Imprimer</button></span></div>
+  <div class="noprint" id="factMail">${v.email?`<button class="btn" data-act="fact-mail" data-id="${esc(v.id)}">Envoyer par e-mail à ${esc(v.email)}</button>`:`<p class="note">Pour l'envoyer par e-mail, ajoute l'e-mail de la cliente dans la vente (Coordonnées et adresse).</p>`}${v.factureEnvoyeeLe?`<p class="note">Envoyée le ${dfr(String(v.factureEnvoyeeLe).slice(0,10))} à ${esc(v.factureEnvoyeeA||"")}.</p>`:""}</div>
+  <article class="invoice" id="invoice">
+   <header class="iv-top"><svg class="iv-ec" viewBox="29 39 42 25" aria-hidden="true"><path fill="#C4A046" d="M45.1 62H30.62Q30.52 62 30.52 61.8Q30.52 61.59 30.62 61.59Q31.78 61.59 32.37 61.42Q32.97 61.25 33.17 60.74Q33.37 60.23 33.37 59.25V43.5Q33.37 42.52 33.17 42.02Q32.97 41.53 32.37 41.34Q31.78 41.16 30.62 41.16Q30.52 41.16 30.52 40.95Q30.52 40.75 30.62 40.75H44.49Q44.83 40.75 44.83 41.06L44.9 45.34Q44.9 45.44 44.71 45.46Q44.53 45.48 44.49 45.37Q44.25 43.5 43.17 42.53Q42.08 41.57 40.31 41.57H38.58Q37.56 41.57 37.01 41.74Q36.47 41.91 36.26 42.36Q36.06 42.82 36.06 43.64V59.11Q36.06 59.93 36.25 60.39Q36.43 60.84 36.94 61.03Q37.45 61.22 38.37 61.22H40.62Q42.55 61.22 43.81 60.08Q45.07 58.94 45.55 56.83Q45.55 56.73 45.75 56.76Q45.95 56.8 45.95 56.9Q45.82 57.82 45.72 59.11Q45.61 60.4 45.61 61.49Q45.61 62 45.1 62ZM43.2 54.18Q43.2 52.72 42.37 52.02Q41.53 51.32 39.7 51.32H34.77V50.54H39.8Q41.53 50.54 42.35 49.95Q43.17 49.35 43.17 48.09Q43.17 48.03 43.35 48.03Q43.54 48.03 43.54 48.09Q43.54 49.15 43.52 49.73Q43.51 50.3 43.51 50.95Q43.51 51.73 43.56 52.51Q43.61 53.3 43.61 54.18Q43.61 54.25 43.4 54.25Q43.2 54.25 43.2 54.18ZM61.73 40.38Q63.02 40.38 64.13 40.49Q65.23 40.61 66.2 40.89Q67.17 41.16 68.05 41.6Q68.33 41.7 68.38 41.82Q68.43 41.94 68.46 42.35L68.9 46.63Q68.9 46.7 68.72 46.75Q68.53 46.8 68.5 46.67Q67.65 43.84 65.91 42.4Q64.18 40.95 61.49 40.95Q58.77 40.95 56.73 42.21Q54.69 43.47 53.54 45.77Q52.38 48.06 52.38 51.19Q52.38 53.5 53.09 55.44Q53.81 57.38 55.08 58.82Q56.36 60.27 58.04 61.05Q59.72 61.83 61.66 61.83Q64.38 61.83 66.06 60.47Q67.75 59.11 68.77 56.32Q68.84 56.22 69.01 56.25Q69.18 56.29 69.18 56.39L68.8 60.27Q68.77 60.67 68.68 60.78Q68.6 60.88 68.36 61.01Q66.63 61.8 65.05 62.12Q63.46 62.44 61.66 62.44Q58.06 62.44 55.25 61.03Q52.45 59.62 50.85 57.12Q49.25 54.62 49.25 51.32Q49.25 48.88 50.19 46.87Q51.12 44.86 52.82 43.4Q54.52 41.94 56.78 41.16Q59.04 40.38 61.73 40.38Z"/></svg><div class="iv-brand">${esc(s.denomination||"EUGCEO")}</div><div class="iv-tag">La Maison</div></header>
+   <div class="iv-rule"></div>
+   <section class="iv-row">
+    <div><div class="iv-lbl">Facturé à</div><div class="iv-client">${esc(v.client)}</div><div class="iv-small">${esc(v.adresse||"")}${v.adresse?"<br>":""}${esc(v.ville||"")}${v.email?(v.adresse||v.ville?"<br>":"")+esc(v.email):""}</div></div>
+    <div class="iv-right"><div class="iv-lbl">Facture</div><div class="iv-num">${esc(v.numero||"(non numérotée)")}</div><div class="iv-small">Le ${dfr(v.date)}<br>${nature}</div>${paid?`<div class="iv-paid">Payée le ${dfr(v.dateEncaissement||v.date)}${v.paiement?" · "+esc(v.paiement.toLowerCase()):""}</div>`:""}</div>
+   </section>
+   <table class="iv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
+    <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
+    ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
+    ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
+   <div class="iv-total"><span>Total${s.tva==="Oui"?" TTC":""}</span><b class="num">${eur(tot)}</b></div>
+   ${av||!paid?`<div class="iv-sub">${av?`<div><span>${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?" ("+esc(detailAv(v))+")":""}</span><span class="num">− ${eur(av)}</span></div>`:""}<div class="iv-reste"><span>Reste à payer</span><span class="num">${eur(reste)}</span></div></div>`:""}
+   <p class="iv-merci">Merci pour votre confiance.</p>
+   <footer class="iv-f"><div class="iv-rule"></div>
+    ${paid?"":`${s.conditions?`<p>${esc(s.conditions)}</p>`:""}${s.iban?`<p>IBAN : ${esc(s.iban)}</p>`:""}`}
+    <p>${esc(s.denomination)} · ${esc(s.forme)} au capital de ${eur(n(s.capital))} · ${esc(s.adresse)}, ${esc(s.cpVille)}</p>
+    <p>SIREN ${esc(s.siren)} · RCS ${esc(s.villeRcs)}${s.tvaIntra?" · TVA "+esc(s.tvaIntra):""}${tvaLine?" · "+tvaLine:""}</p>
+    <p>${esc(s.email)}${s.site?" · "+esc(s.site):""}</p>
+    ${s.mention?`<p>${esc(s.mention)}</p>`:""}</footer>
   </article>`;
 }
 function pSociete(){
@@ -1913,6 +1940,34 @@ async function saveReferentiel(form){
 }
 
 /* ---------- export Excel ---------- */
+function loadLib(src,ok){return ok()?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+/* facture en PDF (A4), à partir de la facture affichée */
+async function facturePdf(){
+  await loadLib("vendor/html2canvas.min.js",()=>window.html2canvas);await loadLib("vendor/jspdf.umd.min.js",()=>window.jspdf);
+  if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const src=$("#invoice");const box=document.createElement("div");box.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff";
+  const c=src.cloneNode(true);c.removeAttribute("id");c.style.cssText="border:0;border-radius:0;padding:56px 60px 40px;min-height:1123px;box-sizing:border-box";box.appendChild(c);document.body.appendChild(box);
+  try{const cv=await html2canvas(c,{scale:2,backgroundColor:"#ffffff",useCORS:true});
+    const pdf=new jspdf.jsPDF({unit:"pt",format:"a4"});const W=595.28,H=841.89;const h=cv.height*W/cv.width;const img=cv.toDataURL("image/jpeg",0.92);
+    let y=0;pdf.addImage(img,"JPEG",0,0,W,h);while(h-y>H+2){y+=H;pdf.addPage();pdf.addImage(img,"JPEG",0,-y,W,h)}
+    return pdf}finally{box.remove()}
+}
+function nomFacture(v){return"Facture_"+String(v.numero||"EUGCEO").replace(/[^A-Za-z0-9-]/g,"_")+".pdf"}
+async function factPdfDl(b){const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v)return;b.disabled=true;const t=b.textContent;b.textContent="Préparation…";
+  try{(await facturePdf()).save(nomFacture(v))}catch(e){console.error(e);toast("Le PDF n'a pas pu être créé")}finally{b.disabled=false;b.textContent=t}}
+async function factMail(b){
+  const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v||!v.email)return;
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmer l'envoi à "+v.email;return}
+  b.disabled=true;b.textContent="Envoi en cours…";
+  try{const pdf=await facturePdf();const content=pdf.output("datauristring").split(",")[1];
+    const tot=venteTotal(v);const paid=v.statut==="Payée";const reste=paid?0:Math.max(0,r2(tot-(v.avanceType&&v.avanceType!=="Aucune"?n(v.avanceMontant):0)));
+    const prenom=String(v.client||"").replace(/^\s*\[test\]\s*/i,"").split(" ")[0];
+    const text=`Bonjour ${prenom},\n\nVous trouverez ci-joint votre facture n° ${v.numero||""} d'un montant de ${eur(tot)}.${paid?"\nElle est entièrement réglée, merci.":reste?"\nReste à payer : "+eur(reste)+".":""}\n\nMerci pour votre confiance,\nEUGCEO`;
+    await sendMail({to:v.email,subject:"EUGCEO · Votre facture "+(v.numero||""),text,attachments:[{filename:nomFacture(v),content}]});
+    try{await db.collection("ventes").doc(v.id).update({factureEnvoyeeLe:new Date().toISOString(),factureEnvoyeeA:v.email})}catch(_){}
+    toast("Facture envoyée à "+v.email);
+  }catch(e){console.error(e);b.disabled=false;b.classList.remove("armed");b.textContent="Envoyer par e-mail à "+v.email;toast(e&&e.code==="non_configure"?"L'envoi d'e-mails n'est pas configuré":"L'envoi n'a pas marché, réessaie")}
+}
 function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script");s.src="vendor/xlsx.full.min.js";s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
 async function exportExcel(){
   try{await loadXlsx()}catch(_){toast("Export impossible hors connexion");return}
