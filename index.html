@@ -71,6 +71,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:640px;margin:0 auto}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;--fg:#ffffff;--muted:#bdbdbd;--line:#2a2a2a;background:#111111;color:#ffffff;border-bottom:1px solid #111111}
 header.top .wrap{display:flex;align-items:baseline;gap:12px;padding-block:12px 10px}
+header.top .reload{margin-left:auto;align-self:center;background:none;border:0;padding:4px;color:#bdbdbd;cursor:pointer;line-height:0}
+header.top .reload svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+header.top .reload:hover{color:#C4A046}
+.majbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;background:#111;color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.majbar[hidden]{display:none}.majbar button{background:#C4A046;color:#111;border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer}
 .brand{font-family:var(--display);font-weight:600;letter-spacing:.32em;font-size:15px}
 h1{font-family:var(--display);font-weight:500;font-size:22px;margin:0;flex:1;text-wrap:balance}
 .status{font-size:12px;color:var(--muted)}
@@ -234,7 +239,8 @@ a.btn{text-decoration:none}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span></div></header>
+<header class="top"><div class="wrap"><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span><button type="button" class="reload" id="reloadBtn" title="Recharger l'app" aria-label="Recharger l'app"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div></header>
+<div class="majbar" id="majBar" hidden>Une nouvelle version de l'app est prête. <button type="button" id="majBtn">Mettre à jour</button></div>
 <main><div class="wrap" id="view"></div></main>
 <nav class="tabs" aria-label="Sections"><div class="wrap">
   <button data-tab="accueil" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</button>
@@ -2147,7 +2153,18 @@ sb.auth.onAuthStateChange((ev,session)=>{
   if(session){if($("#login").dataset.keep!=="1")hideLogin();startData(session)}
 });
 sb.auth.getSession().then(({data})=>{if(data.session){startData(data.session)}else{dbState="login";render();showLogin("in")}});
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+/* bouton recharger (utile quand l'app est installée sur l'ordinateur, sans barre du navigateur) */
+document.getElementById("reloadBtn").addEventListener("click",()=>location.reload());
+document.getElementById("majBtn").addEventListener("click",()=>location.reload());
+if("serviceWorker"in navigator)window.addEventListener("load",()=>{
+  const hadCtrl=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    const check=()=>reg.update().catch(()=>{});setInterval(check,15*60*1000);
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});
+  }).catch(()=>{});
+  /* une nouvelle version vient de s'installer : on propose de recharger */
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadCtrl){const b=document.getElementById("majBar");if(b)b.hidden=false}});
+});
 
 </script>
 </body>
