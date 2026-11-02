@@ -1969,14 +1969,20 @@ async function facturePdf(){
   if(document.fonts&&document.fonts.ready)await document.fonts.ready;
   const src=$("#invoice");const box=document.createElement("div");box.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff";
   const c=src.cloneNode(true);c.removeAttribute("id");c.style.cssText="border:0;border-radius:0;padding:56px 60px 40px;min-height:1123px;box-sizing:border-box";box.appendChild(c);document.body.appendChild(box);
-  try{const cv=await html2canvas(c,{scale:2,backgroundColor:"#ffffff",useCORS:true});
+  try{let cv;try{cv=await html2canvas(c,{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false})}catch(e1){console.warn("pdf x2",e1);cv=await html2canvas(c,{scale:1.25,backgroundColor:"#ffffff",useCORS:true,logging:false})}
     const pdf=new jspdf.jsPDF({unit:"pt",format:"a4"});const W=595.28,H=841.89;const h=cv.height*W/cv.width;const img=cv.toDataURL("image/jpeg",0.92);
     let y=0;pdf.addImage(img,"JPEG",0,0,W,h);while(h-y>H+2){y+=H;pdf.addPage();pdf.addImage(img,"JPEG",0,-y,W,h)}
     return pdf}finally{box.remove()}
 }
 function nomFacture(v){return"Facture_"+String(v.numero||"EUGCEO").replace(/[^A-Za-z0-9-]/g,"_")+".pdf"}
 async function factPdfDl(b){const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v)return;b.disabled=true;const t=b.textContent;b.textContent="Préparation…";
-  try{(await facturePdf()).save(nomFacture(v))}catch(e){console.error(e);toast("Le PDF n'a pas pu être créé")}finally{b.disabled=false;b.textContent=t}}
+  let pdf;try{pdf=await facturePdf()}catch(e){console.error(e);toast("Le PDF n'a pas pu être créé ("+String(e&&e.message||e).slice(0,80)+")");b.disabled=false;b.textContent=t;return}
+  try{const blob=pdf.output("blob");const file=new File([blob],nomFacture(v),{type:"application/pdf"});
+    /* sur téléphone : feuille de partage (Enregistrer dans Fichiers, WhatsApp, Mail…) */
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:nomFacture(v)})}catch(e){if(e&&e.name!=="AbortError")throw e}}
+    else{const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=nomFacture(v);document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000)}
+  }catch(e){console.error(e);try{window.open(URL.createObjectURL(pdf.output("blob")),"_blank")}catch(_){toast("Le PDF est prêt mais n'a pas pu s'ouvrir ("+String(e&&e.message||e).slice(0,60)+")")}}
+  finally{b.disabled=false;b.textContent=t}}
 async function factMail(b){
   const v=S.ventes.find(x=>x.id===b.dataset.id);if(!v||!v.email)return;
   if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmer l'envoi à "+v.email;return}
@@ -1988,7 +1994,7 @@ async function factMail(b){
     await sendMail({to:v.email,subject:"EUGCEO · Votre facture "+(v.numero||""),text,attachments:[{filename:nomFacture(v),content}]});
     try{await db.collection("ventes").doc(v.id).update({factureEnvoyeeLe:new Date().toISOString(),factureEnvoyeeA:v.email})}catch(_){}
     toast("Facture envoyée à "+v.email);
-  }catch(e){console.error(e);b.disabled=false;b.classList.remove("armed");b.textContent="Envoyer par e-mail à "+v.email;toast(e&&e.code==="non_configure"?"L'envoi d'e-mails n'est pas configuré":"L'envoi n'a pas marché, réessaie")}
+  }catch(e){console.error(e);b.disabled=false;b.classList.remove("armed");b.textContent="Envoyer par e-mail à "+v.email;toast(e&&e.code==="non_configure"?"L'envoi d'e-mails n'est pas configuré":"L'envoi n'a pas marché ("+String(e&&(e.code||e.message)||e).slice(0,60)+")")}
 }
 function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script");s.src="vendor/xlsx.full.min.js";s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
 async function exportExcel(){
