@@ -1143,6 +1143,7 @@ document.addEventListener("click",e=>{
 $("#plusBtn").addEventListener("click",openChooser);
 document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else save()});
 document.addEventListener("input",e=>{
+  if(e.target.matches&&e.target.matches('input[name="ville"],input[name="cpVille"],#dv_ville'))villeAuto(e.target);
   if(e.target.id==="cliente"&&current&&current.col==="codes_promo"&&!current.id){const c=$("#code");if(c&&(!c.value||c.value===current.autoCode)){current.autoCode=e.target.value.trim()?codeAuto(e.target.value):"";c.value=current.autoCode}}
   if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
@@ -1946,6 +1947,21 @@ async function saveReferentiel(form){
 }
 
 /* ---------- export Excel ---------- */
+/* ville automatique à partir du code postal (base officielle geo.api.gouv.fr) */
+let villeT=null;
+function villeAuto(el){
+  clearTimeout(villeT);const m=el.value.match(/^\s*(\d{5})\s*$/);if(!m)return;
+  villeT=setTimeout(async()=>{
+    try{const r=await fetch("https://geo.api.gouv.fr/communes?codePostal="+m[1]+"&fields=nom&format=json");const L=await r.json();
+      if(el.value.trim()!==m[1]||!Array.isArray(L)||!L.length)return;
+      const noms=[...new Set(L.map(x=>x.nom))].sort((a,b)=>a.localeCompare(b,"fr"));
+      if(noms.length===1){el.value=m[1]+" "+noms[0];el.dispatchEvent(new Event("input",{bubbles:true}));return}
+      let dl=document.getElementById("dlVilles");if(!dl){dl=document.createElement("datalist");dl.id="dlVilles";document.body.appendChild(dl)}
+      dl.innerHTML=noms.map(x=>`<option value="${esc(m[1]+" "+x)}">`).join("");el.setAttribute("list","dlVilles");
+      toast(noms.length+" communes pour "+m[1]+" : choisis dans la liste");el.blur();el.focus();
+    }catch(_){}
+  },350);
+}
 function loadLib(src,ok){return ok()?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
 /* facture en PDF (A4), à partir de la facture affichée */
 async function facturePdf(){
