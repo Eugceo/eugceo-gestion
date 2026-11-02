@@ -870,7 +870,8 @@ function openForm(col,id,prefill){
   ${id&&col==="ventes"?`<button class="btn ghost" type="button" data-act="facture" data-id="${esc(id)}">Voir la facture${d.numero?" "+esc(d.numero):""}</button>`:""}
   ${id&&col==="ventes"&&!ro&&venteReste(d)>0?`<button class="btn ghost" type="button" data-act="solde-link" data-id="${esc(id)}">Lien de paiement du solde (${eur(venteReste(d))})</button><div id="soldeBox"></div>`:""}
   ${id&&col==="ventes"&&d.origine==="site"?`<p class="note">Vente créée automatiquement par un paiement sur eugceo.fr${d.email?" · "+esc(d.email):""}${d.telephone?" · "+esc(d.telephone):""}.</p>`:""}
-  ${id&&!ro&&col!=="codes_promo"?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
+  ${id&&!ro&&(col!=="codes_promo"||!S.ventes.some(v=>v.codePromo===id||v.cagnotteCode===id))?`<button class="btn danger" type="button" data-act="del">Supprimer</button>`:""}
+  ${id&&col==="codes_promo"&&S.ventes.some(v=>v.codePromo===id||v.cagnotteCode===id)?`<p class="note">Ce code a déjà servi à des ventes : il ne peut pas être supprimé (sa cagnotte et l'historique en dépendent). Pour qu'il ne marche plus, mets « Code actif » sur Non.</p>`:""}
   ${id?`<p class="note" id="byline"></p>`:""}
   </form></div>`;
   sh.hidden=false;document.body.style.overflow="hidden";sh.scrollTop=0;
