@@ -424,7 +424,9 @@ function aboOccurrences(a){
   const step=L.frequences[a.frequence]||1;let k=ym(a.debut);const end=ym(a.fin||today());
   while(k<=end&&out.length<240){out.push(k);k=addMonths(k,step)}return out;
 }
-function aboPaid(a){return (a.mois||[]).length*n(a.montant)}
+/* montant d'un abonnement pour un mois donné (un mois peut avoir un montant différent, ex. premier mois au prorata) */
+function aboMontant(a,k){const x=a.montantsMois&&a.montantsMois[k];return x!==undefined&&x!==""&&x!==null?n(x):n(a.montant)}
+function aboPaid(a){return r2((a.mois||[]).reduce((t,k)=>t+aboMontant(a,k),0))}
 function tresorerie(){
   let t=0;
   for(const f of S.financement)t+=n(f.montant)*(L.natures[f.nature]||1);
@@ -440,7 +442,7 @@ function moisStats(k){
     if(dansCA(v)){ca+=venteTotal(v);nb++;const p=prod(v.produitId);if(p&&!isPrestation(p))cout+=Math.max(1,n(v.quantite)||1)*coutMoyen(p)}
     else if(v.statut==="Annulée"&&v.avanceType==="Arrhes")arrhes+=n(v.avanceMontant)}
   let dep=0;for(const d of S.depenses)if(ym(d.date)===k)dep+=n(d.montant);
-  for(const a of S.abonnements)if((a.mois||[]).includes(k))dep+=n(a.montant);
+  for(const a of S.abonnements)if((a.mois||[]).includes(k))dep+=aboMontant(a,k);
   return {ca:r2(ca),cout:r2(cout),marge:r2(ca-cout),arrhes:r2(arrhes),dep:r2(dep),res:r2(ca-cout+arrhes-dep),nb};
 }
 function aReporter(){let c=0;for(const k of COLS)for(const d of S[k])if(d.excel&&d.excel!=="ok")c++;return c}
@@ -601,7 +603,7 @@ function vFrais(){
     const cur=ym(today());
     body=S.abonnements.map(a=>{const occ=aboOccurrences(a).slice(-6);
       return`<div class="row" style="cursor:default"><span class="t">${esc(a.fournisseur)} · ${esc(a.description||"")}</span><span class="v num">${eur(n(a.montant))}</span><span class="s">${esc(a.frequence||"Mensuel")}, le ${esc(a.jour||"?")} · ${exChip(a)} <button class="linkbtn" data-act="edit" data-col="abonnements" data-id="${esc(a.id)}">Modifier</button></span>
-      <span class="s" style="flex-direction:column;align-items:flex-start"><span>Mois payés (touche pour pointer) :</span><span class="months">${occ.map(k=>`<button data-act="pointer" data-id="${esc(a.id)}" data-k="${k}" aria-pressed="${(a.mois||[]).includes(k)}" ${canWrite&&db?"":"disabled"}>${esc(monthName(k))}${k===cur?" •":""}</button>`).join("")||"<span>début à venir</span>"}</span></span></div>`}).join("");
+      <span class="s" style="flex-direction:column;align-items:flex-start"><span>Mois payés (touche pour pointer) :</span><span class="months">${occ.map(k=>`<button data-act="pointer" data-id="${esc(a.id)}" data-k="${k}" aria-pressed="${(a.mois||[]).includes(k)}" ${canWrite&&db?"":"disabled"}>${esc(monthName(k))}${k===cur?" •":""}${a.montantsMois&&a.montantsMois[k]!==undefined?" · "+eur(aboMontant(a,k)):""}</button>`).join("")||"<span>début à venir</span>"}</span></span></div>`}).join("");
     body=`<div class="list">${body||`<div class="empty">Aucun abonnement. Touche « + » puis « Abonnement ».</div>`}</div><p class="note">Pointe un mois quand le prélèvement est passé sur le relevé : il compte alors dans la trésorerie et les frais du mois.</p>`;
   } else body=`<div class="list">${items.map(i=>i.html).join("")||`<div class="empty">Rien d'enregistré ici pour l'instant.</div>`}</div>`;
   return`${banner()}${filterBar("fraisFilter",f,[["tout","Tout"],["achats","Achats"],["depenses","Dépenses"],["abonnements","Abonnements"],["financement","Apports"]])}${loadingOr("depenses",body)}`;
@@ -855,8 +857,10 @@ function fAbo(d){
   ${F("categorie","Catégorie",sel("categorie",L.categories,d.categorie,"Choisir…"))}
   <div class="two">${F("montant","Montant (€)",money("montant",d.montant))}${F("frequence","Fréquence",sel("frequence",Object.keys(L.frequences),d.frequence||"Mensuel"))}</div>
   <div class="two">${F("jour","Jour du prélèvement",inp("jour",d.jour,'inputmode="numeric"'))}${F("moyen","Moyen",sel("moyen",L.paiements,d.moyen||"Carte bancaire"))}</div>
-  <div class="two">${F("debut","Début",dateI("debut",d.debut||today()))}${F("fin","Fin (si arrêté)",dateI("fin",d.fin))}</div>`;
+  <div class="two">${F("debut","Début",dateI("debut",d.debut||today()))}${F("fin","Fin (si arrêté)",dateI("fin",d.fin))}</div>
+  <div class="field"><span class="lbl">Mois avec un montant différent</span><span class="hint">Par exemple le premier mois facturé au prorata. Les autres mois gardent le montant habituel.</span><div class="lines" id="abLines">${Object.entries(d.montantsMois||{}).sort().map(([k,v])=>abLine(k,v)).join("")}</div><button type="button" class="linkbtn addline" data-act="ab-add">+ Ajouter un mois</button></div>`;
 }
+function abLine(k,v){return`<div class="line av"><input type="month" class="abK" value="${esc(k||ym(today()))}" aria-label="Mois"><input class="abV" inputmode="decimal" placeholder="€" value="${v===undefined||v===""?"":String(v).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 const NUMERIC=new Set(["prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
 let current=null;
 function openChooser(){
@@ -899,6 +903,7 @@ function closeSheet(keepReturn){if(!keepReturn&&S.returnTo&&current&&current.col
 function formData(){
   const o={};$("#form").querySelectorAll("input[name],select[name],textarea[name]").forEach(e=>{let v=e.value.trim();if(NUMERIC.has(e.name))v=v===""?"":n(v);o[e.name]=v});
   if(current&&current.col==="ventes"&&$("#trLines")){const l=readLines();o.travaux=l.travaux;o.matieres=l.matieres;o.heures=r2(l.travaux.reduce((s,x)=>s+x.heures,0))}
+  if(current&&current.col==="abonnements"&&$("#abLines")){const m={};document.querySelectorAll("#abLines .line").forEach(l=>{const k=l.querySelector(".abK").value,v=l.querySelector(".abV").value.trim();if(/^\d{4}-\d{2}$/.test(k)&&v!=="")m[k]=n(v)});o.montantsMois=m}
   if(current&&current.col==="ventes"&&$("#avLines")){const av=readAv();o.avanceDetail=av;if(av.length){o.avanceMontant=r2(av.reduce((t,x)=>t+x.montant,0));const el=$("#avanceMontant");if(el&&n(el.value)!==o.avanceMontant)el.value=String(o.avanceMontant).replace(".",",");if(o.avanceType==="Aucune"){o.avanceType="Acompte";const at=$("#avanceType");if(at)at.value="Acompte"}}}
   return o;
 }
@@ -1134,6 +1139,7 @@ document.addEventListener("click",e=>{
   else if(a==="new-amb"){openForm("codes_promo",null,{actif:true})}
   else if(a==="tr-add"){$("#trLines").insertAdjacentHTML("beforeend",trLine({nom:"Coloration",heures:TRAVAUX["Coloration"]}));livePreview()}
   else if(a==="mt-add"){$("#mtLines").insertAdjacentHTML("beforeend",mtLine({qte:1}));livePreview()}
+  else if(a==="ab-add"){$("#abLines").insertAdjacentHTML("beforeend",abLine("",""));livePreview()}
   else if(a==="av-add"){const box=$("#avLines");box.insertAdjacentHTML("beforeend",avLine({moyen:box.children.length?"Virement":"Espèces"}));const i=box.lastElementChild.querySelector(".avM");if(i)i.focus();livePreview()}
   else if(a==="line-rm"){b.closest(".line").remove();livePreview()}
   else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
@@ -1303,7 +1309,7 @@ function mouvementsArgent(){
   for(const v of S.ventes)for(const e of encaissements(v))L2.push({d:e.d,m:e.m,k:"Ventes encaissées"});
   for(const d of S.depenses)if(d.datePaiement)L2.push({d:d.datePaiement,m:-n(d.montant),k:"Dépenses"});
   for(const a of S.achats)if(a.datePaiement)L2.push({d:a.datePaiement,m:-achatTotal(a),k:"Achats de marchandises"});
-  for(const a of S.abonnements)for(const k of (a.mois||[])){const j=String(Math.min(28,n(a.jour)||1)).padStart(2,"0");L2.push({d:k+"-"+j,m:-n(a.montant),k:"Abonnements"})}
+  for(const a of S.abonnements)for(const k of (a.mois||[])){const j=String(Math.min(28,n(a.jour)||1)).padStart(2,"0");L2.push({d:k+"-"+j,m:-aboMontant(a,k),k:"Abonnements"})}
   return L2;
 }
 
@@ -1776,7 +1782,7 @@ function pResultat(){
     if(dansCA(v)){const t=venteTotal(v);ca+=t;const p=prod(v.produitId);if(p&&isPrestation(p))caP+=t;else{caM+=t;if(p)cmv+=Math.max(1,n(v.quantite)||1)*coutMoyen(p)}}
     else if(v.statut==="Annulée"&&v.avanceType==="Arrhes")arrhes+=n(v.avanceMontant)}
   for(const d of S.depenses)if(inExercice(d.date)){const c=d.categorie||"Autres charges";charges[c]=(charges[c]||0)+n(d.montant)}
-  for(const a of S.abonnements)for(const k of (a.mois||[]))if(inExercice(k+"-15")){const c=a.categorie||"Autres charges";charges[c]=(charges[c]||0)+n(a.montant)}
+  for(const a of S.abonnements)for(const k of (a.mois||[]))if(inExercice(k+"-15")){const c=a.categorie||"Autres charges";charges[c]=(charges[c]||0)+aboMontant(a,k)}
   const totCh=Object.values(charges).reduce((x,y)=>x+y,0);
   const res=r2(ca+arrhes-cmv-totCh);
   const is=res>0?r2(Math.min(res,n(s.isPlafond))*n(s.isTauxReduit)+Math.max(0,res-n(s.isPlafond))*n(s.isTauxNormal)):0;
@@ -2003,7 +2009,7 @@ async function exportExcel(){
   add("Ventes",S.ventes.map(v=>{const p=prod(v.produitId);return{"N° facture":v.numero||"",Date:v.date,Cliente:v.client,Code:p?p.code:"",Désignation:v.designation||"",Quantité:n(v.quantite)||1,"Prix unitaire":n(v.prixTTC),Remise:n(v.remise),Port:n(v.port),Total:venteTotal(v),Statut:v.statut,"Moyen":v.paiement||"","Encaissé le":v.dateEncaissement||"","Avance":v.avanceType||"","Montant avance":n(v.avanceMontant),"Détail avance":detailAv(v),"Date avance":v.avanceDate||"","Heures":n(v.heures),"Matières (€)":matieresVente(v),"Prix de revient":n(v.revient),"Prix plancher":n(v.plancher),Commentaire:v.commentaire||""}}));
   add("Achats",S.achats.map(a=>{const p=prod(a.produitId);return{"N°":a.ref||"",Date:a.date,Fournisseur:a.fournisseur,"N° facture":a.numFacture||"",Pays:a.pays||"",Code:p?p.code:"",Quantité:n(a.quantite),"Prix unitaire":n(a.prixUnit),Devise:a.devise||"EUR",Taux:n(a.taux)||"","Frais d'approche":n(a.frais),"Coût total (€)":achatTotal(a),"Payé le":a.datePaiement||"",Moyen:a.moyen||"","Reçu le":a.dateReception||"",Commentaire:a.commentaire||""}}));
   add("Dépenses",S.depenses.map(d=>({"N°":d.ref||"",Date:d.date,Fournisseur:d.fournisseur,"N° facture":d.numFacture||"",Catégorie:d.categorie||"",Description:d.description||"",Montant:n(d.montant),"Payé le":d.datePaiement||"",Moyen:d.moyen||"",Justificatif:d.justificatif?"Oui":"Non",Commentaire:d.commentaire||""})));
-  add("Abonnements",S.abonnements.map(a=>({Fournisseur:a.fournisseur,Description:a.description||"",Catégorie:a.categorie||"",Montant:n(a.montant),Fréquence:a.frequence||"",Jour:a.jour||"",Début:a.debut||"",Fin:a.fin||"","Mois payés":(a.mois||[]).join(", ")})));
+  add("Abonnements",S.abonnements.map(a=>({Fournisseur:a.fournisseur,Description:a.description||"",Catégorie:a.categorie||"",Montant:n(a.montant),Fréquence:a.frequence||"",Jour:a.jour||"",Début:a.debut||"",Fin:a.fin||"","Mois payés":(a.mois||[]).join(", "),"Total payé":aboPaid(a),"Montants particuliers":Object.entries(a.montantsMois||{}).map(([k,v])=>k+" : "+n(v)+" €").join(", ")})));
   add("Financement",S.financement.map(f=>({Date:f.date,Nature:f.nature,Description:f.description||"",Montant:n(f.montant)*(L.natures[f.nature]||1),Commentaire:f.commentaire||""})));
   add("Stock",S.produits.map(p=>({Code:p.code,Désignation:designation(p),Statut:p.statut||"",Type:isPrestation(p)?"Prestation":"Marchandise","Prix d'achat":n(p.prixAchat),"Stock de départ":n(p.stockDepart),"En stock":stockQty(p)??"","Coût moyen":isPrestation(p)?"":r2(coutMoyen(p))})));
   add("Corrections stock",S.mouvements.map(m=>{const p=prod(m.produitId);return{Date:m.date,Code:p?p.code:"",Motif:m.motif,Quantité:n(m.quantite)*(L.motifs[m.motif]||-1),Commentaire:m.commentaire||""}}));
