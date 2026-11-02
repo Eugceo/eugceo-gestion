@@ -214,6 +214,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 @media print{
   header.top,nav.tabs,.noprint,.toast,body::before{display:none!important}
   html,body{background:#fff!important}
+  body{padding-left:0!important}
   main{padding:0!important}.wrap{max-width:none;padding:0!important}
   .invoice{border:0;padding:0}
   @page{margin:16mm}
@@ -297,6 +298,47 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 .toast{background:#111;color:#fff;border:1px solid rgba(196,160,70,.5)}
 .empty{font-family:var(--display);font-style:italic;font-size:17px}
 .code{letter-spacing:.06em}
+
+/* ===== Version ordinateur : menu à gauche, contenu large, formulaires en panneau latéral ===== */
+.side-brand{display:none}
+@media (min-width:1024px){
+  body{padding-left:248px}
+  .wrap{max-width:1080px;padding-left:40px;padding-right:40px}
+  header.top .brand,header.top .hd-ec{display:none}
+  header.top .wrap{padding-block:18px 16px}
+  header.top h1{font-size:28px}
+  main{padding-block:28px 60px}
+  nav.tabs{top:0;bottom:0;right:auto;width:248px;border-top:0;border-right:1px solid var(--hair);background:var(--bg);padding:0;z-index:7}
+  nav.tabs .wrap{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:28px 18px;max-width:none;height:100%}
+  .side-brand{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 26px;margin-bottom:10px;border-bottom:1px solid var(--hair);order:-2}
+  .side-brand svg{width:54px;height:33px}
+  .side-brand span{font:500 15px/1 var(--display);letter-spacing:.5em;padding-left:.5em}
+  .side-brand small{font-size:9px;letter-spacing:.45em;padding-left:.45em;text-transform:uppercase;color:var(--gold-d)}
+  nav.tabs button{flex-direction:row;justify-content:flex-start;gap:12px;font-size:14.5px;padding:11px 14px;border-radius:10px;color:var(--muted)}
+  nav.tabs button svg{width:20px;height:20px}
+  nav.tabs button:hover{background:rgba(196,160,70,.08);color:var(--fg)}
+  nav.tabs [data-tab][aria-current="page"]{background:#111;color:#fff}
+  nav.tabs [data-tab][aria-current="page"] svg{stroke:var(--gold)}
+  nav.tabs [data-tab][aria-current="page"]::after{display:none}
+  nav.tabs .plus{order:-1;display:flex;flex-direction:row;align-items:center;width:auto;height:auto;border-radius:999px;margin:0 0 18px;padding:12px 16px;font-size:15px;justify-content:center;box-shadow:0 6px 18px rgba(17,17,17,.18)}
+  nav.tabs .plus::after{content:"Ajouter";font-weight:600;letter-spacing:.06em;margin-left:8px}
+  /* accueil sur deux colonnes */
+  body[data-tab="accueil"] #view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 32px;align-items:start}
+  body[data-tab="accueil"] #view>.hero,body[data-tab="accueil"] #view>.monthbar,body[data-tab="accueil"] #view>.grid2,body[data-tab="accueil"] #view>.banner{grid-column:1/-1}
+  body[data-tab="accueil"] .grid2{grid-template-columns:repeat(4,minmax(0,1fr))}
+  body[data-tab="accueil"] #view>section:has(.monthbar){grid-column:1/-1}
+  .hero{padding:28px 30px}.money-big{font-size:44px}
+  .row{padding:14px 18px}
+  /* formulaires : panneau à droite */
+  .sheet{left:auto;width:min(640px,100vw);border-left:1px solid var(--hair);box-shadow:-20px 0 60px rgba(17,17,17,.18);animation:panelIn .25s ease-out}
+  .sheet .wrap{max-width:none;padding-left:32px;padding-right:32px}
+  body:has(#sheet:not([hidden]))::after{content:"";position:fixed;inset:0;z-index:19;background:rgba(17,17,17,.28)}
+  .choices{grid-template-columns:repeat(2,1fr)}
+  .toast,.majbar{bottom:28px}
+  .toast{left:calc(50% + 124px)}.majbar{left:calc(50% + 124px)}
+}
+@keyframes panelIn{from{transform:translateX(30px);opacity:.4}to{transform:none;opacity:1}}
+@media (min-width:1024px) and (prefers-color-scheme: dark){:root:not([data-theme="light"]) nav.tabs [data-tab][aria-current="page"]{background:#262626}}
 </style>
 </head>
 <body>
@@ -306,6 +348,7 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 <div class="majbar" id="majBar" hidden>Une nouvelle version de l'app est prête. <button type="button" id="majBtn">Mettre à jour</button></div>
 <main><div class="wrap" id="view"></div></main>
 <nav class="tabs" aria-label="Sections"><div class="wrap">
+  <div class="side-brand" aria-hidden="true"><svg><use href="#ec"/></svg><span>EUGCEO</span><small>Gestion</small></div>
   <button data-tab="accueil" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</button>
   <button data-tab="ventes"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Ventes</button>
   <button class="plus" id="plusBtn" aria-label="Ajouter">+</button>
@@ -525,7 +568,7 @@ function navSave(){try{const o={};NAV_KEYS.forEach(k=>o[k]=S[k]);o.y=window.scro
 function navRestore(){try{const o=JSON.parse(sessionStorage.getItem("eug_nav")||"null");if(!o)return;NAV_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});S._scrollY=o.y||0}catch(_){}}
 window.addEventListener("pagehide",navSave);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")navSave()});
 function doRender(){
-  const titles={accueil:"Accueil",ventes:"Ventes",stock:"Stock",frais:"Argent"};setTimeout(navSave,0);
+  const titles={accueil:"Accueil",ventes:"Ventes",stock:"Stock",frais:"Argent"};setTimeout(navSave,0);document.body.dataset.tab=S.page?"page":S.tab;
   if(S._scrollY&&S.loaded.size>=3){const y=S._scrollY;S._scrollY=0;setTimeout(()=>window.scrollTo(0,y),60)}
   $("#screenTitle").textContent=titles[S.tab];
   document.querySelectorAll("nav.tabs [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===S.tab?"page":"false"));
