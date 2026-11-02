@@ -617,6 +617,7 @@ function vAccueil(){
     <h2>À suivre</h2>
     <div class="list">
       <button class="row" data-act="page" data-p="dettes"><span class="t">La société doit</span><span class="v num">${eur(dettes().reduce((t,[k,v])=>t+v.total,0))}</span><span class="s">${dettes().map(([k,v])=>esc(k.split(" ")[0])+" "+eur(v.total)).join(" · ")||"rien"}</span></button>
+      ${(()=>{const k=S.ventes.filter(aExpedier).length;return k?`<button class="row" data-act="goto" data-tab="ventes" data-filter="expedier"><span class="t">À expédier</span><span class="v num">${k}</span><span class="s">vente${k>1?"s":""} payée${k>1?"s":""} pas encore envoyée${k>1?"s":""}</span></button>`:""})()}
       <button class="row" data-act="goto" data-tab="ventes" data-filter="attente"><span class="t">Reste à encaisser</span><span class="v num">${eur(reste)}</span><span class="s">${attente.length} vente${attente.length>1?"s":""} en attente de paiement</span></button>
       <button class="row" data-act="goto" data-tab="stock" data-filter="alerte"><span class="t">Stock</span><span class="v num">${pieces} pièce${pieces>1?"s":""}</span><span class="s">valeur ${eur(valeur)}${alertes.length?` · <span class="chip warn">${alertes.length} en rupture ou sous le seuil</span>`:""}</span></button>
       ${aPointer.length?`<button class="row" data-act="goto" data-tab="frais" data-filter="abonnements"><span class="t">Abonnements à pointer ce mois-ci</span><span class="v">${aPointer.length}</span><span class="s">${aPointer.map(a=>esc(a.fournisseur)).join(", ")}</span></button>`:""}
@@ -665,11 +666,12 @@ function vVentes(){
   const f=S.ventesFilter;let list=[...S.ventes];
   if(f==="attente")list=list.filter(v=>v.statut==="En attente de paiement");
   if(f==="mois")list=list.filter(v=>ym(v.date)===ym(today()));
+  if(f==="expedier")list=list.filter(aExpedier);
   const q=S.q.trim().toLowerCase();if(q)list=list.filter(v=>(v.client+" "+(prod(v.produitId)?.code||"")+" "+(v.designation||"")).toLowerCase().includes(q));
   list.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.creeLe||"").localeCompare(a.creeLe||""));
   const rows=list.map(v=>{const p=prod(v.produitId);const st=v.statut==="Payée"?"ok":v.statut==="En attente de paiement"?"warn":"bad";
-    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} <span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}${exChip(v)}</span></button>`}).join("");
-  return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["mois","Ce mois-ci"],["attente","En attente"]])}
+    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} <span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}${exChip(v)}</span></button>`}).join("");
+  return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["mois","Ce mois-ci"],["attente","En attente"],["expedier","À expédier"]])}
   <input class="search" id="q" type="search" placeholder="Chercher une cliente ou un code" value="${esc(S.q)}">
   ${loadingOr("ventes",`<div class="list">${rows||`<div class="empty">Aucune vente ${f==="tout"?"pour l'instant":"ici"}. Touche « + » puis « Vente » pour enregistrer la première.</div>`}</div>`)}`;
 }
@@ -893,6 +895,12 @@ function fVente(d){
     <div class="two">${F("statut","Statut",sel("statut",L.statutsVente,paid))}${F("paiement","Moyen",sel("paiement",L.paiements,d.paiement||"Carte bancaire"))}</div>
     ${F("dateEncaissement","Date d'encaissement",dateI("dateEncaissement",d.dateEncaissement||(d.id?"":today())),"Le jour où l'argent est arrivé (vente payée).")}
   </fieldset>
+  <fieldset><legend>Expédition</legend>
+    <div class="two">${F("etape","Étape",sel("etape",ETAPES,d.etape||"À préparer"))}${F("transporteur","Transporteur",sel("transporteur",TRANSPORTEURS,d.transporteur||"Colissimo"))}</div>
+    ${F("numeroSuivi","Numéro de suivi",inp("numeroSuivi",d.numeroSuivi,'autocomplete="off"'),d.email?"En passant à « Expédiée » avec un numéro de suivi, la cliente reçoit un e-mail avec le lien de suivi.":"Ajoute l'e-mail de la cliente (Coordonnées) pour qu'elle reçoive le suivi par e-mail.")}
+    ${d.mailExpeditionLe?`<p class="note">E-mail d'expédition envoyé le ${dfr(String(d.mailExpeditionLe).slice(0,10))}.</p>`:""}
+    ${d.numeroSuivi&&suiviUrl(d.transporteur,d.numeroSuivi)?`<p class="note"><a href="${esc(suiviUrl(d.transporteur,d.numeroSuivi))}" target="_blank" rel="noopener">Voir le suivi du colis</a></p>`:""}
+  </fieldset>
   <fieldset><legend>Avance versée</legend>
     ${F("avanceType","Type d'avance",sel("avanceType",["Aucune","Acompte","Arrhes"],d.avanceType||"Aucune"),"Acompte : la vente est ferme, la cliente doit tout payer. Arrhes : elle peut annuler en les perdant (statut « Annulée »).")}
     <div class="two">${F("avanceMontant","Montant (€)",money("avanceMontant",d.avanceMontant))}${F("avanceDate","Date du versement",dateI("avanceDate",d.avanceDate))}</div>
@@ -1086,6 +1094,8 @@ async function save(){
     d.code=codeFor(d,id,orig.code);const st=readSiteFields();if(st)d.site=st}
   if(col==="ventes"){const p=prod(d.produitId);d.designation=p?designation(p):"";if(d.statut!=="Payée")d.dateEncaissement="";
     const cv=coutVente(p,d);if(cv){d.revient=cv.revient;d.plancher=cv.plancher}if(!orig.numero)d.numero=nextFacture(d.date);
+    if(d.etape==="Expédiée"&&orig.etape!=="Expédiée"&&!d.expedieLe)d.expedieLe=today();
+    if(["Livrée","Retirée en main propre"].includes(d.etape)&&!orig.livreLe)d.livreLe=today();
     d.codePromo=normCode(d.codePromo);
     if(d.codePromo){const c=(S.codes||[]).find(x=>x.id===d.codePromo);const T=tauxAmb(c);const keep=orig.codePromo===d.codePromo;d.parrainPct=keep&&orig.parrainPct!=null?orig.parrainPct:T.pf;d.parrainGainPct=keep&&orig.parrainGainPct!=null?orig.parrainGainPct:T.pg}else{d.parrainPct="";d.parrainGainPct=""}
     if(d.cagnotteCode){const amb=(S.codes||[]).find(x=>x.id===d.cagnotteCode);const st=amb?etatAmb(amb,id):{solde:0};d.cagnotteMontant=Math.min(n(d.remise),st.solde);d.cagnotteLe=d.cagnotteLe||d.date}else{d.cagnotteMontant="";d.cagnotteLe=""}}
@@ -1105,6 +1115,9 @@ async function save(){
     await ref.set(body);
     if(demId){try{await db.collection("demandes").doc(demId).update({statut:"Traitée",traiteLe:new Date().toISOString()})}catch(_){}}
     if(devisId){try{await db.collection("devis").doc(devisId).update({venteId:ref.id})}catch(_){}}
+    if(col==="ventes"&&body.etape==="Expédiée"&&!orig.mailExpeditionLe&&body.email&&body.numeroSuivi){
+      try{await mailExpedition(body);await db.collection("ventes").doc(ref.id).update({mailExpeditionLe:new Date().toISOString()});setTimeout(()=>toast("E-mail de suivi envoyé à "+body.email,5000),300)}
+      catch(e){setTimeout(()=>toast("Expédition enregistrée, mais l'e-mail n'est pas parti ("+String(e&&(e.code||e.message)||e).slice(0,50)+")"),300)}}
     if(col==="produits"&&S.returnTo){toast("Produit créé : "+body.code);afterProduct(ref.id,body);return}
     closeSheet(true);toast(orig.id?"Modifié":"Enregistré");
   }catch(e){btns.forEach(b=>b.disabled=false);eb.textContent=dbErr(e);eb.hidden=false;if(e&&e.code==="invalid_argument"){canWrite=false;render()}}
@@ -2117,6 +2130,18 @@ async function ajouterLivraison(b){
     const i=S.ventes.findIndex(x=>x.id===v.id);if(i>=0)S.ventes[i]={...v,port:frais,avanceType:"Acompte",avanceMontant:deja,statut:"En attente de paiement"};
     b.textContent="Livraison ajoutée";b.dataset.box="livBox";b.dataset.liv="1";await lienSolde(b);
   }catch(e){b.disabled=false;toast(dbErr(e))}
+}
+/* ---------- expédition et suivi de commande ---------- */
+const ETAPES=["À préparer","Préparée","Expédiée","Livrée","Retirée en main propre"];
+const TRANSPORTEURS=["Colissimo","Chronopost","Mondial Relay","Lettre suivie (La Poste)","DHL","UPS","Autre"];
+function suiviUrl(t,num){const c=encodeURIComponent(String(num||"").replace(/\s/g,""));if(!c)return"";
+  return t==="Chronopost"?"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT="+c:t==="Mondial Relay"?"https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition="+c:t==="DHL"?"https://www.dhl.com/fr-fr/home/suivi.html?tracking-id="+c:t==="UPS"?"https://www.ups.com/track?loc=fr_FR&tracknum="+c:t==="Autre"?"":"https://www.laposte.fr/outils/suivre-vos-envois?code="+c}
+function etapeVente(v){return v.etape||"À préparer"}
+function aExpedier(v){const p=prod(v.produitId);return dansCA(v)&&!(p&&isPrestation(p))&&["À préparer","Préparée"].includes(etapeVente(v))}
+async function mailExpedition(v){
+  const prenom=String(v.client||"").replace(/^\s*\[test\]\s*/i,"").split(" ")[0];const url=suiviUrl(v.transporteur,v.numeroSuivi);
+  const text=`Bonjour ${prenom},\n\nBonne nouvelle : votre commande EUGCEO${v.numero?" ("+v.numero+")":""} est en route !\n\n${v.designation?"Création : "+v.designation+"\n":""}Transporteur : ${v.transporteur||""}\nNuméro de suivi : ${v.numeroSuivi||""}${url?"\nSuivre votre colis : "+url:""}\n\nÀ réception, prenez quelques minutes pour lire nos conseils d'entretien : https://eugceo.fr/#/entretien\n\nMerci pour votre confiance,\nEUGCEO`;
+  await sendMail({to:v.email,subject:"EUGCEO · Votre commande est en route",text});
 }
 function loadLib(src,ok){return ok()?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
 /* facture en PDF (A4), à partir de la facture affichée */
