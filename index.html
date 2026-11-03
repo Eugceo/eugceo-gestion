@@ -184,6 +184,12 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .gmark{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.5}
 .line.rf{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.rm2{grid-template-columns:minmax(0,1fr) 6em auto}
+.line.rm3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
+.line.lx3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
+.line.lx2{grid-template-columns:minmax(0,1fr) 4em auto}
+.line.lx1{grid-template-columns:minmax(0,1fr) auto}
+.lxd{border:1px solid var(--line);border-radius:var(--r);padding:0}.lxd>summary{cursor:pointer;padding:12px 14px;font-weight:500;list-style-position:inside}.lxd[open]>summary{border-bottom:1px solid var(--line)}.lxd>fieldset{border:0;border-radius:0}.lxd .muted{color:#888;font-weight:300}
+.line.head span{font-size:12px;color:var(--muted,#777)}
 .line.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .invoice{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:40px 32px 28px;display:flex;flex-direction:column;gap:22px;font-family:Poppins,system-ui,sans-serif;font-size:12.5px;line-height:1.55}
 .iv-top{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
@@ -366,12 +372,12 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 /* ---------- Référentiel (repris du classeur, onglet RÉFÉRENTIEL) ---------- */
 const MODEL_CODES={"Bob":"BOB","Body Wave":"BW","Boucle Customisé":"BCU","Burmese Curly":"BC","Loose Deep":"LD","Loose Wave":"LWV","Pixie Curly":"PC","Ponytail":"PT","Straight":"ST","Water Wave":"WW","Deep Wave":"DW","Kinky Curly":"KC","Kinky Straight":"KS","Jerry Curly":"JC","Afro Curly":"AC","Yaki Straight":"YS","Pose (prestation)":"POSE","Remise en forme (prestation)":"REMISE","Coloration (prestation)":"COLO"};
 const COLOR_CODES={"Noir Naturel":"NN","Brun Naturel":"BN","Gris Naturel":"GR","Blond Doré":"BD","Blond Platine":"BP","Rouge Cerise":"RC","Burgundy":"BG","Ginger":"GI","Mèches Caramel":"MC","Rose Poudré":"RP","Violet Prune":"VP","Bleu Électrique":"BE","Vert Émeraude":"VE","Jaune Pastel":"JP","Ombré":"OM"};
-const T_CODES={"Lace Wig":"LW","Frontal Wig":"FW","Closure Wig":"CW","Full Lace Wig":"FL","360 Lace Wig":"360","Glueless Wig":"GL","Demi-tête (Half Wig)":"HW","U-Part Wig":"UP","V-Part Wig":"VP","Ponytail (Queue de cheval)":"PT","Bundle (Tissage)":"BU","Closure":"CL","Frontal":"FR","13x6":"13X6","13x4":"13X4","7x7":"7X7","6x6":"6X6","5x5":"5X5","4x4":"4X4","2x6":"2X6","2x4":"2X4","T-Part":"T-PART","Ultra HD Lace":"UHD","HD Lace":"HD","Transparent Lace":"TR","Raw Hair":"RAW","Virgin Hair":"VIR","Remy Hair":"REM","Burmese Hair":"BUR","Cambodian Hair":"CAM","Human Hair":"HUM","Brazilian Hair":"BRZ","Mongolian Hair":"MON","Peruvian Hair":"PER","Malaysian Hair":"MAL","Indian Hair":"IND"};
+const T_CODES={"Lace Wig":"LW","Frontal Wig":"FW","Closure Wig":"CW","Full Lace Wig":"FL","360 Lace Wig":"360","Glueless Wig":"GL","Demi-tête (Half Wig)":"HW","U-Part Wig":"UP","V-Part Wig":"VP","Ponytail (Queue de cheval)":"PT","Bundle (Tissage)":"BU","Closure":"CL","Frontal":"FR","13x6":"13X6","13x4":"13X4","7x7":"7X7","6x6":"6X6","5x5":"5X5","4x4":"4X4","2x6":"2X6","2x4":"2X4","T-Part":"T-PART","Ultra HD Lace":"UHD","HD Lace":"HD","Transparent Lace":"TR","Raw Hair":"RAW","Virgin Hair":"VIR","Remy Hair":"REM","Burmese Hair":"BUR","Cambodian Hair":"CAM","Human Hair":"HUM","Brazilian Hair":"BRZ","Mongolian Hair":"MON","Peruvian Hair":"PER","Malaysian Hair":"MAL","Indian Hair":"IND","Vietnamese Hair":"VIE"};
 const L={
   constructions:["Lace Wig","Frontal Wig","Closure Wig","Full Lace Wig","360 Lace Wig","Glueless Wig","Demi-tête (Half Wig)","U-Part Wig","V-Part Wig","Ponytail (Queue de cheval)","Bundle (Tissage)","Closure","Frontal"],
   laceTailles:["13x6","13x4","7x7","6x6","5x5","4x4","2x6","2x4","T-Part"],
   laceQualites:["Ultra HD Lace","HD Lace","Transparent Lace"],
-  cheveux:["Raw Hair","Virgin Hair","Remy Hair","Burmese Hair","Cambodian Hair","Human Hair","Brazilian Hair","Mongolian Hair","Peruvian Hair","Malaysian Hair","Indian Hair"],
+  cheveux:["Raw Hair","Virgin Hair","Remy Hair","Burmese Hair","Cambodian Hair","Human Hair","Brazilian Hair","Mongolian Hair","Peruvian Hair","Malaysian Hair","Indian Hair","Vietnamese Hair"],
   paiements:["Carte bancaire","Virement","PayPal","Espèces","Chèque","Autre"],
   statutsVente:["Payée","En attente de paiement","Annulée","Remboursée"],
   devises:["EUR","USD","CNY"],
@@ -389,13 +395,40 @@ const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":-0.1,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
   "Taille de lace":{"13x6":0.12,"13x4":0.1,"7x7":0.08,"6x6":0.06,"5x5":0.04,"4x4":0.02,"2x6":0.03,"2x4":0.02,"T-Part":0.03},
   "Qualité de lace":{"Ultra HD Lace":0.15,"HD Lace":0.1,"Transparent Lace":0.07},
-  "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03},
+  "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03,"Vietnamese Hair":0.06},
   "Couleur spéciale":{"Naturelle":0,"Ginger":0.06,"Blond":0.05,"Burgundy":0.05,"Ombre":0.08,"Décoloré":0.07,"Mèches":0.04,"Fantasy":0.1},
   "Collection":{"Basique":0,"Premium":0.1,"Signature":0.25,"Unique":0.4},
   "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2},
   "Type de bundle":{"Simple (non doublé)":0,"Doublé":0.1,"Super doublé":0.18},
   "Texture":{"Straight":0,"Bob":0,"Ponytail":0,"Yaki Straight":0.02,"Body Wave":0.02,"Kinky Straight":0.03,"Loose Wave":0.03,"Water Wave":0.04,"Deep Wave":0.04,"Loose Deep":0.04,"Indian Curly":0.05,"Jerry Curly":0.05,"Burmese Curly":0.06,"Pixie Curly":0.06,"Kinky Curly":0.06,"Afro Curly":0.06,"Boucle Customisé":0.06}
 };
+/* Listes modifiables depuis Référentiel (reglages/referentiel → listes) */
+const LISTES=[
+  {k:"constructions",t:"Constructions",b:"Construction",c:1},
+  {k:"laceTailles",t:"Tailles de lace",b:"Taille de lace",c:1},
+  {k:"laceQualites",t:"Qualités de lace",b:"Qualité de lace",c:1},
+  {k:"cheveux",t:"Qualités de cheveux",b:"Qualité de cheveux",c:1},
+  {k:"typesBundle",t:"Types de bundle",b:"Type de bundle"},
+  {k:"collections",t:"Collections",b:"Collection"},
+  {k:"paiements",t:"Moyens de paiement"},
+  {k:"categories",t:"Catégories de dépenses"}
+];
+let DEF_LISTES=null;
+function listeDefaut(x){
+  const noms=x.k==="collections"?Object.keys(BONUS["Collection"]):L[x.k];
+  return noms.map(nom=>({nom,...(x.c?{code:T_CODES[nom]||""}:{}),...(x.b?{bonus:(BONUS[x.b]||{})[nom]||0}:{})}));
+}
+function applyListes(){
+  if(!DEF_LISTES){DEF_LISTES={};LISTES.forEach(x=>DEF_LISTES[x.k]=listeDefaut(x))}
+  const R=(S.referentiel&&S.referentiel.listes)||{};
+  LISTES.forEach(x=>{
+    const v=Array.isArray(R[x.k])&&R[x.k].length?R[x.k]:DEF_LISTES[x.k];
+    if(x.k!=="collections")L[x.k]=v.map(i=>i.nom);
+    if(x.c)v.forEach(i=>{if(i.code)T_CODES[i.nom]=i.code});
+    if(x.b){BONUS[x.b]={};v.forEach(i=>BONUS[x.b][i.nom]=n(i.bonus))}
+  });
+}
+function refListe(k){applyListes();const R=(S.referentiel&&S.referentiel.listes)||{};return Array.isArray(R[k])&&R[k].length?R[k]:DEF_LISTES[k]}
 const PALIERS={
   longueur:[[0,-0.45],[10,-0.42],[12,-0.38],[14,-0.3],[16,-0.2],[18,-0.08],[20,-0.06],[22,-0.03],[24,0],[26,0.02],[28,0.05],[30,0.08],[32,0.11],[34,0.14],[36,0.17],[38,0.2],[40,0.23]],
   longueurBundle:[[0,-0.12],[12,-0.08],[14,-0.06],[16,-0.04],[18,0],[20,0.03],[22,0.06],[24,0.09],[26,0.12],[28,0.15],[30,0.18],[32,0.21],[34,0.24],[36,0.27],[38,0.3],[40,0.33]],
@@ -536,7 +569,7 @@ function coefVente(p,couleurSpe,niveau,collection){
   if(!p)return 0;const b=(cat,v)=>(BONUS[cat]&&BONUS[cat][v])||0;const de=n(p.densite);
   const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.5):n(S.reglages.coefBase||1.45);
   return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
-    +b("Texture",p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
+    +bonusModele(p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
     +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
@@ -595,7 +628,7 @@ function doRender(){
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
   if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&v.querySelector("input:focus"))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
   v.innerHTML=fn();
@@ -667,7 +700,7 @@ function vAccueil(){
       <button class="row" data-act="page" data-p="societe"><span class="t">Société</span><span class="v">›</span><span class="s">SIREN, adresse, exercice : utilisés sur les factures.</span></button>
       <button class="row" data-act="page" data-p="ambassadrices"><span class="t">Ambassadrices</span><span class="v">›</span><span class="s">Leurs codes, les ventes apportées et leur cagnotte.</span></button>
       <button class="row" data-act="reglages"><span class="t">Réglages des prix</span><span class="v">›</span><span class="s">Taux horaire, transport, packaging, marge, coefficient.</span></button>
-      <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Couleurs et modèles, avec leurs codes et bonus.</span></button>
+      <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Toutes les listes : couleurs, modèles, constructions, laces, cheveux, bundles, collections, paiements, catégories.</span></button>
       <button class="row" data-act="export-xlsx"><span class="t">Exporter pour Excel</span><span class="v">↓</span><span class="s">Un fichier .xlsx avec tout, pour un comptable.</span></button>
     </div>
   </section>
@@ -772,7 +805,7 @@ function fMatiere(d){
   ${F("fournisseur","Fournisseur",inp("fournisseur",d.fournisseur))}
   <p class="note">Ce prix sert au calcul du prix de revient dans la fiche de création. L'achat lui-même se saisit en « Dépense », catégorie « Produits de travail ».</p>`;
 }
-function opt(list,cur,blank){return(blank!==undefined?`<option value="">${esc(blank)}</option>`:"")+list.map(x=>`<option${x===cur?" selected":""}>${esc(x)}</option>`).join("")}
+function opt(list,cur,blank){if(cur&&!list.includes(cur))list=[...list,cur];return(blank!==undefined?`<option value="">${esc(blank)}</option>`:"")+list.map(x=>`<option${x===cur?" selected":""}>${esc(x)}</option>`).join("")}
 function F(id,label,inner,hint){return`<div class="field"><label for="${id}">${esc(label)}</label>${inner}${hint?`<span class="hint">${hint}</span>`:""}</div>`}
 function inp(id,v,attrs=""){return`<input id="${id}" name="${id}" value="${esc(v??"")}" ${attrs}>`}
 function money(id,v){return inp(id,v===undefined||v===null||v===""?"":String(v).replace(".",","),'inputmode="decimal" autocomplete="off"')}
@@ -1293,7 +1326,8 @@ document.addEventListener("click",e=>{
   if(a==="inv-save"){saveInventaire();return}
   if(a==="export-xlsx"){exportExcel();return}
   if(a==="rf-add"){$("#rfLines").insertAdjacentHTML("beforeend",`<div class="line rf"><input class="rfNom" placeholder="Nom" aria-label="Couleur"><input class="rfCode" placeholder="CODE" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
-  if(a==="rm-add"){$("#rmLines").insertAdjacentHTML("beforeend",`<div class="line rm2"><input class="rmNom" placeholder="Nom" aria-label="Modèle"><input class="rmCode" placeholder="CODE" aria-label="Code"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
+  if(a==="lx-add"){const x=LISTES.find(y=>y.k===b.dataset.k);const box=document.querySelector(`.lxLines[data-k="${b.dataset.k}"]`);if(x&&box){const fm=box.closest("form");if(fm)fm.dataset.dirty="1";box.insertAdjacentHTML("beforeend",lxLine(x,{}));const i=box.lastElementChild.querySelector("input");if(i)i.focus()}return}
+  if(a==="rm-add"){$("#rmLines").insertAdjacentHTML("beforeend",`<div class="line rm3"><input class="rmNom" placeholder="Nom" aria-label="Modèle"><input class="rmCode" placeholder="CODE" aria-label="Code"><input class="rmBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
   if(a==="goto"){S.page=null;S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;S.q="";window.scrollTo(0,0);render()}
   else if(a==="mprev"){S.month=addMonths(S.month,-1);render()}
   else if(a==="mnext"){S.month=addMonths(S.month,1);render()}
@@ -1312,7 +1346,7 @@ document.addEventListener("click",e=>{
   else if(a==="mt-add"){$("#mtLines").insertAdjacentHTML("beforeend",mtLine({qte:1}));livePreview()}
   else if(a==="ab-add"){$("#abLines").insertAdjacentHTML("beforeend",abLine("",""));livePreview()}
   else if(a==="av-add"){const box=$("#avLines");box.insertAdjacentHTML("beforeend",avLine({moyen:box.children.length?"Virement":"Espèces"}));const i=box.lastElementChild.querySelector(".avM");if(i)i.focus();livePreview()}
-  else if(a==="line-rm"){b.closest(".line").remove();livePreview()}
+  else if(a==="line-rm"){const fm=b.closest("#refForm");if(fm)fm.dataset.dirty="1";b.closest(".line").remove();livePreview()}
   else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
   else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
@@ -1357,6 +1391,7 @@ const DEFAULT_COULEURS=[
 ].map(([nom,code,bonus])=>({nom,code,bonus}));
 function refCouleurs(){const r=S.referentiel&&Array.isArray(S.referentiel.couleurs)?S.referentiel.couleurs:null;return r&&r.length?r:DEFAULT_COULEURS}
 function refModeles(){const r=S.referentiel&&Array.isArray(S.referentiel.modeles)?S.referentiel.modeles:null;return r&&r.length?r:Object.entries(MODEL_CODES).map(([nom,code])=>({nom,code}))}
+function bonusModele(nom){const m=refModeles().find(x=>x.nom===nom);if(m&&m.bonus!=null&&m.bonus!=="")return n(m.bonus);return (BONUS["Texture"][nom])||0}
 function codeModele(nom){const m=refModeles().find(x=>x.nom===nom);return m?m.code:(MODEL_CODES[nom]||"")}
 function codeCouleur(nom){const c=refCouleurs().find(x=>x.nom===nom);return c?c.code:(COLOR_CODES[nom]||"")}
 function bonusCouleur(nom){if(!nom||nom==="Naturelle")return 0;const c=refCouleurs().find(x=>x.nom===nom);if(c)return n(c.bonus);return (BONUS["Couleur spéciale"][nom])||0}
@@ -2103,26 +2138,41 @@ async function saveSociete(form){
   const o={};form.querySelectorAll("input[name]").forEach(i=>{o[i.name]=["capital","banqueDebut"].includes(i.name)?n(i.value):i.value.trim()});
   try{await db.doc("reglages/societe").set({...soc(),...o,modifieLe:new Date().toISOString()});toast("Enregistré")}catch(e){const m=$("#socMsg");m.textContent=dbErr(e);m.hidden=false}
 }
+function lxLine(x,i){i=i||{};const cl="lx"+(1+(x.c?1:0)+(x.b?1:0));
+  return`<div class="line ${cl}"><input class="lxNom" value="${esc(i.nom||"")}" placeholder="Nom" aria-label="Nom">${x.c?`<input class="lxCode" value="${esc(i.code||"")}" placeholder="CODE" aria-label="Code">`:""}${x.b?`<input class="lxBonus" inputmode="decimal" value="${String(i.bonus??0).replace(".",",")}" aria-label="Bonus">`:""}<button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function pReferentiel(){
   const ro=!(db&&canWrite);
   const cl=refCouleurs().map((c,i)=>`<div class="line rf"><input class="rfNom" value="${esc(c.nom)}" aria-label="Couleur"><input class="rfCode" value="${esc(c.code)}" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="${String(c.bonus).replace(".",",")}" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
-  const ml=refModeles().map(m=>`<div class="line rm2"><input class="rmNom" value="${esc(m.nom)}" aria-label="Modèle"><input class="rmCode" value="${esc(m.code)}" aria-label="Code"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
-  return`${pageHead("Référentiel","Les noms, les codes utilisés dans les codes produits, et le bonus ajouté au coefficient de prix.")}
+  const ml=refModeles().map(m=>`<div class="line rm3"><input class="rmNom" value="${esc(m.nom)}" aria-label="Modèle"><input class="rmCode" value="${esc(m.code)}" aria-label="Code"><input class="rmBonus" inputmode="decimal" value="${String(bonusModele(m.nom)).replace(".",",")}" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
+  const lx=LISTES.map(x=>{const cl="lx"+(1+(x.c?1:0)+(x.b?1:0));
+    const rows=refListe(x.k).map(i=>lxLine(x,i)).join("");
+    return`<details class="lxd"><summary>${esc(x.t)} <span class="muted">(${refListe(x.k).length})</span></summary><fieldset>${x.k==="constructions"?`<p class="note">Pour un bundle, garde « Bundle » au début du nom : c'est ce qui fait calculer le prix comme un bundle.</p>`:""}<div class="line ${cl} head"><span>Nom</span>${x.c?"<span>Code</span>":""}${x.b?"<span>Bonus</span>":""}<span></span></div><div class="lines lxLines" data-k="${x.k}">${rows}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="lx-add" data-k="${x.k}">+ Ajouter</button>`}</fieldset></details>`}).join("");
+  return`${pageHead("Référentiel","Toutes les listes de l'app : noms, codes utilisés dans les codes produits, et bonus ajouté au coefficient de prix.")}
   <form class="f" id="refForm" novalidate>
    <fieldset><legend>Couleurs</legend><div class="line rf head"><span>Nom</span><span>Code</span><span>Bonus</span><span></span></div><div class="lines" id="rfLines">${cl}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rf-add">+ Ajouter une couleur</button>`}
     <p class="note">Bonus : 0 pour une couleur naturelle, 0,05 pour un blond, 0,1 pour une couleur fantaisie… Il s'ajoute au coefficient quand la couleur est choisie comme « couleur obtenue » dans une vente.</p></fieldset>
-   <fieldset><legend>Modèles</legend><div class="line rm2 head"><span>Nom</span><span>Code</span><span></span></div><div class="lines" id="rmLines">${ml}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rm-add">+ Ajouter un modèle</button>`}</fieldset>
-   <p class="note">Changer un code ne modifie pas les codes des produits déjà créés.</p>
+   <fieldset><legend>Modèles</legend><div class="line rm3 head"><span>Nom</span><span>Code</span><span>Bonus</span><span></span></div><div class="lines" id="rmLines">${ml}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rm-add">+ Ajouter un modèle</button>`}</fieldset>
+   ${lx}
+   <p class="note">Bonus : ce qui s'ajoute au coefficient de prix quand l'élément est choisi (0,06 = +6 %). Laisse 0 si l'élément ne change pas le prix.</p>
+   <p class="note">Changer un nom ou un code ne modifie pas les produits déjà créés. Retirer un élément ne l'efface pas des produits qui l'utilisent : il reste affiché sur leur fiche.</p>
    <p class="err" id="refMsg" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
   </form>`;
 }
+document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest("#refForm");if(f)f.dataset.dirty="1"});
 async function saveReferentiel(form){
   const couleurs=[...form.querySelectorAll("#rfLines .line")].map(l=>({nom:l.querySelector(".rfNom").value.trim(),code:l.querySelector(".rfCode").value.trim().toUpperCase(),bonus:n(l.querySelector(".rfBonus").value)})).filter(x=>x.nom&&x.code);
-  const modeles=[...form.querySelectorAll("#rmLines .line")].map(l=>({nom:l.querySelector(".rmNom").value.trim(),code:l.querySelector(".rmCode").value.trim().toUpperCase()})).filter(x=>x.nom&&x.code);
+  const modeles=[...form.querySelectorAll("#rmLines .line")].map(l=>({nom:l.querySelector(".rmNom").value.trim(),code:l.querySelector(".rmCode").value.trim().toUpperCase(),bonus:n(l.querySelector(".rmBonus").value)})).filter(x=>x.nom&&x.code);
+  const listes={};let err="";
+  form.querySelectorAll(".lxLines").forEach(box=>{const x=LISTES.find(y=>y.k===box.dataset.k);if(!x)return;
+    const v=[...box.querySelectorAll(".line")].map(l=>{const o={nom:l.querySelector(".lxNom").value.trim()};if(x.c)o.code=l.querySelector(".lxCode").value.trim().toUpperCase().replace(/\s/g,"");if(x.b)o.bonus=n(l.querySelector(".lxBonus").value);return o}).filter(o=>o.nom);
+    const nd=v.find((o,i)=>v.findIndex(y=>y.nom.toLowerCase()===o.nom.toLowerCase())!==i);if(nd&&!err)err=x.t+" : « "+nd.nom+" » est en double.";
+    if(x.c){const sc=v.find(o=>!o.code);if(sc&&!err)err=x.t+" : il manque le code de « "+sc.nom+" ».";const cd=v.find((o,i)=>o.code&&v.findIndex(y=>y.code===o.code)!==i);if(cd&&!err)err=x.t+" : deux éléments ont le même code ("+cd.code+").";}
+    if(!v.length&&!err)err=x.t+" : la liste ne peut pas être vide.";
+    listes[x.k]=v});
   const dup=a=>a.find((x,i)=>a.findIndex(y=>y.code===x.code)!==i);
-  const m=$("#refMsg");if(dup(couleurs)){m.textContent="Deux couleurs ont le même code ("+dup(couleurs).code+").";m.hidden=false;return}if(dup(modeles)){m.textContent="Deux modèles ont le même code ("+dup(modeles).code+").";m.hidden=false;return}
-  try{await db.doc("reglages/referentiel").set({couleurs,modeles,modifieLe:new Date().toISOString()});toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
+  const m=$("#refMsg");if(err){m.textContent=err;m.hidden=false;return}if(dup(couleurs)){m.textContent="Deux couleurs ont le même code ("+dup(couleurs).code+").";m.hidden=false;return}if(dup(modeles)){m.textContent="Deux modèles ont le même code ("+dup(modeles).code+").";m.hidden=false;return}
+  try{await db.doc("reglages/referentiel").set({couleurs,modeles,listes,modifieLe:new Date().toISOString()});m.hidden=true;delete form.dataset.dirty;toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
 }
 
 /* ---------- export Excel ---------- */
@@ -2334,7 +2384,7 @@ async function startData(session){
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("codes_promo").onSnapshot(snap=>{S.codes=S.codes_promo=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
-  db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;render()},()=>{});
+  db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;applyListes();render()},()=>{});
   db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};S.reglagesOk=true;render();syncPlanchers()},()=>{});
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&db)loaders.forEach(f=>f())});
