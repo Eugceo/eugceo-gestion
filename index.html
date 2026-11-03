@@ -372,7 +372,7 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 /* ---------- Référentiel (repris du classeur, onglet RÉFÉRENTIEL) ---------- */
 const MODEL_CODES={"Bob":"BOB","Body Wave":"BW","Boucle Customisé":"BCU","Burmese Curly":"BC","Loose Deep":"LD","Loose Wave":"LWV","Pixie Curly":"PC","Ponytail":"PT","Straight":"ST","Water Wave":"WW","Deep Wave":"DW","Kinky Curly":"KC","Kinky Straight":"KS","Jerry Curly":"JC","Afro Curly":"AC","Yaki Straight":"YS","Pose (prestation)":"POSE","Remise en forme (prestation)":"REMISE","Coloration (prestation)":"COLO"};
 const COLOR_CODES={"Noir Naturel":"NN","Brun Naturel":"BN","Gris Naturel":"GR","Blond Doré":"BD","Blond Platine":"BP","Rouge Cerise":"RC","Burgundy":"BG","Ginger":"GI","Mèches Caramel":"MC","Rose Poudré":"RP","Violet Prune":"VP","Bleu Électrique":"BE","Vert Émeraude":"VE","Jaune Pastel":"JP","Ombré":"OM"};
-const T_CODES={"Lace Wig":"LW","Frontal Wig":"FW","Closure Wig":"CW","Full Lace Wig":"FL","360 Lace Wig":"360","Glueless Wig":"GL","Demi-tête (Half Wig)":"HW","U-Part Wig":"UP","V-Part Wig":"VP","Ponytail (Queue de cheval)":"PT","Bundle (Tissage)":"BU","Closure":"CL","Frontal":"FR","13x6":"13X6","13x4":"13X4","7x7":"7X7","6x6":"6X6","5x5":"5X5","4x4":"4X4","2x6":"2X6","2x4":"2X4","T-Part":"T-PART","Ultra HD Lace":"UHD","HD Lace":"HD","Transparent Lace":"TR","Raw Hair":"RAW","Virgin Hair":"VIR","Remy Hair":"REM","Burmese Hair":"BUR","Cambodian Hair":"CAM","Human Hair":"HUM","Brazilian Hair":"BRZ","Mongolian Hair":"MON","Peruvian Hair":"PER","Malaysian Hair":"MAL","Indian Hair":"IND","Vietnamese Hair":"VIE"};
+const T_CODES={"Lace Wig":"LW","Frontal Wig":"FW","Closure Wig":"CW","Full Lace Wig":"FL","360 Lace Wig":"360","Glueless Wig":"GL","Demi-tête (Half Wig)":"HW","U-Part Wig":"UP","V-Part Wig":"VP","Ponytail (Queue de cheval)":"PT","Bundle (Tissage)":"BU","Closure":"CL","Frontal":"FR","13x6":"13X6","13x4":"13X4","7x7":"7X7","6x6":"6X6","5x5":"5X5","4x4":"4X4","2x6":"2X6","2x4":"2X4","T-Part":"T-PART","Ultra HD Lace":"UHD","HD Lace":"HD","Transparent Lace":"TR","Raw Hair":"RAW","Virgin Hair":"VIR","Remy Hair":"REM","Burmese Hair":"BUR","Cambodian Hair":"CAM","Human Hair":"HUM","Brazilian Hair":"BRZ","Mongolian Hair":"MON","Peruvian Hair":"PER","Malaysian Hair":"MAL","Indian Hair":"IND","Vietnamese Hair":"VIE","Simple (SD)":"SD","Doublé (DD)":"DD","Super doublé (SDD)":"SDD"};
 const L={
   constructions:["Lace Wig","Frontal Wig","Closure Wig","Full Lace Wig","360 Lace Wig","Glueless Wig","Demi-tête (Half Wig)","U-Part Wig","V-Part Wig","Ponytail (Queue de cheval)","Bundle (Tissage)","Closure","Frontal"],
   laceTailles:["13x6","13x4","7x7","6x6","5x5","4x4","2x6","2x4","T-Part"],
@@ -386,7 +386,7 @@ const L={
   motifs:{"Retour cliente":1,"Perte ou défaut":-1,"Usage interne / démonstration":-1,"Échantillon offert":-1,"Inventaire : surplus trouvé":1,"Inventaire : manquant":-1,"Transformation (sortie)":-1,"Transformation (entrée)":1},
   destinations:["France métropolitaine","Union européenne","Guyane","Guadeloupe","Martinique","La Réunion","Mayotte","Suriname","Autre pays hors UE"],
   packaging:["Aucun","Bundle","Standard","Premium","Signature"],
-  typesBundle:["Simple (non doublé)","Doublé","Super doublé"],
+  typesBundle:["Simple (SD)","Doublé (DD)","Super doublé (SDD)"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
 const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
@@ -399,7 +399,7 @@ const BONUS={
   "Couleur spéciale":{"Naturelle":0,"Ginger":0.06,"Blond":0.05,"Burgundy":0.05,"Ombre":0.08,"Décoloré":0.07,"Mèches":0.04,"Fantasy":0.1},
   "Collection":{"Basique":0,"Premium":0.1,"Signature":0.25,"Unique":0.4},
   "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2},
-  "Type de bundle":{"Simple (non doublé)":0,"Doublé":0.1,"Super doublé":0.18},
+  "Type de bundle":{"Simple (SD)":0,"Doublé (DD)":0.1,"Super doublé (SDD)":0.18},
   "Texture":{"Straight":0,"Bob":0,"Ponytail":0,"Yaki Straight":0.02,"Body Wave":0.02,"Kinky Straight":0.03,"Loose Wave":0.03,"Water Wave":0.04,"Deep Wave":0.04,"Loose Deep":0.04,"Indian Curly":0.05,"Jerry Curly":0.05,"Burmese Curly":0.06,"Pixie Curly":0.06,"Kinky Curly":0.06,"Afro Curly":0.06,"Boucle Customisé":0.06}
 };
 /* Listes modifiables depuis Référentiel (reglages/referentiel → listes) */
@@ -408,7 +408,7 @@ const LISTES=[
   {k:"laceTailles",t:"Tailles de lace",b:"Taille de lace",c:1},
   {k:"laceQualites",t:"Qualités de lace",b:"Qualité de lace",c:1},
   {k:"cheveux",t:"Qualités de cheveux",b:"Qualité de cheveux",c:1},
-  {k:"typesBundle",t:"Types de bundle",b:"Type de bundle"},
+  {k:"typesBundle",t:"Types de bundle",b:"Type de bundle",c:1},
   {k:"collections",t:"Collections",b:"Collection"},
   {k:"paiements",t:"Moyens de paiement"},
   {k:"categories",t:"Catégories de dépenses"}
@@ -469,6 +469,7 @@ function baseCode(p){
   const parts=[mod];
   const cons=(T_CODES[p.construction]||"")+(p.longueur?String(p.longueur):"");
   if(cons)parts.push(cons);
+  if(isBundle(p)&&p.typeBundle)parts.push(T_CODES[p.typeBundle]||initials(p.typeBundle));
   const taille=p.laceTaille?(T_CODES[p.laceTaille]||String(p.laceTaille).toUpperCase().replace(/\s/g,"")):"";
   const lace=taille+(T_CODES[p.laceQualite]||"");
   if(lace)parts.push(lace);
@@ -494,6 +495,7 @@ function designation(p){
   let s=p.modele||"";
   if(p.longueur)s+=" "+p.longueur+"″";
   if(p.construction)s+=" · "+p.construction;
+  if(isBundle(p)&&p.typeBundle)s+=" · "+p.typeBundle;
   if(p.laceTaille)s+=" "+p.laceTaille;
   if(p.laceQualite)s+=" "+p.laceQualite;
   if(p.cheveux)s+=" · "+p.cheveux;
