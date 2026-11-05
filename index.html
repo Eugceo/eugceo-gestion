@@ -555,11 +555,8 @@ function prixVenteDetail(p,d){
   return{base,col,colMontant:r2(base*q*col),lignes,mat,q,total,unit:r2(total/q),sup,supTotal:r2(sup.reduce((a,x)=>a+x.montant,0))};
 }
 function supTexte(L){return Array.isArray(L)&&L.length?L.map(x=>x.nom+" "+eur(n(x.montant))).join(" + "):""}
-/* transport + import par pièce : frais d'approche réels des achats du produit, sinon le forfait des Réglages */
-function transportInfo(p){if(!p||isPrestation(p))return{v:0,reel:false};const R=S.reglages;
-  const L2=p.id?(S.achats||[]).filter(a=>a.produitId===p.id&&n(a.quantite)>0&&a.frais!==""&&a.frais!=null):[];const q=L2.reduce((t,a)=>t+n(a.quantite),0);
-  if(q>0)return{v:r2(L2.reduce((t,a)=>t+n(a.frais),0)/q),reel:true,nb:L2.length};
-  return{v:isBundle(p)?n(R.transportBundle):n(R.transport),reel:false}}
+/* transport + import par pièce : forfait des Réglages (8 € perruque, 2 € bundle) */
+function transportInfo(p){if(!p||isPrestation(p))return{v:0,reel:false};const R=S.reglages;return{v:isBundle(p)?n(R.transportBundle):n(R.transport),reel:false}}
 function transportDe(p){return transportInfo(p).v}
 function coutVente(p,d){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);const pack=d.packaging;
@@ -1110,7 +1107,7 @@ function livePreview(){
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
-      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+(ti.reel?"réel : "+eur(ti.v)+" par pièce, d'après "+(ti.nb>1?ti.nb+" achats":"l'achat"):"estimé : "+eur(ti.v)+", forfait des Réglages")+") et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+"forfait : "+eur(ti.v)+") et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
     const p={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const code=codeFor(p,current.id,current.orig.code);
     const b0=baseCode(p);const ex=!current.id&&p.type==="Marchandise"&&b0?S.produits.find(x=>x.code===b0):null;
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
@@ -1134,7 +1131,7 @@ function livePreview(){
         return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b></span>`})()}
       ${n(d.remisePrix)?`<span>Dont remise sur le prix de base : <b class="num">${eur(d.remisePrix)}</b> (vendu ${eur(r2(n(d.prixTTC)-n(d.remisePrixU)))} au lieu de ${eur(d.prixTTC)}) <button type="button" class="linkbtn" data-act="rp-cancel">Annuler</button></span>`:""}
       <span>Prix plancher <b class="num">${eur(pp.plancher)}</b>${isPrestation(p)?" · coef. "+String(pc.coef).replace(".",","):" par pièce"}</span>
-      <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport)+(transportInfo(p).reel?" (réel)":" (forfait)"):""}</span>
+      <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
       ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
       ${net&&net<pp.plancher?`<span class="chip bad" style="align-self:flex-start">Sous le prix plancher</span>`:""}
       <span>Total à payer : <b class="num">${eur(tot)}</b>${n(d.avanceMontant)&&d.avanceType!=="Aucune"?` · reste ${eur(Math.max(0,tot-n(d.avanceMontant)))}`:""}</span>`;
@@ -1235,10 +1232,10 @@ function openReglages(){
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Réglages des prix</h2></div></div>
   <div class="wrap"><form class="f" id="form" novalidate>
    <div class="two">${row("tauxH","Taux horaire création (€/h)")}${row("tauxPrest","Taux horaire prestation (€/h)")}</div>
-   <div class="two">${row("transport","Transport + import par pièce (€)","Forfait utilisé seulement pour les produits sans achat saisi. Sinon, l'app prend les vrais frais d'approche des achats.")}${row("tempsDefaut","Temps par défaut (h)")}</div>
+   <div class="two">${row("transport","Transport + import par pièce (€)","Fret, douane, TVA import. Ajouté au coût de chaque perruque pour calculer le prix.")}${row("tempsDefaut","Temps par défaut (h)")}</div>
    <div class="three">${row("packStandard","Pack Standard (€)")}${row("packPremium","Pack Premium (€)")}${row("packSignature","Pack Signature (€)")}</div>
    <fieldset><legend>Bundles</legend>
-    <div class="three">${row("coefBaseBundle","Coefficient de base")}${row("packBundle","Pack Bundle (€)")}${row("transportBundle","Transport + import (€) — forfait si pas d'achat")}</div>
+    <div class="three">${row("coefBaseBundle","Coefficient de base")}${row("packBundle","Pack Bundle (€)")}${row("transportBundle","Transport + import (€)")}</div>
     <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut, sa propre base de coefficient.</p></fieldset>
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
