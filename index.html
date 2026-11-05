@@ -531,6 +531,12 @@ function coutMoyen(p){
   for(const a of S.achats)if(a.produitId===p.id){q+=n(a.quantite);v+=achatTotal(a)}
   return q>0?v/q:n(p.prixAchat);
 }
+/* coût d'achat moyen (sans les frais d'approche) de tous les achats du produit, sinon le prix d'achat de la fiche */
+function achatInfo(p){if(!p||isPrestation(p))return{v:0,reel:false};let q=0,v=0;const L2=p.id?(S.achats||[]).filter(a=>a.produitId===p.id&&n(a.quantite)>0&&n(a.prixUnit)>0):[];
+  for(const a of L2){q+=n(a.quantite);v+=n(a.quantite)*n(a.prixUnit)*(a.devise&&a.devise!=="EUR"?n(a.taux)||1:1)}
+  if(q>0&&n(p.stockDepart)>0&&n(p.coutDepart)>0){q+=n(p.stockDepart);v+=n(p.stockDepart)*n(p.coutDepart)}
+  return q>0?{v:r2(v/q),reel:true,nb:L2.length}:{v:n(p.prixAchat),reel:false}}
+function achatDe(p){return achatInfo(p).v}
 function heuresVente(d){const t=Array.isArray(d.travaux)?d.travaux:null;if(t)return t.reduce((s,x)=>s+n(x.heures),0);return d.heures===""||d.heures==null?n(S.reglages.tempsDefaut):n(d.heures)}
 function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce((s,x)=>s+n(x.qte)*n(x.prix),0)):0}
 /* ---------- prix de vente = prix de base (customisation standard comprise) + suppléments ---------- */
@@ -559,15 +565,15 @@ function coutVente(p,d){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);const pack=d.packaging;
   const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
   const qv=Math.max(1,n(d.quantite)||1);const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH))/qv);const mat=r2(matieresVente(d)/qv);const tr=pr?0:transportDe(p);
-  const revient=r2(n(p.prixAchat)+mo+mat+packC+tr);
+  const revient=r2(achatDe(p)+mo+mat+packC+tr);
   const fh=Array.isArray(d.travaux)?d.travaux.filter(x=>x.nom==="Remise en forme").reduce((s2,x)=>s2+n(x.heures),0):0;
-  return {fh,achat:n(p.prixAchat),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
+  return {fh,achat:achatDe(p),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
 }
 function prixPlancher(p,heures,pack){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);
   const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
   const h=heures===""||heures==null?n(R.tempsDefaut):n(heures);
-  const revient=n(p.prixAchat)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:transportDe(p));
+  const revient=achatDe(p)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:transportDe(p));
   return {revient:r2(revient),plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
 }
 function isBundle(p){return !!p&&/^Bundle/.test(p.construction||"")}
@@ -578,7 +584,7 @@ function coefVente(p,couleurSpe,niveau,collection){
   const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.5):n(S.reglages.coefBase||1.45);
   return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
     +bonusModele(p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
-    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,p.prixAchat)
+    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,achatDe(p))
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
@@ -1014,7 +1020,7 @@ function fProduit(d){
   <div class="two">${F("poidsAnnonce","Poids annoncé (g)",inp("poidsAnnonce",d.poidsAnnonce,'inputmode="numeric"'))}${F("poidsReel","Poids réel pesé (g)",inp("poidsReel",d.poidsReel,'inputmode="numeric"'),"Un poids sous l'annonce baisse le prix conseillé.")}</div>
   ${F("couleur","Couleur",inp("couleur",d.couleur,'list="dlCol" autocomplete="off"'))}
   <datalist id="dlCol">${colors.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
-  <div class="two">${F("prixAchat","Prix d'achat (€)",money("prixAchat",d.prixAchat),"0 pour une prestation.")}${F("seuil","Seuil d'alerte",inp("seuil",d.seuil,'inputmode="numeric"'),"Alerte quand le stock descend à ce nombre.")}</div>
+  <div class="two">${F("prixAchat","Prix d'achat (€)",money("prixAchat",d.prixAchat),d.id&&achatInfo(d).reel?"Pour le prix, l'app utilise le coût moyen de tes achats : "+eur(achatInfo(d).v)+" par pièce. Ce champ sert pour les articles sans achat. 0 pour une prestation.":"0 pour une prestation. Dès qu'un achat est saisi, l'app utilise le coût moyen des achats.")}${F("seuil","Seuil d'alerte",inp("seuil",d.seuil,'inputmode="numeric"'),"Alerte quand le stock descend à ce nombre.")}</div>
   ${F("prixBase","Prix de base, customisation comprise (€)",money("prixBase",d.prixBase),`Le prix de vente normal de cet article, préparation de base comprise. Dans une vente, il s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent.${d.modele&&!isPrestation(d)?" Prix conseillé : "+eur(prixBaseConseille(d))+".":""}`)}
   <div class="preview" id="pvProd"></div>
   <details class="more"${n(d.stockDepart)?" open":""}><summary>Déjà en stock au départ</summary><div>
@@ -1104,7 +1110,7 @@ function livePreview(){
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
-      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat, du transport ("+(ti.reel?"réel : "+eur(ti.v)+" par pièce, d'après "+(ti.nb>1?ti.nb+" achats":"l'achat"):"estimé : "+eur(ti.v)+", forfait des Réglages")+") et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+(ti.reel?"réel : "+eur(ti.v)+" par pièce, d'après "+(ti.nb>1?ti.nb+" achats":"l'achat"):"estimé : "+eur(ti.v)+", forfait des Réglages")+") et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
     const p={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const code=codeFor(p,current.id,current.orig.code);
     const b0=baseCode(p);const ex=!current.id&&p.type==="Marchandise"&&b0?S.produits.find(x=>x.code===b0):null;
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
