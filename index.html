@@ -551,7 +551,7 @@ function prixVenteDetail(p,d){
 function supTexte(L){return Array.isArray(L)&&L.length?L.map(x=>x.nom+" "+eur(n(x.montant))).join(" + "):""}
 /* transport + import par pièce : frais d'approche réels des achats du produit, sinon le forfait des Réglages */
 function transportInfo(p){if(!p||isPrestation(p))return{v:0,reel:false};const R=S.reglages;
-  const L2=p.id?(S.achats||[]).filter(a=>a.produitId===p.id&&n(a.quantite)>0):[];const q=L2.reduce((t,a)=>t+n(a.quantite),0);
+  const L2=p.id?(S.achats||[]).filter(a=>a.produitId===p.id&&n(a.quantite)>0&&a.frais!==""&&a.frais!=null):[];const q=L2.reduce((t,a)=>t+n(a.quantite),0);
   if(q>0)return{v:r2(L2.reduce((t,a)=>t+n(a.frais),0)/q),reel:true,nb:L2.length};
   return{v:isBundle(p)?n(R.transportBundle):n(R.transport),reel:false}}
 function transportDe(p){return transportInfo(p).v}
