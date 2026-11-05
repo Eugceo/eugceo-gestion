@@ -581,7 +581,7 @@ function coefVente(p,couleurSpe,niveau,collection){
   const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.5):n(S.reglages.coefBase||1.45);
   return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
     +bonusModele(p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
-    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+palier(PALIERS.prix,achatDe(p))
+    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+(bu?0:palier(PALIERS.prix,achatDe(p)))
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
