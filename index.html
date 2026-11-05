@@ -935,7 +935,8 @@ function fVente(d){
     <div class="field"><span class="lbl">Travaux réalisés (temps)</span><span class="hint">Écris le temps comme tu le dis : 1h30, 35min, 2h, 0h45.</span><div class="lines" id="trLines">${(Array.isArray(d.travaux)?d.travaux:(d.id?[{nom:"Préparation de base",heures:d.heures===""||d.heures==null?S.reglages.tempsDefaut:d.heures}]:[])).map(trLine).join("")}</div><button type="button" class="linkbtn addline" data-act="tr-add">+ Ajouter un travail</button></div>
     <div class="field"><span class="lbl">Matières utilisées</span><div class="lines" id="mtLines">${(d.matieres||[]).map(mtLine).join("")}</div><button type="button" class="linkbtn addline" data-act="mt-add">+ Ajouter une matière</button>${S.matieres.length?"":`<span class="hint">Ta liste de matières est vide : ajoute-les dans Stock → Matières (ex. tube de coloration, oxydant).</span>`}</div>
   </fieldset>
-  <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC))}</div>
+  <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC),"Prix de base de la fiche produit. Si tu vends moins cher, tape ton prix : la différence passe toute seule en remise.")}</div>
+  <input type="hidden" name="remisePrixU" id="remisePrixU" value="${esc(d.remisePrixU??"")}"><input type="hidden" name="remisePrix" id="remisePrix" value="${esc(d.remisePrix??"")}">
   ${F("supplements","Suppléments (€)",money("supplements",d.supplements),`<span id="supHint">${esc(supTexte(d.supDetail))||"Coloration, coupe, matières… se calculent tout seuls depuis la fiche de création."}</span>`)}
   <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
   <div class="preview" id="pvVente"></div>
@@ -1045,7 +1046,7 @@ function fAbo(d){
   <div class="field"><span class="lbl">Mois avec un montant différent</span><span class="hint">Par exemple le premier mois facturé au prorata. Les autres mois gardent le montant habituel.</span><div class="lines" id="abLines">${Object.entries(d.montantsMois||{}).sort().map(([k,v])=>abLine(k,v)).join("")}</div><button type="button" class="linkbtn addline" data-act="ab-add">+ Ajouter un mois</button></div>`;
 }
 function abLine(k,v){return`<div class="line av"><input type="month" class="abK" value="${esc(k||ym(today()))}" aria-label="Mois"><input class="abV" inputmode="decimal" placeholder="€" value="${v===undefined||v===""?"":String(v).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
-const NUMERIC=new Set(["supplements","prixBase","prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
+const NUMERIC=new Set(["remisePrixU","remisePrix","supplements","prixBase","prixCond","contenance","prix","quantite","prixTTC","remise","port","heures","avanceMontant","prixUnit","taux","frais","montant","prixAchat","seuil","stockDepart","coutDepart","jour","longueur","densite","poidsAnnonce","poidsReel"]);
 let current=null;
 function openChooser(){
   const sh=$("#sheet");
@@ -1107,6 +1108,7 @@ function livePreview(){
     if(det&&el){if(el.value===""||(current.autoPrix!==undefined&&n(el.value)===current.autoPrix)){el.value=String(det.base).replace(".",",");d.prixTTC=det.base}current.autoPrix=det.base;
       const es=$("#supplements");if(es){if(es.value===""||(current.autoSup!==undefined&&n(es.value)===current.autoSup)){es.value=det.supTotal?String(det.supTotal).replace(".",","):"";d.supplements=det.supTotal}current.autoSup=det.supTotal}
       const h=$("#supHint");if(h)h.textContent=supTexte(det.sup)||"Aucun supplément : coloration, coupe, matières… s'ajoutent ici tout seuls.";}}
+  if(c==="ventes"&&n(d.remisePrixU)){const want=r2(n(d.remisePrixU)*Math.max(1,n(d.quantite)||1));if(want!==n(d.remisePrix)){remisePrixSet(d.remisePrixU);d.remisePrix=want;d.remise=n(($("#remise")||{}).value)}}
   if(c==="ventes")pvCode(d);
   if(c==="ventes"){
     const p=prod(d.produitId);const box=$("#pvVente");
@@ -1118,6 +1120,7 @@ function livePreview(){
       ${pc.forfait===true&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}${(()=>{const det=prixVenteDetail(p,d);if(!det)return`<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>`;
         const parts=[`base ${eur(det.base)}${det.q>1?" × "+det.q:""}`].concat(det.colMontant?[`collection ${d.collection} ${eur(det.colMontant)}`]:[]).concat(det.lignes.map(x=>`${x.nom.toLowerCase()} ${eur(x.montant)}`)).concat(det.mat?[`matières ${eur(det.mat)}`]:[]);
         return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b></span>`})()}
+      ${n(d.remisePrix)?`<span>Dont remise sur le prix de base : <b class="num">${eur(d.remisePrix)}</b> (vendu ${eur(r2(n(d.prixTTC)-n(d.remisePrixU)))} au lieu de ${eur(d.prixTTC)}) <button type="button" class="linkbtn" data-act="rp-cancel">Annuler</button></span>`:""}
       <span>Prix plancher <b class="num">${eur(pp.plancher)}</b>${isPrestation(p)?" · coef. "+String(pc.coef).replace(".",","):" par pièce"}</span>
       <span>Prix de revient <b class="num">${eur(pp.revient)}</b> = pièce ${eur(pp.achat)} + travail ${fmtDuree(pp.heures)||"0"} ${eur(pp.mo)} + matières ${eur(pp.mat)} + packaging ${eur(pp.pack)}${pp.transport?" + transport "+eur(pp.transport):""}</span>
       ${net&&net>=pp.plancher?`<span>Marge sur cette vente : <b class="num">${eur(net*(1-n(S.reglages.fraisVente))-pp.revient)}</b> par pièce, après frais de vente</span>`:""}
@@ -1349,6 +1352,7 @@ document.addEventListener("click",e=>{
   else if(a==="ab-add"){$("#abLines").insertAdjacentHTML("beforeend",abLine("",""));livePreview()}
   else if(a==="av-add"){const box=$("#avLines");box.insertAdjacentHTML("beforeend",avLine({moyen:box.children.length?"Virement":"Espèces"}));const i=box.lastElementChild.querySelector(".avM");if(i)i.focus();livePreview()}
   else if(a==="line-rm"){const fm=b.closest("#refForm");if(fm)fm.dataset.dirty="1";b.closest(".line").remove();livePreview()}
+  else if(a==="rp-cancel"){remisePrixSet(0);livePreview()}
   else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
   else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
@@ -1366,6 +1370,8 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
+  if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
+  if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&!current.id){const box=$("#trLines");const p=prod(e.target.value);if(box&&p){const base=box.querySelector(".line .trNom");const h=prepBase(p);
     const pk=$("#packaging");if(pk&&isPrestation(p))pk.value="Aucun";else if(pk&&isBundle(p))pk.value="Bundle";else if(pk&&pk.value==="Bundle")pk.value="Standard";
     if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseH1)}));
@@ -1451,7 +1457,13 @@ function checkCode(d){
   if(!site&&dejaParrainee(d,current&&current.id))return{err:(d.client||"Cette cliente")+" a déjà profité d'un code d'ambassadrice : c'est une fois par cliente."};
   return{ok:true,c,T,remise:Math.min(r2(sousTotalVente(d)*T.pf/100),margeVente(d))};
 }
-function setRemise(d,want){const el=$("#remise");if(!el)return;if(el.value===""||(current.autoRemise!==undefined&&n(el.value)===current.autoRemise)){el.value=String(want).replace(".",",");d.remise=want}current.autoRemise=want}
+function setRemise(d,want){const el=$("#remise");if(!el)return;const rp=n(d.remisePrix);if(el.value===""||n(el.value)===r2(n(current.autoRemise)+rp)){const v=r2(want+rp);el.value=String(v).replace(".",",");d.remise=v}current.autoRemise=want}
+/* vendu sous le prix de base : la différence devient une remise */
+function remisePrixSet(rpu){const q=Math.max(1,n(($("#quantite")||{}).value)||1);const eu=$("#remisePrixU"),et=$("#remisePrix"),er=$("#remise");if(!eu||!et||!er)return;
+  const old=n(et.value),neu=r2(n(rpu)*q);eu.value=rpu?String(r2(rpu)):"";et.value=neu?String(neu):"";const v=r2(Math.max(0,n(er.value)-old+neu));er.value=v?String(v).replace(".",","):""}
+function prixSousBase(){if(!current||current.col!=="ventes")return;const el=$("#prixTTC");const base=current.autoPrix;if(!el||!(base>0))return;const v=n(el.value);
+  if(v>0&&v<base){const rpu=r2(n(($("#remisePrixU")||{}).value)+base-v);el.value=String(base).replace(".",",");remisePrixSet(rpu);toast("Vendu "+eur(v)+" au lieu de "+eur(base)+" : la différence ("+eur(r2(base-v))+" par pièce) est comptée en remise.")}
+  livePreview()}
 function pvCode(d){
   const box=$("#pvCode");if(!box)return;const out=[];const amb=ambDe(d.client,d.email,d.telephone);
   const st=amb?etatAmb(amb,current&&current.id):null;
