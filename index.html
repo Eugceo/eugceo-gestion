@@ -544,10 +544,13 @@ function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce(
 const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissage","Lissage"],["layers","Layers (dégradé)"],["customisation","Customisation"],["bouclage","Bouclage"],["coupe","Coupe"],["plucking","Plucking"]];
 function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
 function margeCibleDe(p){const R=S.reglages;const k=isBundle(p)?"margeCibleBundle":prepBase(p)===0.5?"margeCibleDemi":"margeCible";return R[k]!==undefined&&R[k]!==""?n(R[k]):n(R.margeCible)}
+/* prix minimum = prix d'achat × multiplicateur (Réglages), arrondi au-dessus */
+function prixMinAchat(p){const m=n(S.reglages.multMin);if(!(m>0)||!p||isPrestation(p))return 0;const a=n(S.reglages.arrondi)||1;return Math.ceil(achatDe(p)*m/a)*a}
 /* bundles : grille par type (prix à 20″ + écart tous les 2″) */
 function prixGrille(p){if(!isBundle(p))return 0;const R=S.reglages;const code=T_CODES[p.typeBundle]||"";const b=n(R["grille"+code]);if(!(b>0)||!n(p.longueur))return 0;
   return Math.max(0,b+Math.round((n(p.longueur)-20)/2)*n(R.grillePas))}
-function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const g=prixGrille(p);if(g>0)return Math.max(g,pp?pp.plancher:0);const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
+function prixBaseConseille(p){const v=prixBaseCalc(p);if(!v)return 0;return Math.max(v,prixMinAchat(p))}
+function prixBaseCalc(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const g=prixGrille(p);if(g>0)return Math.max(g,pp?pp.plancher:0);const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
 function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
 /* détail du prix d'une vente (hors prestations) : par pièce */
 function prixVenteDetail(p,d){
@@ -1246,6 +1249,7 @@ function openReglages(){
     <div class="two">${row("grillePas","Écart tous les 2″ (€)")}<div></div></div>
     <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut. Le prix de la grille ne descend jamais sous le plancher.</p></fieldset>
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
+   <div class="two">${row("multMin","Prix minimum = prix d'achat ×","Ex. 2 : le prix de base n'est jamais sous le double du prix d'achat. 0 : pas de minimum.")}<div></div></div>
    <div class="three">${row("margeCible","Marge prix de base : perruques (%)","Prix de base = coût de revient + cette marge + frais de vente. 0 : calcul par coefficients.")}${row("margeCibleDemi","Demi-têtes et ponytails (%)")}${row("margeCibleBundle","Bundles (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
     <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
