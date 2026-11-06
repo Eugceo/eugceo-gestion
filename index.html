@@ -188,6 +188,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .line.lx3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.lx2{grid-template-columns:minmax(0,1fr) 4em auto}
 .line.lx1{grid-template-columns:minmax(0,1fr) auto}
+h3.sec{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted,#777);margin:18px 0 8px;font-weight:500}table.tbl{width:100%;border-collapse:collapse;font-size:14px}table.tbl th,table.tbl td{padding:8px 6px;border-bottom:1px solid var(--line,#eee);text-align:left}table.tbl .num{text-align:right}
 .line.fq{grid-template-columns:6.5em 3em 3em 4em 4em 4em 4em minmax(0,1fr) auto;align-items:center}.line.fq .pxu{white-space:normal}.hint{white-space:pre-line}
 .pxu{font-size:12px;font-weight:400;color:var(--muted,#777);white-space:nowrap}.pxu.warn{color:#a8761a}.pxu.bad{color:#b3261e}
 .lxd{border:1px solid var(--line);border-radius:var(--r);padding:0}.lxd>summary{cursor:pointer;padding:12px 14px;font-weight:500;list-style-position:inside}.lxd[open]>summary{border-bottom:1px solid var(--line)}.lxd>fieldset{border:0;border-radius:0}.lxd .muted{color:#888;font-weight:300}
@@ -808,10 +809,32 @@ function vAttente(){
 async function marquerRecu(b){
   b.disabled=true;try{await db.collection("achats").doc(b.dataset.id).update({dateReception:today(),modifieLe:new Date().toISOString()});toast("Reçu : ajouté au stock")}catch(e){b.disabled=false;toast(dbErr(e))}
 }
-const STOCK_FILTERS=[["dispo","Disponibles"],["attente","En attente"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]];
+const STOCK_FILTERS=[["tarifs","Tarifs"],["dispo","Disponibles"],["attente","En attente"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]];
+/* ---------- Tarifs : prix fixes de chaque référence, sans passer par une vente ---------- */
+function tarifGroupe(p){if(isPrestation(p))return"";if(isBundle(p))return"Bundles · "+(p.typeBundle||"type non précisé");return prepBase(p)===0.5?"Demi-têtes et ponytails":"Perruques"}
+function vTarifs(){
+  const q=S.q.trim().toLowerCase();
+  let L2=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));
+  if(q)L2=L2.filter(p=>(p.code+" "+designation(p)).toLowerCase().includes(q));
+  const G={};for(const p of L2){const g=tarifGroupe(p);(G[g]=G[g]||[]).push(p)}
+  const order=Object.keys(G).sort((a,b)=>(a.startsWith("Perr")?0:a.startsWith("Demi")?1:2)-(b.startsWith("Perr")?0:b.startsWith("Demi")?1:2)||a.localeCompare(b));
+  const blocs=order.map(g=>{const rows=G[g].sort((a,b)=>(a.modele||"").localeCompare(b.modele||"")||n(a.longueur)-n(b.longueur)).map(p=>{
+      const px=prixBaseDe(p);const sq=stockQty(p);const pl=plancherSite(p);
+      return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(designation(p))}</span><span class="v num">${px>0?eur(px):"—"}</span><span class="s"><span class="code">${esc(p.code)}</span> · ${sq>0?sq+" en stock":"pas en stock"}${pl?` · plancher ${eur(pl)}`:""}</span></div>`}).join("");
+    return`<h3 class="sec">${esc(g)}</h3><div class="list">${rows}</div>`}).join("");
+  const opts=SUPS.map(([k,l])=>{const a=n(S.reglages["sup_"+k+"_p"]),b=n(S.reglages["sup_"+k+"_b"]);return a||b?`<tr><td>${esc(l)}</td><td class="num">${a?eur(a):"—"}</td><td class="num">${b?eur(b):"—"}</td></tr>`:""}).join("");
+  return`${filterBar("stockFilter","tarifs",STOCK_FILTERS)}
+  <input class="search" id="q" type="search" placeholder="Chercher : SDD 24, Bob, Cambodian…" value="${esc(S.q)}">
+  <p class="note">Prix de vente fixe de chaque référence, options non comprises. Une nouvelle commande du même article (même code) garde ce prix, quel que soit le fournisseur. Touche une ligne pour le modifier.</p>
+  ${loadingOr("produits",blocs||`<div class="empty">Aucune référence.</div>`)}
+  <h3 class="sec">Options</h3>
+  <table class="tbl"><tr><th>Option</th><th class="num">Perruque</th><th class="num">Par bundle</th></tr>${opts}</table>
+  <p class="note">+ collection Premium / Signature / Unique, matières utilisées et livraison (${eur(S.reglages.livraisonFR)} en France, ${eur(S.reglages.livraisonDOM)} DOM). Remise lot : −${eur(S.reglages.lotBundleRemise)} par ${n(S.reglages.lotBundleTaille)||3} bundles.</p>`;
+}
 function vStock(){
   if(S.stockFilter==="matieres")return vMatieres();
   if(S.stockFilter==="attente")return vAttente();
+  if(S.stockFilter==="tarifs")return vTarifs();
   const f=S.stockFilter;let list=S.produits.filter(p=>f==="archives"?p.statut==="Archivé":p.statut!=="Archivé");
   const withQ=list.map(p=>({p,q:stockQty(p)}));
   let L2=withQ;
