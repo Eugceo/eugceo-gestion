@@ -188,6 +188,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .line.lx3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.lx2{grid-template-columns:minmax(0,1fr) 4em auto}
 .line.lx1{grid-template-columns:minmax(0,1fr) auto}
+.line.fq{grid-template-columns:6.5em 3em 3em 4em 4em minmax(0,1fr) auto;align-items:center}.line.fq .pxu{white-space:normal}.hint{white-space:pre-line}
 .pxu{font-size:12px;font-weight:400;color:var(--muted,#777);white-space:nowrap}.pxu.warn{color:#a8761a}.pxu.bad{color:#b3261e}
 .lxd{border:1px solid var(--line);border-radius:var(--r);padding:0}.lxd>summary{cursor:pointer;padding:12px 14px;font-weight:500;list-style-position:inside}.lxd[open]>summary{border-bottom:1px solid var(--line)}.lxd>fieldset{border:0;border-radius:0}.lxd .muted{color:#888;font-weight:300}
 .line.head span{font-size:12px;color:var(--muted,#777)}
@@ -544,14 +545,43 @@ function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce(
 const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissage","Lissage"],["layers","Layers (dégradé)"],["customisation","Customisation"],["bouclage","Bouclage"],["coupe","Coupe"],["plucking","Plucking"]];
 function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
 function margeCibleDe(p){const R=S.reglages;const k=isBundle(p)?"margeCibleBundle":prepBase(p)===0.5?"margeCibleDemi":"margeCible";return R[k]!==undefined&&R[k]!==""?n(R[k]):n(R.margeCible)}
+/* fourchettes */
+/* ---------- fourchettes d'achat (Référentiel) ---------- */
+const FCATS=["SD","DD","SDD","Perruque","Demi-tête"];
+const DEF_FOURCHETTES=[
+  ["SD",0,16,24,34],["SD",18,18,32,42],["SD",20,20,36,46],["SD",22,22,42,54],["SD",24,24,46,58],["SD",26,26,57,70],["SD",28,30,62,75],
+  ["DD",0,16,30,40],["DD",18,18,39,51],["DD",20,20,43,55],["DD",22,22,51,64],["DD",24,24,56,69],["DD",26,26,68,81],["DD",28,30,73,86],
+  ["SDD",0,16,36,49],["SDD",18,18,48,62],["SDD",20,20,53,67],["SDD",22,22,63,77],["SDD",24,24,68,82],["SDD",26,26,81,98],["SDD",28,30,87,104],
+  ["Perruque",0,14,"",""],["Perruque",16,20,"",""],["Perruque",22,24,"",""],["Perruque",26,40,"",""],
+  ["Demi-tête",0,16,"",""],["Demi-tête",18,40,"",""]
+].map(([cat,lmin,lmax,min,max])=>({cat,lmin,lmax,min,max}));
+function fourchettesRef(){const r=S.referentiel&&Array.isArray(S.referentiel.fourchettes)?S.referentiel.fourchettes:null;return r&&r.length?r:DEF_FOURCHETTES}
+function catAchat(p){if(!p||isPrestation(p))return"";if(isBundle(p))return T_CODES[p.typeBundle]||"";return prepBase(p)===0.5?"Demi-tête":"Perruque"}
+function prixAchatEur(a){return n(a.prixUnit)*(a.devise&&a.devise!=="EUR"?n(a.taux)||1:1)}
+function ligneFourchette(cat,lg){lg=n(lg);return fourchettesRef().find(f=>f.cat===cat&&lg>=n(f.lmin)&&lg<=n(f.lmax))}
+/* fourchette effective : bornes saisies + prix réels des achats (un prix à plus de 30 % hors des bornes n'est pas pris en compte) */
+function fourchetteDe(cat,lg){const f=ligneFourchette(cat,lg);if(!f)return null;const mn=n(f.min),mx=n(f.max),seed=mn>0&&mx>=mn;
+  const obs=[],hors=[];
+  for(const a of (S.achats||[])){if(!(n(a.quantite)>0&&n(a.prixUnit)>0))continue;const p=prod(a.produitId);if(!p||catAchat(p)!==cat)continue;const L2=n(p.longueur);if(!(L2>=n(f.lmin)&&L2<=n(f.lmax)))continue;
+    const v=r2(prixAchatEur(a));if(seed&&(v<mn*0.7||v>mx*1.3))hors.push(v);else for(let i=0;i<n(a.quantite);i++)obs.push(v)}
+  if(!seed&&!obs.length)return{f,vide:true,hors};
+  const lo=Math.min(...(seed?[mn]:[]),...obs),hi=Math.max(...(seed?[mx]:[]),...obs);
+  const pts=(seed?[(mn+mx)/2]:[]).concat(obs);/* le marché compte comme une pièce : tes achats pèsent de plus en plus */
+  return{f,min:r2(lo),max:r2(hi),moy:r2(pts.reduce((t,x)=>t+x,0)/pts.length),nb:obs.length,hors}}
+function fourchetteTexte(cat,lg,prix){const F=fourchetteDe(cat,lg);if(!F)return"";const lab=cat+" "+(!n(F.f.lmin)?"≤ "+F.f.lmax:n(F.f.lmin)===n(F.f.lmax)?F.f.lmax:F.f.lmin+"–"+F.f.lmax)+"″";
+  if(F.vide)return`Fourchette ${lab} : pas encore de prix (elle se remplira avec tes achats).`;
+  const t=`Fourchette ${lab} : ${eur(F.min)} – ${eur(F.max)} (moy. ${eur(F.moy)}${F.nb?", "+F.nb+" pièce"+(F.nb>1?"s":"")+" achetée"+(F.nb>1?"s":""):""})`;
+  if(!(prix>0))return t;const v=n(prix);
+  return t+(v>F.max?" · ⬆ au-dessus : à négocier":v<F.min?" · ⬇ en dessous : bon prix":" · ✓ dans la fourchette")}
+function fourchetteMoy(p){const c=catAchat(p);if(!isBundle(p)||!c)return 0;const F=fourchetteDe(c,p.longueur);return F&&!F.vide?F.moy:0}
 /* prix minimum = prix d'achat × multiplicateur (Réglages), arrondi au-dessus */
 function margeMinDe(p){const R=S.reglages;if(p&&isBundle(p)&&R.margeMinBundle!==undefined&&R.margeMinBundle!=="")return n(R.margeMinBundle);return n(R.margeMin)}
-function prixMinAchat(p){const m=n(S.reglages.multMin);if(!(m>0)||!p||isPrestation(p))return 0;const a=n(S.reglages.arrondi)||1;return Math.ceil(achatDe(p)*m/a)*a}
+function prixMinAchat(p){const m=n(S.reglages.multMin);if(!(m>0)||!p||isPrestation(p))return 0;const a=n(S.reglages.arrondi)||1;const base=fourchetteMoy(p)||achatDe(p);return Math.ceil(base*m/a)*a}
 /* bundles : grille par type (prix à 20″ + écart tous les 2″) */
 function prixGrille(p){if(!isBundle(p))return 0;const R=S.reglages;const code=T_CODES[p.typeBundle]||"";const b=n(R["grille"+code]);if(!(b>0)||!n(p.longueur))return 0;
   return Math.max(0,b+Math.round((n(p.longueur)-20)/2)*n(R.grillePas))}
 function prixBaseConseille(p){const v=prixBaseCalc(p);if(!v)return 0;return Math.max(v,prixMinAchat(p))}
-function prixBaseCalc(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const g=prixGrille(p);if(g>0)return Math.max(g,pp?pp.plancher:0);const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
+function prixBaseCalc(p){if(!p||isPrestation(p))return 0;{const fm=fourchetteMoy(p);if(fm>0)p={...p,id:undefined,prixAchat:fm}}const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const g=prixGrille(p);if(g>0)return Math.max(g,pp?pp.plancher:0);const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
 function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
 /* détail du prix d'une vente (hors prestations) : par pièce */
 function prixVenteDetail(p,d){
@@ -1116,7 +1146,7 @@ function livePreview(){
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
-      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+"forfait : "+eur(ti.v)+")"+(prixGrille(pr0)>0?" — bundle : grille "+esc(pr0.typeBundle)+" ("+eur(n(S.reglages["grille"+(T_CODES[pr0.typeBundle]||"")]))+" à 20″, "+eur(n(S.reglages.grillePas))+" tous les 2″) : ":margeCibleDe(pr0)>0?", de la préparation et de l'emballage, avec "+Math.round(margeCibleDe(pr0)*100)+" % de marge : ":" et des caractéristiques : ")+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);const ftx=fourchetteTexte(catAchat(pr0),pr0.longueur,ai.v);const fmo=fourchetteMoy(pr0);h.textContent=(ftx?ftx+(fmo?" — prix calculé sur la moyenne de la fourchette.":"")+"\n":"")+"Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+"forfait : "+eur(ti.v)+")"+(prixGrille(pr0)>0?" — bundle : grille "+esc(pr0.typeBundle)+" ("+eur(n(S.reglages["grille"+(T_CODES[pr0.typeBundle]||"")]))+" à 20″, "+eur(n(S.reglages.grillePas))+" tous les 2″) : ":margeCibleDe(pr0)>0?", de la préparation et de l'emballage, avec "+Math.round(margeCibleDe(pr0)*100)+" % de marge : ":" et des caractéristiques : ")+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
     const p={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const code=codeFor(p,current.id,current.orig.code);
     const b0=baseCode(p);const ex=!current.id&&p.type==="Marchandise"&&b0?S.produits.find(x=>x.code===b0):null;
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
@@ -1149,7 +1179,8 @@ function livePreview(){
     $("#pvMat").innerHTML=n(d.prixCond)?`<span>Soit <b>${prixU(pu)}</b> par ${esc(base)}</span>${base!=="unité"?`<span>Exemple : 100 ${esc(base)} = ${eur(pu*100)}</span>`:`<span>Exemple : un demi = ${eur(pu*0.5)}</span>`}`:`<span>Indique le prix payé et la contenance.</span>`}
   if(c==="achats"){
     const tot=achatTotal(d);const q=n(d.quantite);
-    $("#pvAchat").innerHTML=`<span>Coût total <b class="num">${eur(tot)}</b>${q?` · ${eur(tot/q)} par pièce`:""}</span>`;
+    const pa=prod(d.produitId);const ft=pa?fourchetteTexte(catAchat(pa),pa.longueur,prixAchatEur(d)):"";
+    $("#pvAchat").innerHTML=`<span>Coût total <b class="num">${eur(tot)}</b>${q?` · ${eur(tot/q)} par pièce`:""}</span>${ft?`<span>${esc(ft)}</span>`:""}`;
   }
 }
 function validate(col,d){
@@ -1354,6 +1385,7 @@ document.addEventListener("click",e=>{
   if(a==="inv-save"){saveInventaire();return}
   if(a==="export-xlsx"){exportExcel();return}
   if(a==="rf-add"){$("#rfLines").insertAdjacentHTML("beforeend",`<div class="line rf"><input class="rfNom" placeholder="Nom" aria-label="Couleur"><input class="rfCode" placeholder="CODE" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
+  if(a==="fq-add"){const box=$("#fqLines");if(box){const fm=box.closest("form");if(fm)fm.dataset.dirty="1";box.insertAdjacentHTML("beforeend",fqLine());}return}
   if(a==="lx-add"){const x=LISTES.find(y=>y.k===b.dataset.k);const box=document.querySelector(`.lxLines[data-k="${b.dataset.k}"]`);if(x&&box){const fm=box.closest("form");if(fm)fm.dataset.dirty="1";box.insertAdjacentHTML("beforeend",lxLine(x,{}));const i=box.lastElementChild.querySelector("input");if(i)i.focus()}return}
   if(a==="rm-add"){$("#rmLines").insertAdjacentHTML("beforeend",`<div class="line rm3"><input class="rmNom" placeholder="Nom" aria-label="Modèle"><input class="rmCode" placeholder="CODE" aria-label="Code"><input class="rmBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
   if(a==="goto"){S.page=null;S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;S.q="";window.scrollTo(0,0);render()}
@@ -2177,6 +2209,9 @@ async function saveSociete(form){
 }
 function lxLine(x,i){i=i||{};const cl="lx"+(1+(x.c?1:0)+(x.b?1:0));
   return`<div class="line ${cl}"><input class="lxNom" value="${esc(i.nom||"")}" placeholder="Nom" aria-label="Nom">${x.c?`<input class="lxCode" value="${esc(i.code||"")}" placeholder="CODE" aria-label="Code">`:""}${x.b?`<input class="lxBonus" inputmode="decimal" value="${String(i.bonus??0).replace(".",",")}" aria-label="Bonus">`:""}<button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+function fqLine(f){f=f||{cat:"SD",lmin:"",lmax:"",min:"",max:""};const F=f.lmax!==""?fourchetteDe(f.cat,(n(f.lmin)+n(f.lmax))/2):null;
+  const eff=F&&!F.vide?`${eur(F.min)} – ${eur(F.max)} · moy. ${eur(F.moy)}${F.nb?" · "+F.nb+" pc":""}${F.hors&&F.hors.length?" · "+F.hors.length+" hors":""}`:"—";
+  return`<div class="line fq"><select class="fqCat" aria-label="Type">${FCATS.map(c=>`<option${c===f.cat?" selected":""}>${c}</option>`).join("")}</select><input class="fqA" inputmode="numeric" value="${esc(String(f.lmin??""))}" aria-label="De"><input class="fqB" inputmode="numeric" value="${esc(String(f.lmax??""))}" aria-label="À"><input class="fqMin" inputmode="decimal" value="${esc(String(f.min??"").replace(".",","))}" aria-label="Min"><input class="fqMax" inputmode="decimal" value="${esc(String(f.max??"").replace(".",","))}" aria-label="Max"><span class="pxu">${eff}</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function pReferentiel(){
   const ro=!(db&&canWrite);
   const cl=refCouleurs().map((c,i)=>`<div class="line rf"><input class="rfNom" value="${esc(c.nom)}" aria-label="Couleur"><input class="rfCode" value="${esc(c.code)}" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="${String(c.bonus).replace(".",",")}" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
@@ -2190,6 +2225,10 @@ function pReferentiel(){
     <p class="note">Bonus : 0 pour une couleur naturelle, 0,05 pour un blond, 0,1 pour une couleur fantaisie… Il s'ajoute au coefficient quand la couleur est choisie comme « couleur obtenue » dans une vente.</p></fieldset>
    <fieldset><legend>Modèles</legend><div class="line rm3 head"><span>Nom</span><span>Code</span><span>Bonus</span><span></span></div><div class="lines" id="rmLines">${ml}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="rm-add">+ Ajouter un modèle</button>`}</fieldset>
    ${lx}
+   <details class="lxd"><summary>Fourchettes d'achat <span class="muted">(${fourchettesRef().length})</span></summary><fieldset>
+    <p class="note">Prix d'achat normal d'un article (en €, par pièce ou par bundle de 100 g), par type et par longueur. Tes achats l'ajustent tout seuls ; un prix à plus de 30 % hors des bornes n'est pas pris en compte. Pour les bundles, le prix minimum et le plancher se calculent sur la moyenne.</p>
+    <div class="line fq head"><span>Type</span><span>De (″)</span><span>À (″)</span><span>Min €</span><span>Max €</span><span>Avec tes achats</span><span></span></div>
+    <div class="lines" id="fqLines">${fourchettesRef().map(fqLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="fq-add">+ Ajouter une fourchette</button>`}</fieldset></details>
    <p class="note">Bonus : ce qui s'ajoute au coefficient de prix quand l'élément est choisi (0,06 = +6 %). Laisse 0 si l'élément ne change pas le prix.</p>
    <p class="note">Changer un nom ou un code ne modifie pas les produits déjà créés. Retirer un élément ne l'efface pas des produits qui l'utilisent : il reste affiché sur leur fiche.</p>
    <p class="err" id="refMsg" hidden></p>
@@ -2208,8 +2247,10 @@ async function saveReferentiel(form){
     if(!v.length&&!err)err=x.t+" : la liste ne peut pas être vide.";
     listes[x.k]=v});
   const dup=a=>a.find((x,i)=>a.findIndex(y=>y.code===x.code)!==i);
+  const fourchettes=[...form.querySelectorAll("#fqLines .line")].map(l=>({cat:l.querySelector(".fqCat").value,lmin:n(l.querySelector(".fqA").value),lmax:n(l.querySelector(".fqB").value),min:l.querySelector(".fqMin").value.trim()===""?"":n(l.querySelector(".fqMin").value),max:l.querySelector(".fqMax").value.trim()===""?"":n(l.querySelector(".fqMax").value)})).filter(f=>f.lmax>0);
+  if(!err){const bad=fourchettes.find(f=>f.lmin>f.lmax||(f.min!==""&&f.max!==""&&f.min>f.max));if(bad)err="Fourchette "+bad.cat+" : le début doit être avant la fin, et le minimum sous le maximum."}
   const m=$("#refMsg");if(err){m.textContent=err;m.hidden=false;return}if(dup(couleurs)){m.textContent="Deux couleurs ont le même code ("+dup(couleurs).code+").";m.hidden=false;return}if(dup(modeles)){m.textContent="Deux modèles ont le même code ("+dup(modeles).code+").";m.hidden=false;return}
-  try{await db.doc("reglages/referentiel").set({couleurs,modeles,listes,modifieLe:new Date().toISOString()});m.hidden=true;delete form.dataset.dirty;toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
+  try{await db.doc("reglages/referentiel").set({couleurs,modeles,listes,fourchettes,modifieLe:new Date().toISOString()});m.hidden=true;delete form.dataset.dirty;toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
 }
 
 /* ---------- export Excel ---------- */
