@@ -393,10 +393,10 @@ const L={
 const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
-  "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.12,"Demi-tête (Half Wig)":-0.1,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
+  "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.08,"Demi-tête (Half Wig)":-0.2,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
   "Taille de lace":{"13x6":0.12,"13x4":0.1,"7x7":0.08,"6x6":0.06,"5x5":0.04,"4x4":0.02,"2x6":0.03,"2x4":0.02,"T-Part":0.03},
   "Qualité de lace":{"Ultra HD Lace":0.15,"HD Lace":0.1,"Transparent Lace":0.07},
-  "Qualité de cheveux":{"Raw Hair":0.25,"Virgin Hair":0.15,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03,"Vietnamese Hair":0.06},
+  "Qualité de cheveux":{"Raw Hair":0.15,"Virgin Hair":0.1,"Remy Hair":0.08,"Burmese Hair":0.06,"Cambodian Hair":0.06,"Human Hair":0.05,"Brazilian Hair":0.05,"Mongolian Hair":0.05,"Peruvian Hair":0.04,"Malaysian Hair":0.04,"Indian Hair":0.03,"Vietnamese Hair":0.06},
   "Couleur spéciale":{"Naturelle":0,"Ginger":0.06,"Blond":0.05,"Burgundy":0.05,"Ombre":0.08,"Décoloré":0.07,"Mèches":0.04,"Fantasy":0.1},
   "Collection":{"Basique":0,"Premium":0.1,"Signature":0.25,"Unique":0.4},
   "Niveau de travail":{"Standard":0,"Styling":0.05,"Full Custom":0.12,"Luxury Finish":0.2},
@@ -433,7 +433,7 @@ function refListe(k){applyListes();const R=(S.referentiel&&S.referentiel.listes)
 const PALIERS={
   longueur:[[0,-0.45],[10,-0.42],[12,-0.38],[14,-0.3],[16,-0.2],[18,-0.08],[20,-0.06],[22,-0.03],[24,0],[26,0.02],[28,0.05],[30,0.08],[32,0.11],[34,0.14],[36,0.17],[38,0.2],[40,0.23]],
   longueurBundle:[[0,-0.12],[12,-0.08],[14,-0.06],[16,-0.04],[18,0],[20,0.03],[22,0.06],[24,0.09],[26,0.12],[28,0.15],[30,0.18],[32,0.21],[34,0.24],[36,0.27],[38,0.3],[40,0.33]],
-  densite:[[2,0.08],[2.2,0.11],[2.5,0.15],[3,0.22]],
+  densite:[[2,0.04],[2.2,0.06],[2.5,0.08],[3,0.11]],
   prix:[[0,0.15],[20,0.12],[40,0.1],[60,0.08],[80,0.06],[100,0.04],[120,0.03],[140,0.02],[160,0.01],[180,0],[200,-0.01],[220,-0.02],[240,-0.03],[260,-0.04],[280,-0.05],[300,-0.06]]
 };
 function palier(t,v){if(v===""||v==null)return 0;v=n(v);let b=null;for(const [k,x] of t){if(v>=k)b=x}return b===null?0:b}
@@ -544,7 +544,7 @@ function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce(
 const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissage","Lissage"],["layers","Layers (dégradé)"],["customisation","Customisation"],["bouclage","Bouclage"],["coupe","Coupe"],["plucking","Plucking"]];
 function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
 function margeCibleDe(p){const R=S.reglages;const k=isBundle(p)?"margeCibleBundle":prepBase(p)===0.5?"margeCibleDemi":"margeCible";return R[k]!==undefined&&R[k]!==""?n(R[k]):n(R.margeCible)}
-function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");return pc&&pc.prix?pc.prix:0}
+function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
 function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
 /* détail du prix d'une vente (hors prestations) : par pièce */
 function prixVenteDetail(p,d){
@@ -583,7 +583,7 @@ function coefVente(p,couleurSpe,niveau,collection){
   const bu=isBundle(p);const base=bu?n(S.reglages.coefBaseBundle||1.5):n(S.reglages.coefBase||1.45);
   return r2(base+b("Construction",p.construction)+b("Taille de lace",p.laceTaille)+b("Qualité de lace",p.laceQualite)+b("Qualité de cheveux",p.cheveux)
     +bonusModele(p.modele)+(bu?b("Type de bundle",p.typeBundle):0)+bonusPoids(p)
-    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)+(bu?0:palier(PALIERS.prix,achatDe(p)))
+    +palier(bu?PALIERS.longueurBundle:PALIERS.longueur,p.longueur)+(de?palier(PALIERS.densite,de>=10?de/100:de):0)
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
