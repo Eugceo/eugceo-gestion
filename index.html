@@ -188,6 +188,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .line.lx3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.lx2{grid-template-columns:minmax(0,1fr) 4em auto}
 .line.lx1{grid-template-columns:minmax(0,1fr) auto}
+.pxu{font-size:12px;font-weight:400;color:var(--muted,#777);white-space:nowrap}.pxu.warn{color:#a8761a}.pxu.bad{color:#b3261e}
 .lxd{border:1px solid var(--line);border-radius:var(--r);padding:0}.lxd>summary{cursor:pointer;padding:12px 14px;font-weight:500;list-style-position:inside}.lxd[open]>summary{border-bottom:1px solid var(--line)}.lxd>fieldset{border:0;border-radius:0}.lxd .muted{color:#888;font-weight:300}
 .line.head span{font-size:12px;color:var(--muted,#777)}
 .line.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
@@ -771,7 +772,7 @@ function vStock(){
   const rows=L2.map(({p,q})=>{const ec=q===null?0:enCommande(p);const chip=(q===null?`<span class="chip">prestation</span>`:q<=0?`<span class="chip bad">rupture</span>`:q<=n(p.seuil)?`<span class="chip warn">sous le seuil</span>`:"")+(ec?` <span class="chip">${ec} en attente</span>`:"");
     const enL=p.site&&p.site.enLigne;
     const sb=db&&canWrite&&f!=="archives"?`<span class="s"><button type="button" class="sitebtn${enL?" on":""}" data-act="site-add" data-id="${esc(p.id)}">${enL?"✓ Sur le site":"+ Ajouter au site"}</button></span>`:"";
-    return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span>${sb}</div>`}).join("");
+    return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}${(()=>{const pv=prixBaseDe(p);if(!(pv>0))return"";const ps=p.site&&n(p.site.prix)>0?n(p.site.prix):0;return`<br><span class="pxu">${eur(pv)} / pièce</span>${ps&&ps!==pv?`<br><span class="pxu ${ps<n(plancherSite(p))?"bad":"warn"}">site ${eur(ps)}</span>`:""}`})()}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span>${sb}</div>`}).join("");
   return`${banner()}${filterBar("stockFilter",f,STOCK_FILTERS)}
   <input class="search" id="q" type="search" placeholder="Chercher un code ou un modèle" value="${esc(S.q)}">
   ${loadingOr("produits",`<div class="list">${rows||`<div class="empty">Rien ici. Touche « + » puis « Produit » pour créer une référence.</div>`}</div>`)}
