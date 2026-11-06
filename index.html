@@ -188,7 +188,7 @@ h3{font-family:var(--display);font-weight:600;font-size:18px;margin:6px 0 0}
 .line.lx3{grid-template-columns:minmax(0,1fr) 5em 4em auto}
 .line.lx2{grid-template-columns:minmax(0,1fr) 4em auto}
 .line.lx1{grid-template-columns:minmax(0,1fr) auto}
-.line.fq{grid-template-columns:6.5em 3em 3em 4em 4em minmax(0,1fr) auto;align-items:center}.line.fq .pxu{white-space:normal}.hint{white-space:pre-line}
+.line.fq{grid-template-columns:6.5em 3em 3em 4em 4em 4em 4em minmax(0,1fr) auto;align-items:center}.line.fq .pxu{white-space:normal}.hint{white-space:pre-line}
 .pxu{font-size:12px;font-weight:400;color:var(--muted,#777);white-space:nowrap}.pxu.warn{color:#a8761a}.pxu.bad{color:#b3261e}
 .lxd{border:1px solid var(--line);border-radius:var(--r);padding:0}.lxd>summary{cursor:pointer;padding:12px 14px;font-weight:500;list-style-position:inside}.lxd[open]>summary{border-bottom:1px solid var(--line)}.lxd>fieldset{border:0;border-radius:0}.lxd .muted{color:#888;font-weight:300}
 .line.head span{font-size:12px;color:var(--muted,#777)}
@@ -552,9 +552,9 @@ const DEF_FOURCHETTES=[
   ["SD",0,16,24,34],["SD",18,18,32,42],["SD",20,20,36,46],["SD",22,22,42,54],["SD",24,24,46,58],["SD",26,26,57,70],["SD",28,30,62,75],
   ["DD",0,16,30,40],["DD",18,18,39,51],["DD",20,20,43,55],["DD",22,22,51,64],["DD",24,24,56,69],["DD",26,26,68,81],["DD",28,30,73,86],
   ["SDD",0,16,36,49],["SDD",18,18,48,62],["SDD",20,20,53,67],["SDD",22,22,63,77],["SDD",24,24,68,82],["SDD",26,26,81,98],["SDD",28,30,87,104],
-  ["Perruque",0,14,"",""],["Perruque",16,20,"",""],["Perruque",22,24,"",""],["Perruque",26,40,"",""],
+  ["Perruque",0,14,"","",130,250],["Perruque",16,20,"",""],["Perruque",22,24,"","",195,300],["Perruque",26,40,"","",235,410],
   ["Demi-tête",0,16,"",""],["Demi-tête",18,40,"",""]
-].map(([cat,lmin,lmax,min,max])=>({cat,lmin,lmax,min,max}));
+].map(([cat,lmin,lmax,min,max,venteMin,venteMax])=>({cat,lmin,lmax,min,max,venteMin:venteMin??"",venteMax:venteMax??""}));
 function fourchettesRef(){const r=S.referentiel&&Array.isArray(S.referentiel.fourchettes)?S.referentiel.fourchettes:null;return r&&r.length?r:DEF_FOURCHETTES}
 function catAchat(p){if(!p||isPrestation(p))return"";if(isBundle(p))return T_CODES[p.typeBundle]||"";return prepBase(p)===0.5?"Demi-tête":"Perruque"}
 function prixAchatEur(a){return n(a.prixUnit)*(a.devise&&a.devise!=="EUR"?n(a.taux)||1:1)}
@@ -582,7 +582,17 @@ function prixMinAchat(p){const m=n(S.reglages.multMin);if(!(m>0)||!p||isPrestati
 /* bundles : grille par type (prix à 20″ + écart tous les 2″) */
 function prixGrille(p){if(!isBundle(p))return 0;const R=S.reglages;const code=T_CODES[p.typeBundle]||"";const b=n(R["grille"+code]);if(!(b>0)||!n(p.longueur))return 0;
   return Math.max(0,b+Math.round((n(p.longueur)-20)/2)*n(R.grillePas))}
-function prixBaseConseille(p){const v=prixBaseCalc(p);if(!v)return 0;return Math.max(v,prixMinAchat(p))}
+function prixBaseConseille(p){const d=prixDouble(p);if(d)return d.prix;const v=prixBaseCalc(p);if(!v)return 0;return Math.max(v,prixMinAchat(p))}
+/* méthode principale : prix = prix d'achat retenu × multiplicateur (2), jamais sous le plancher (tous les coûts + marge minimale) */
+function prixDouble(p){const m=n(S.reglages.multPrix);if(!(m>0)||!p||isPrestation(p))return null;const ach=coutBasePrix(p);if(!(ach>0))return null;
+  const h=prepBase(p);const pm=ach!==achatDe(p)?{...p,id:undefined,prixAchat:ach}:p;
+  const pp=coutVente(pm,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});
+  const a=n(S.reglages.arrondi)||5;const dbl=Math.round(ach*m/a)*a;const fl=Math.ceil(pp.plancher/a)*a;
+  return dbl>=fl?{prix:dbl,regle:"double",ach,m,pp}:{prix:fl,regle:"plancher",ach,m,pp}}
+function prixPourquoi(p){const d=prixDouble(p);if(!d)return"";const F=fourchetteDe(catAchat(p),p.longueur);
+  let t=d.regle==="double"?"Prix = "+String(d.m).replace(".",",")+" × "+eur(d.ach)+" d'achat = "+eur(d.ach*d.m)+", arrondi à "+eur(d.prix)+".":"Le double ("+eur(d.ach*d.m)+") ne couvre pas tous les coûts : prix remonté au plancher, "+eur(d.prix)+" (coût complet "+eur(d.pp.revient)+" + marge minimale + frais de vente).";
+  if(F&&n(F.f.venteMin)>0&&n(F.f.venteMax)>0){t+=d.prix>n(F.f.venteMax)?" ⬆ Au-dessus du marché ("+eur(F.f.venteMin)+" – "+eur(F.f.venteMax)+").":d.prix<n(F.f.venteMin)?" ⬇ Sous le marché ("+eur(F.f.venteMin)+" – "+eur(F.f.venteMax)+") : tu peux monter.":" ✓ Dans le prix du marché ("+eur(F.f.venteMin)+" – "+eur(F.f.venteMax)+")."}
+  return t}
 function prixBaseCalc(p){if(!p||isPrestation(p))return 0;{const cb=coutBasePrix(p);if(cb>0&&cb!==achatDe(p))p={...p,id:undefined,prixAchat:cb}}const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const g=prixGrille(p);if(g>0)return Math.max(g,pp?pp.plancher:0);const mc=margeCibleDe(p);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");if(!(pc&&pc.prix))return 0;const fl=pp?arrondiPrix(pp.plancher*1.1):0;return Math.max(pc.prix,fl)}
 function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
 /* détail du prix d'une vente (hors prestations) : par pièce */
@@ -1148,7 +1158,7 @@ function livePreview(){
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
-      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);const ftx=fourchetteTexte(catAchat(pr0),pr0.longueur,ai.v);const fmo=fourchetteMoy(pr0);h.textContent=(ftx?ftx+"\n":"")+"Calculé automatiquement à partir du prix d'achat retenu ("+eur(coutBasePrix(pr0))+(coutBasePrix(pr0)>ai.v?", moyenne de la fourchette":ai.reel?", moyenne de tes achats":"")+"), du transport ("+"forfait : "+eur(ti.v)+")"+(prixGrille(pr0)>0?" — bundle : grille "+esc(pr0.typeBundle)+" ("+eur(n(S.reglages["grille"+(T_CODES[pr0.typeBundle]||"")]))+" à 20″, "+eur(n(S.reglages.grillePas))+" tous les 2″) : ":margeCibleDe(pr0)>0?", de la préparation et de l'emballage, avec "+Math.round(margeCibleDe(pr0)*100)+" % de marge : ":" et des caractéristiques : ")+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);const ftx=fourchetteTexte(catAchat(pr0),pr0.longueur,ai.v);const fmo=fourchetteMoy(pr0);const pq=prixPourquoi(pr0);if(pq){h.textContent=pq+" Tu peux le modifier."}else h.textContent=(ftx?ftx+"\n":"")+"Calculé automatiquement à partir du prix d'achat retenu ("+eur(coutBasePrix(pr0))+(coutBasePrix(pr0)>ai.v?", moyenne de la fourchette":ai.reel?", moyenne de tes achats":"")+"), du transport ("+"forfait : "+eur(ti.v)+")"+(prixGrille(pr0)>0?" — bundle : grille "+esc(pr0.typeBundle)+" ("+eur(n(S.reglages["grille"+(T_CODES[pr0.typeBundle]||"")]))+" à 20″, "+eur(n(S.reglages.grillePas))+" tous les 2″) : ":margeCibleDe(pr0)>0?", de la préparation et de l'emballage, avec "+Math.round(margeCibleDe(pr0)*100)+" % de marge : ":" et des caractéristiques : ")+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
     {const ha=$("#prixAchat");const hh=ha&&ha.closest(".field")&&ha.closest(".field").querySelector(".hint");if(hh){const px={...d,id:current.id,type:"Marchandise"};const c0=catAchat(px);const F=c0&&n(px.longueur)?fourchetteDe(c0,px.longueur):null;const ai=achatInfo(px);
       if(F&&!F.vide){const mo=F.moy,mine=n(d.prixAchat)?ai.v:0;hh.textContent="Moyenne d'achat "+c0+" "+px.longueur+"″ : "+eur(mo)+" (fourchette "+eur(F.min)+" – "+eur(F.max)+")"+(mine?" · ton prix : "+eur(mine)+(ai.reel?" (moyenne de tes achats)":"")+" → le calcul prend "+eur(Math.max(mo,mine))+(mine>F.max?" · ⬆ au-dessus de la fourchette":mine<F.min?" · ⬇ bon prix":""):" · tape ton prix d'achat : le calcul prendra le plus haut des deux.")}
       else hh.textContent=c0&&n(px.longueur)?"Pas encore de moyenne pour ce type et cette longueur : le calcul prend ton prix d'achat. 0 pour une prestation.":"Remplis le type et la longueur pour voir la moyenne d'achat. 0 pour une prestation."}}
@@ -1286,7 +1296,7 @@ function openReglages(){
     <div class="two">${row("grillePas","Écart tous les 2″ (€)")}${row("margeMinBundle","Marge minimale bundles (%)","Plancher des bundles.")}</div>
     <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut. Le prix de la grille ne descend jamais sous le plancher.</p></fieldset>
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale perruques (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
-   <div class="two">${row("multMin","Prix minimum = prix d'achat ×","Ex. 2 : le prix de base n'est jamais sous le double du prix d'achat. 0 : pas de minimum.")}<div></div></div>
+   <div class="two">${row("multPrix","Prix de base = prix d'achat ×","Méthode principale. 2 = le double du prix d'achat (le plus haut entre ton prix et la moyenne de la fourchette), jamais sous le plancher. 0 = ancien calcul (coefficients et grille).")}${row("multMin","Ancien calcul : minimum = prix d'achat ×")}</div>
    <div class="three">${row("margeCible","Marge prix de base : perruques (%)","Prix de base = coût de revient + cette marge + frais de vente. 0 : calcul par coefficients.")}${row("margeCibleDemi","Demi-têtes et ponytails (%)")}${row("margeCibleBundle","Bundles (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
     <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
@@ -2216,7 +2226,7 @@ function lxLine(x,i){i=i||{};const cl="lx"+(1+(x.c?1:0)+(x.b?1:0));
   return`<div class="line ${cl}"><input class="lxNom" value="${esc(i.nom||"")}" placeholder="Nom" aria-label="Nom">${x.c?`<input class="lxCode" value="${esc(i.code||"")}" placeholder="CODE" aria-label="Code">`:""}${x.b?`<input class="lxBonus" inputmode="decimal" value="${String(i.bonus??0).replace(".",",")}" aria-label="Bonus">`:""}<button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function fqLine(f){f=f||{cat:"SD",lmin:"",lmax:"",min:"",max:""};const F=f.lmax!==""?fourchetteDe(f.cat,(n(f.lmin)+n(f.lmax))/2):null;
   const eff=F&&!F.vide?`${eur(F.min)} – ${eur(F.max)} · moy. ${eur(F.moy)}${F.nb?" · "+F.nb+" pc":""}${F.hors&&F.hors.length?" · "+F.hors.length+" hors":""}`:"—";
-  return`<div class="line fq"><select class="fqCat" aria-label="Type">${FCATS.map(c=>`<option${c===f.cat?" selected":""}>${c}</option>`).join("")}</select><input class="fqA" inputmode="numeric" value="${esc(String(f.lmin??""))}" aria-label="De"><input class="fqB" inputmode="numeric" value="${esc(String(f.lmax??""))}" aria-label="À"><input class="fqMin" inputmode="decimal" value="${esc(String(f.min??"").replace(".",","))}" aria-label="Min"><input class="fqMax" inputmode="decimal" value="${esc(String(f.max??"").replace(".",","))}" aria-label="Max"><span class="pxu">${eff}</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+  return`<div class="line fq"><select class="fqCat" aria-label="Type">${FCATS.map(c=>`<option${c===f.cat?" selected":""}>${c}</option>`).join("")}</select><input class="fqA" inputmode="numeric" value="${esc(String(f.lmin??""))}" aria-label="De"><input class="fqB" inputmode="numeric" value="${esc(String(f.lmax??""))}" aria-label="À"><input class="fqMin" inputmode="decimal" value="${esc(String(f.min??"").replace(".",","))}" aria-label="Min"><input class="fqMax" inputmode="decimal" value="${esc(String(f.max??"").replace(".",","))}" aria-label="Max"><input class="fqVmin" inputmode="decimal" value="${esc(String(f.venteMin??"").replace(".",","))}" aria-label="Vente marché min"><input class="fqVmax" inputmode="decimal" value="${esc(String(f.venteMax??"").replace(".",","))}" aria-label="Vente marché max"><span class="pxu">${eff}</span><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function pReferentiel(){
   const ro=!(db&&canWrite);
   const cl=refCouleurs().map((c,i)=>`<div class="line rf"><input class="rfNom" value="${esc(c.nom)}" aria-label="Couleur"><input class="rfCode" value="${esc(c.code)}" aria-label="Code"><input class="rfBonus" inputmode="decimal" value="${String(c.bonus).replace(".",",")}" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`).join("");
@@ -2232,7 +2242,7 @@ function pReferentiel(){
    ${lx}
    <details class="lxd"><summary>Fourchettes d'achat <span class="muted">(${fourchettesRef().length})</span></summary><fieldset>
     <p class="note">Prix d'achat normal d'un article (en €, par pièce ou par bundle de 100 g), par type et par longueur. Tes achats l'ajustent tout seuls ; un prix à plus de 30 % hors des bornes n'est pas pris en compte. Pour les bundles, le prix minimum et le plancher se calculent sur la moyenne.</p>
-    <div class="line fq head"><span>Type</span><span>De (″)</span><span>À (″)</span><span>Min €</span><span>Max €</span><span>Avec tes achats</span><span></span></div>
+    <div class="line fq head"><span>Type</span><span>De (″)</span><span>À (″)</span><span>Achat min €</span><span>Achat max €</span><span>Vente marché min €</span><span>Vente marché max €</span><span>Avec tes achats</span><span></span></div>
     <div class="lines" id="fqLines">${fourchettesRef().map(fqLine).join("")}</div>${ro?"":`<button type="button" class="linkbtn addline" data-act="fq-add">+ Ajouter une fourchette</button>`}</fieldset></details>
    <p class="note">Bonus : ce qui s'ajoute au coefficient de prix quand l'élément est choisi (0,06 = +6 %). Laisse 0 si l'élément ne change pas le prix.</p>
    <p class="note">Changer un nom ou un code ne modifie pas les produits déjà créés. Retirer un élément ne l'efface pas des produits qui l'utilisent : il reste affiché sur leur fiche.</p>
@@ -2252,7 +2262,7 @@ async function saveReferentiel(form){
     if(!v.length&&!err)err=x.t+" : la liste ne peut pas être vide.";
     listes[x.k]=v});
   const dup=a=>a.find((x,i)=>a.findIndex(y=>y.code===x.code)!==i);
-  const fourchettes=[...form.querySelectorAll("#fqLines .line")].map(l=>({cat:l.querySelector(".fqCat").value,lmin:n(l.querySelector(".fqA").value),lmax:n(l.querySelector(".fqB").value),min:l.querySelector(".fqMin").value.trim()===""?"":n(l.querySelector(".fqMin").value),max:l.querySelector(".fqMax").value.trim()===""?"":n(l.querySelector(".fqMax").value)})).filter(f=>f.lmax>0);
+  const fourchettes=[...form.querySelectorAll("#fqLines .line")].map(l=>({cat:l.querySelector(".fqCat").value,lmin:n(l.querySelector(".fqA").value),lmax:n(l.querySelector(".fqB").value),min:l.querySelector(".fqMin").value.trim()===""?"":n(l.querySelector(".fqMin").value),max:l.querySelector(".fqMax").value.trim()===""?"":n(l.querySelector(".fqMax").value),venteMin:l.querySelector(".fqVmin").value.trim()===""?"":n(l.querySelector(".fqVmin").value),venteMax:l.querySelector(".fqVmax").value.trim()===""?"":n(l.querySelector(".fqVmax").value)})).filter(f=>f.lmax>0);
   if(!err){const bad=fourchettes.find(f=>f.lmin>f.lmax||(f.min!==""&&f.max!==""&&f.min>f.max));if(bad)err="Fourchette "+bad.cat+" : le début doit être avant la fin, et le minimum sous le maximum."}
   const m=$("#refMsg");if(err){m.textContent=err;m.hidden=false;return}if(dup(couleurs)){m.textContent="Deux couleurs ont le même code ("+dup(couleurs).code+").";m.hidden=false;return}if(dup(modeles)){m.textContent="Deux modèles ont le même code ("+dup(modeles).code+").";m.hidden=false;return}
   try{await db.doc("reglages/referentiel").set({couleurs,modeles,listes,fourchettes,modifieLe:new Date().toISOString()});m.hidden=true;delete form.dataset.dirty;toast("Référentiel enregistré")}catch(e){m.textContent=dbErr(e);m.hidden=false}
