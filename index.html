@@ -545,6 +545,7 @@ const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissa
 function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
 function margeCibleDe(p){const R=S.reglages;const k=isBundle(p)?"margeCibleBundle":prepBase(p)===0.5?"margeCibleDemi":"margeCible";return R[k]!==undefined&&R[k]!==""?n(R[k]):n(R.margeCible)}
 /* prix minimum = prix d'achat × multiplicateur (Réglages), arrondi au-dessus */
+function margeMinDe(p){const R=S.reglages;if(p&&isBundle(p)&&R.margeMinBundle!==undefined&&R.margeMinBundle!=="")return n(R.margeMinBundle);return n(R.margeMin)}
 function prixMinAchat(p){const m=n(S.reglages.multMin);if(!(m>0)||!p||isPrestation(p))return 0;const a=n(S.reglages.arrondi)||1;return Math.ceil(achatDe(p)*m/a)*a}
 /* bundles : grille par type (prix à 20″ + écart tous les 2″) */
 function prixGrille(p){if(!isBundle(p))return 0;const R=S.reglages;const code=T_CODES[p.typeBundle]||"";const b=n(R["grille"+code]);if(!(b>0)||!n(p.longueur))return 0;
@@ -572,14 +573,14 @@ function coutVente(p,d){
   const qv=Math.max(1,n(d.quantite)||1);const h=heuresVente(d);const mo=r2(h*(pr?n(R.tauxPrest):n(R.tauxH))/qv);const mat=r2(matieresVente(d)/qv);const tr=pr?0:transportDe(p);
   const revient=r2(achatDe(p)+mo+mat+packC+tr);
   const fh=Array.isArray(d.travaux)?d.travaux.filter(x=>x.nom==="Remise en forme").reduce((s2,x)=>s2+n(x.heures),0):0;
-  return {fh,achat:achatDe(p),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
+  return {fh,achat:achatDe(p),heures:h,mo,mat,pack:packC,transport:tr,revient,plancher:Math.round(revient*(1+margeMinDe(p))/(1-n(R.fraisVente)))};
 }
 function prixPlancher(p,heures,pack){
   if(!p)return null;const R=S.reglages;const pr=isPrestation(p);
   const packC=pack==="Bundle"?n(R.packBundle):pack==="Standard"?n(R.packStandard):pack==="Premium"?n(R.packPremium):pack==="Signature"?n(R.packSignature):0;
   const h=heures===""||heures==null?n(R.tempsDefaut):n(heures);
   const revient=achatDe(p)+r2(h*(pr?n(R.tauxPrest):n(R.tauxH)))+packC+(pr?0:transportDe(p));
-  return {revient:r2(revient),plancher:Math.round(revient*(1+n(R.margeMin))/(1-n(R.fraisVente)))};
+  return {revient:r2(revient),plancher:Math.round(revient*(1+margeMinDe(p))/(1-n(R.fraisVente)))};
 }
 function isBundle(p){return !!p&&/^Bundle/.test(p.construction||"")}
 function bonusPoids(p){const a=n(p.poidsAnnonce),r=n(p.poidsReel);if(!a||!r)return 0;return r2(Math.max(-0.3,Math.min(0.1,r/a-1)))}
@@ -1236,7 +1237,7 @@ function openReglages(){
   const R=S.reglages;const ro=!(db&&canWrite);
   current={col:"reglages"};
   const sh=$("#sheet");
-  const row=(id,l,h)=>F(id,l,money(id,["fraisVente","margeMin","margeCible","margeCibleDemi","margeCibleBundle"].includes(id)?r2(n(R[id])*100):R[id]),h);
+  const row=(id,l,h)=>F(id,l,money(id,["fraisVente","margeMin","margeMinBundle","margeCible","margeCibleDemi","margeCibleBundle"].includes(id)?r2(n(R[id])*100):R[id]),h);
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Réglages des prix</h2></div></div>
   <div class="wrap"><form class="f" id="form" novalidate>
    <div class="two">${row("tauxH","Taux horaire création (€/h)")}${row("tauxPrest","Taux horaire prestation (€/h)")}</div>
@@ -1246,9 +1247,9 @@ function openReglages(){
     <div class="three">${row("coefBaseBundle","Coefficient de base")}${row("packBundle","Pack Bundle (€)")}${row("transportBundle","Transport + import (€)")}</div>
     <p class="note">Grille de prix : prix d'un bundle de 20″ selon son type, puis le même écart à chaque 2″ de plus ou de moins. Laisse un prix vide pour calculer ce type au coefficient.</p>
     <div class="three">${row("grilleSD","Simple (SD) 20″ (€)")}${row("grilleDD","Doublé (DD) 20″ (€)")}${row("grilleSDD","Super doublé (SDD) 20″ (€)")}</div>
-    <div class="two">${row("grillePas","Écart tous les 2″ (€)")}<div></div></div>
+    <div class="two">${row("grillePas","Écart tous les 2″ (€)")}${row("margeMinBundle","Marge minimale bundles (%)","Plancher des bundles.")}</div>
     <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut. Le prix de la grille ne descend jamais sous le plancher.</p></fieldset>
-   <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
+   <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale perruques (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
    <div class="two">${row("multMin","Prix minimum = prix d'achat ×","Ex. 2 : le prix de base n'est jamais sous le double du prix d'achat. 0 : pas de minimum.")}<div></div></div>
    <div class="three">${row("margeCible","Marge prix de base : perruques (%)","Prix de base = coût de revient + cette marge + frais de vente. 0 : calcul par coefficients.")}${row("margeCibleDemi","Demi-têtes et ponytails (%)")}${row("margeCibleBundle","Bundles (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
@@ -1282,7 +1283,7 @@ function openReglages(){
 }
 async function saveReglages(){
   const o={};$("#form").querySelectorAll("input[name]").forEach(e=>{o[e.name]=n(e.value)});
-  o.fraisVente=o.fraisVente/100;o.margeMin=o.margeMin/100;["margeCible","margeCibleDemi","margeCibleBundle"].forEach(k=>{if(k in o)o[k]=o[k]/100});
+  o.fraisVente=o.fraisVente/100;o.margeMin=o.margeMin/100;["margeMinBundle","margeCible","margeCibleDemi","margeCibleBundle"].forEach(k=>{if(k in o)o[k]=o[k]/100});
   if(o.fraisVente>=1){const eb=$("#formErr");eb.textContent="Les frais de vente doivent être sous 100 %.";eb.hidden=false;return}
   try{await db.doc("reglages/prix").set({...S.reglages,...o,excel:"modifié",modifieLe:new Date().toISOString()});closeSheet();toast("Réglages enregistrés")}
   catch(e){const eb=$("#formErr");eb.textContent=dbErr(e);eb.hidden=false}
