@@ -543,7 +543,7 @@ function matieresVente(d){return Array.isArray(d.matieres)?r2(d.matieres.reduce(
 /* ---------- prix de vente = prix de base (customisation standard comprise) + suppléments ---------- */
 const SUPS=[["coloration","Coloration"],["decoloration","Décoloration"],["lissage","Lissage"],["layers","Layers (dégradé)"],["customisation","Customisation"],["bouclage","Bouclage"],["coupe","Coupe"],["plucking","Plucking"]];
 function supTarif(nom,bundle){const x=SUPS.find(([,l])=>l===nom);if(!x)return 0;return n(S.reglages["sup_"+x[0]+(bundle?"_b":"_p")])}
-function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");return pc&&pc.prix?pc.prix:0}
+function prixBaseConseille(p){if(!p||isPrestation(p))return 0;const h=prepBase(p);const pp=coutVente(p,{packaging:isBundle(p)?"Bundle":"Standard",travaux:h?[{nom:"Préparation de base",heures:h}]:[],quantite:1});const mc=n(S.reglages.margeCible);if(mc>0&&pp)return arrondiPrix(pp.revient*(1+mc)/(1-n(S.reglages.fraisVente)));const pc=prixConseille(p,pp,"Naturelle","Standard","Basique");return pc&&pc.prix?pc.prix:0}
 function prixBaseDe(p){if(!p)return 0;if(n(p.prixBase)>0)return n(p.prixBase);if(p.site&&n(p.site.prix)>0)return n(p.site.prix);return prixBaseConseille(p)}
 /* détail du prix d'une vente (hors prestations) : par pièce */
 function prixVenteDetail(p,d){
@@ -1108,7 +1108,7 @@ function livePreview(){
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
-      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+"forfait : "+eur(ti.v)+") et des caractéristiques : "+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
+      const h=pb.closest(".field")&&pb.closest(".field").querySelector(".hint");if(h&&want){const ti=transportInfo(pr0),ai=achatInfo(pr0);h.textContent="Calculé automatiquement à partir du prix d'achat ("+(ai.reel?"coût moyen de "+(ai.nb>1?ai.nb+" achats":"l'achat")+" : "+eur(ai.v):"celui de la fiche : "+eur(ai.v))+"), du transport ("+"forfait : "+eur(ti.v)+")"+(n(S.reglages.margeCible)>0?", de la préparation et de l'emballage, avec "+Math.round(n(S.reglages.margeCible)*100)+" % de marge : ":" et des caractéristiques : ")+eur(want)+". Tu peux le modifier. Dans une vente, ce prix s'affiche tout seul et les suppléments (coloration, coupe…) s'ajoutent."}}}
     const p={...d,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const code=codeFor(p,current.id,current.orig.code);
     const b0=baseCode(p);const ex=!current.id&&p.type==="Marchandise"&&b0?S.produits.find(x=>x.code===b0):null;
     if(ex){$("#pvProd").innerHTML=ex.statut==="Archivé"?`<span>Cette référence existe déjà (archivée) : <span class="code">${esc(ex.code)}</span>. En enregistrant, elle sera simplement réactivée.</span>`:`<span class="err">Ce produit existe déjà : <span class="code">${esc(ex.code)}</span>. Inutile de le recréer.</span>`;return}
@@ -1229,7 +1229,7 @@ function openReglages(){
   const R=S.reglages;const ro=!(db&&canWrite);
   current={col:"reglages"};
   const sh=$("#sheet");
-  const row=(id,l,h)=>F(id,l,money(id,id==="fraisVente"||id==="margeMin"?r2(n(R[id])*100):R[id]),h);
+  const row=(id,l,h)=>F(id,l,money(id,id==="fraisVente"||id==="margeMin"||id==="margeCible"?r2(n(R[id])*100):R[id]),h);
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Réglages des prix</h2></div></div>
   <div class="wrap"><form class="f" id="form" novalidate>
    <div class="two">${row("tauxH","Taux horaire création (€/h)")}${row("tauxPrest","Taux horaire prestation (€/h)")}</div>
@@ -1238,7 +1238,8 @@ function openReglages(){
    <fieldset><legend>Bundles</legend>
     <div class="three">${row("coefBaseBundle","Coefficient de base")}${row("packBundle","Pack Bundle (€)")}${row("transportBundle","Transport + import (€)")}</div>
     <p class="note">Un bundle se vend tel quel : pas de temps de travail par défaut, sa propre base de coefficient.</p></fieldset>
-   <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)")}</div>
+   <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
+   ${row("margeCible","Marge du prix de base (%)","Prix de base = coût de revient + cette marge + frais de vente. Vide ou 0 : calcul par coefficients.")}
    <fieldset><legend>Forfaits de pose</legend>
     <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
     <div class="two">${row("poseH2","Jusqu'à (heures)")}${row("posePrix2","Prix (€)")}</div>
@@ -1270,7 +1271,7 @@ function openReglages(){
 }
 async function saveReglages(){
   const o={};$("#form").querySelectorAll("input[name]").forEach(e=>{o[e.name]=n(e.value)});
-  o.fraisVente=o.fraisVente/100;o.margeMin=o.margeMin/100;
+  o.fraisVente=o.fraisVente/100;o.margeMin=o.margeMin/100;if("margeCible" in o)o.margeCible=o.margeCible/100;
   if(o.fraisVente>=1){const eb=$("#formErr");eb.textContent="Les frais de vente doivent être sous 100 %.";eb.hidden=false;return}
   try{await db.doc("reglages/prix").set({...S.reglages,...o,excel:"modifié",modifieLe:new Date().toISOString()});closeSheet();toast("Réglages enregistrés")}
   catch(e){const eb=$("#formErr");eb.textContent=dbErr(e);eb.hidden=false}
