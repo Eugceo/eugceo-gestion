@@ -371,8 +371,9 @@ button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.til
 .vis-prev canvas{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
 .vis-ph{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .vis-th{flex:none;width:64px;height:80px;border:2px solid transparent;border-radius:8px;overflow:hidden;padding:0;background:var(--soft);cursor:pointer;display:grid;place-items:center;font-size:12px;color:var(--muted)}
-.vis-th img{width:100%;height:100%;object-fit:cover;display:block}.vis-th.on{border-color:var(--gold)}
-.vis-up{border:1px dashed var(--gold);color:var(--gold-d);font-weight:500}
+.vis-th{position:relative}.vis-th img,.vis-th video{width:100%;height:100%;object-fit:cover;display:block}.vis-th i{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-style:normal;font-size:20px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.vis-rec{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid var(--gold);border-radius:12px;background:rgba(196,160,70,.08)}.vis-rec span{font-size:13px;color:var(--muted)}.vis-rec .btn{align-self:flex-start}.vis-th.on{border-color:var(--gold)}
+.vis-up{border:1px dashed var(--gold);color:var(--gold-d);font-weight:500;text-align:center;line-height:1.3;font-size:11.5px}
 .vis input[type=range]{padding:0;border:0;background:none}
 @media (min-width:1024px){.vis{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.vis-prev{top:20px}.vis-prev canvas{max-height:82vh}}
 /* ===== rendez-vous ===== */
@@ -767,7 +768,7 @@ function doRender(){
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
   if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(v.dataset.page===S.page&&(S.page==="visuel"||v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -1259,9 +1260,9 @@ async function saveRdvReglages(form){
   try{await db.collection("site_contenu").doc("rdv").set(cfg);await db.doc("reglages/rdv").set({...(S.rdvPrive||{}),adresse:v("adresse"),notifEmail:em,whatsappTel:v("whatsappTel"),callmebotKey:v("callmebotKey"),modifieLe:new Date().toISOString()});
     delete form.dataset.dirty;m.hidden=true;toast("Rendez-vous : réglages enregistrés, en ligne")}catch(e){m.textContent=dbErr(e);m.hidden=false}}
 
-/* ---------- visuels pour les réseaux : photo + EUGCEO + détails de l'article ---------- */
+/* ---------- visuels pour les réseaux : photo ou vidéo + EUGCEO + détails de l'article ---------- */
 const VIS_FORMATS={post:[1080,1350,"Post 4:5"],story:[1080,1920,"Story / Réel 9:16"],carre:[1080,1080,"Carré 1:1"]};
-let VIS={img:null,src:"",y:50,zoom:100};
+let VIS={img:null,vid:null,src:"",type:"",raf:0,rec:null,out:null,audio:null};
 function visTextes(p){
   if(!p)return{titre:"",l1:"",l2:"",prix:"",sur:"Nouvelle création"};
   const s=p.site||{};const titre=s.titre||((p.modele||"")+(p.longueur?" "+p.longueur+"″":""));
@@ -1270,58 +1271,68 @@ function visTextes(p){
   const de=n(p.densite);const l2=[p.cheveux,p.couleur,de?Math.round(de<10?de*100:de)+" %":""].filter(Boolean).join(" · ");
   const px=s.prix&&n(s.prix)>0?n(s.prix):prixBaseDe(p);
   return{titre,l1,l2,prix:px>0?String(Math.round(px))+" €":"",sur:stockQty(p)>0?"Disponible":"Sur commande"}}
+function visMedias(p){const s=(p&&p.site)||{};const L=(Array.isArray(s.photos)?s.photos:[]).filter(x=>!/^videos\//.test(x)).map(x=>({u:pubUrl(x),t:"image"}));if(s.video)L.push({u:pubUrl(s.video),t:"video"});return L}
 function pVisuel(){
   const ps=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).sort((a,b)=>designation(a).localeCompare(designation(b)));
-  const p=prod(S.pageId)||null;const T=visTextes(p);const ph=p&&p.site&&Array.isArray(p.site.photos)?p.site.photos.filter(x=>!/^videos\//.test(x)):[];
-  setTimeout(()=>{visCharger(ph[0]?pubUrl(ph[0]):"");},0);
-  return`${pageHead("Visuel pour les réseaux","Choisis un article, une photo et un format : l'image est prête à poster. « Calque transparent » donne seulement le texte et le logo, à poser sur une vidéo dans ton appli de montage.")}
+  const p=prod(S.pageId)||null;const T=visTextes(p);const md=visMedias(p);
+  setTimeout(()=>{visCharger(md[0]?md[0].u:"",md[0]?md[0].t:"image")},0);
+  const vidOk=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
+  return`${pageHead("Visuel pour les réseaux","Choisis un article, une photo ou une vidéo, et un format. Tu obtiens une image ou une vidéo prête à poster, avec EUGCEO et les détails de l'article.")}
   <div class="vis">
-   <div class="vis-prev"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu du visuel"></canvas></div>
+   <div class="vis-prev"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
     ${F("visProd","Article",`<select id="visProd" name="visProd"><option value="">— Choisir —</option>${ps.map(x=>`<option value="${esc(x.id)}"${p&&x.id===p.id?" selected":""}>${esc(designation(x))}</option>`).join("")}</select>`)}
-    <div class="field"><span class="lbl">Photo</span><div class="vis-ph">${ph.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-photo" data-u="${esc(pubUrl(x))}"><img src="${esc(pubUrl(x))}" alt="" crossorigin="anonymous"></button>`).join("")}
-      <label class="vis-th vis-up" title="Prendre une photo du téléphone"><input type="file" id="visFile" accept="image/*" hidden>+ Photo</label></div>
-      <span class="hint">${ph.length?"Les photos de la fiche « Sur le site », ou une photo de ton téléphone.":"Pas de photo sur la fiche : prends-en une sur ton téléphone avec « + Photo »."}</span></div>
+    <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
+      <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
+      <span class="hint">${md.length?"Celles de la fiche « Sur le site », ou une du téléphone.":"Rien sur la fiche : prends une photo ou une vidéo du téléphone avec « + »."}</span></div>
     <div class="two">${F("visFmt","Format",`<select id="visFmt" name="visFmt">${Object.entries(VIS_FORMATS).map(([k,v])=>`<option value="${k}">${v[2]}</option>`).join("")}</select>`)}
-     ${F("visMode","Type",`<select id="visMode" name="visMode"><option value="photo">Photo + texte</option><option value="calque">Calque transparent (vidéo)</option></select>`)}</div>
+     ${F("visMode","Type",`<select id="visMode" name="visMode"><option value="photo">Avec la photo ou la vidéo</option><option value="calque">Calque transparent seul</option></select>`)}</div>
     <div class="two">${F("visY","Cadrage (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}${F("visZoom","Zoom",`<input type="range" id="visZoom" name="visZoom" min="100" max="200" value="100">`)}</div>
     ${F("visSur","Petit titre",inp("visSur",T.sur),"Ex. Disponible, Sur commande, Nouvelle création, Pose réalisée.")}
     ${F("visTitre","Titre",inp("visTitre",T.titre))}
     ${F("visL1","Détail 1",inp("visL1",T.l1))}
     ${F("visL2","Détail 2",inp("visL2",T.l2))}
-    <div class="two">${F("visPrix","Prix",inp("visPrix",T.prix),"Vide = pas de prix sur l'image.")}${F("visSite","En bas",inp("visSite","eugceo.fr"))}</div>
-    <div class="acts small">
-     <button type="button" class="act main" data-act="vis-dl"><b>Télécharger</b><span>Image PNG</span></button>
-     ${navigator.canShare?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, WhatsApp…</span></button>`:""}
-    </div>
-    <p class="note">Le visuel n'est pas enregistré dans l'app : télécharge-le ou partage-le directement.</p>
+    <div class="two">${F("visPrix","Prix",inp("visPrix",T.prix),"Vide = pas de prix.")}${F("visSite","En bas",inp("visSite","eugceo.fr"))}</div>
+    <div id="visActs"></div>
+    <p class="note" id="visNote"></p>
    </form>
   </div>`}
-function visCharger(u){VIS.src=u;VIS.img=null;if(!u){visDraw();return}
-  const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;visDraw()}};im.onerror=()=>{toast("Photo impossible à charger");visDraw()};im.src=u;visDraw()}
+function visActs(){const box=$("#visActs");if(!box)return;const vid=VIS.type==="video"&&$("#visMode").value!=="calque";
+  const share=!!navigator.canShare;
+  if(VIS.rec){box.innerHTML=`<div class="vis-rec"><b>Création de la vidéo… <span id="visPct">0 %</span></b><span>Laisse cette page ouverte jusqu'à la fin.</span><button type="button" class="btn ghost small" data-act="vis-stop">Arrêter</button></div>`;return}
+  if(vid){box.innerHTML=`<div class="acts small"><button type="button" class="act main" data-act="vis-rec"><b>Créer la vidéo</b><span>Avec le son, durée de la vidéo</span></button>${VIS.out?`<button type="button" class="act" data-act="vis-dl"><b>Télécharger</b><span>${esc(VIS.out.ext.toUpperCase())} · ${Math.round(VIS.out.blob.size/1e5)/10} Mo</span></button>${share?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, TikTok…</span></button>`:""}`:""}</div>`;
+    $("#visNote").textContent=VIS.out?"Vidéo prête. Si tu changes un texte, recrée-la.":"La vidéo est lue une fois en entier pendant la création (jusqu'à 90 secondes).";return}
+  box.innerHTML=`<div class="acts small"><button type="button" class="act main" data-act="vis-dl"><b>Télécharger</b><span>Image PNG</span></button>${share?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, WhatsApp…</span></button>`:""}</div>`;
+  $("#visNote").textContent=$("#visMode").value==="calque"?"Calque transparent : à poser au-dessus de ta vidéo dans ton appli de montage.":"L'image n'est pas enregistrée dans l'app : télécharge-la ou partage-la directement."}
+function visStopLoop(){cancelAnimationFrame(VIS.raf);VIS.raf=0}
+function visCharger(u,t){visStopLoop();if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.out=null;VIS.audio=null;
+  if(!u){visDraw();visActs();return}
+  if(VIS.type==="video"){const vd=document.createElement("video");vd.crossOrigin="anonymous";vd.muted=true;vd.loop=true;vd.playsInline=true;vd.setAttribute("playsinline","");vd.preload="auto";
+    vd.onloadeddata=()=>{if(VIS.src!==u)return;VIS.vid=vd;vd.play().catch(()=>{});visLoop();visActs()};vd.onerror=()=>{toast("Vidéo impossible à lire");visDraw()};vd.src=u;visDraw();visActs();return}
+  const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;visDraw()}};im.onerror=()=>{toast("Photo impossible à charger");visDraw()};im.src=u;visDraw();visActs()}
+function visLoop(){visStopLoop();const tick=()=>{if(!$("#visCv")||!VIS.vid){visStopLoop();if(VIS.vid&&!$("#visCv")){try{VIS.vid.pause()}catch(_){}}return}visDraw(true);VIS.raf=requestAnimationFrame(tick)};VIS.raf=requestAnimationFrame(tick)}
 function visSpaced(c,t,x,y,sp,align){const chars=[...t];const w=chars.reduce((s,ch)=>s+c.measureText(ch).width,0)+sp*(chars.length-1);let cx=align==="center"?x-w/2:align==="right"?x-w:x;
   for(const ch of chars){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}return w}
 function visFit(c,t,font,size,maxW){let s=size;c.font=font.replace("{s}",s);while(s>12&&c.measureText(t).width>maxW){s-=2;c.font=font.replace("{s}",s)}return s}
-async function visDraw(){
-  const cv=$("#visCv");if(!cv)return;const v=k=>{const e=$("#"+k);return e?e.value:""};
-  const[W,H]=VIS_FORMATS[v("visFmt")||"post"];cv.width=W;cv.height=H;const c=cv.getContext("2d");
-  try{await Promise.all(['500 80px "Cormorant Garamond"','400 30px Poppins','500 30px Poppins'].map(f=>document.fonts.load(f)))}catch(_){}
+let visFontsOk=false;
+function visDraw(sync){
+  const cv=$("#visCv");if(!cv)return;
+  if(!visFontsOk&&!sync){Promise.all(['500 80px "Cormorant Garamond"','400 30px Poppins','500 30px Poppins'].map(f=>document.fonts.load(f))).then(()=>{visFontsOk=true;visDraw()}).catch(()=>{visFontsOk=true;visDraw()});}
+  const v=k=>{const e=$("#"+k);return e?e.value:""};
+  const[W,H]=VIS_FORMATS[v("visFmt")||"post"];if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}const c=cv.getContext("2d");
   const calque=v("visMode")==="calque";c.clearRect(0,0,W,H);
-  if(!calque){c.fillStyle="#111";c.fillRect(0,0,W,H);
-    if(VIS.img){const im=VIS.img;const z=(n(v("visZoom"))||100)/100;const sc=Math.max(W/im.width,H/im.height)*z;const iw=im.width*sc,ih=im.height*sc;
-      const fy=(n(v("visY"))||50)/100;c.drawImage(im,(W-iw)/2,(H-ih)*fy,iw,ih)}
-    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText("Choisis une photo",W/2,H/2)}}
-  /* voiles pour la lisibilité */
+  if(!calque){c.fillStyle="#111";c.fillRect(0,0,W,H);const src=VIS.vid||VIS.img;
+    if(src){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const sc=Math.max(W/sw,H/sh)*z;const iw=sw*sc,ih=sh*sc;
+      const fy=(n(v("visY"))||50)/100;c.drawImage(src,(W-iw)/2,(H-ih)*fy,iw,ih)}
+    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.src?"Chargement…":"Choisis une photo ou une vidéo",W/2,H/2)}}
   let g=c.createLinearGradient(0,0,0,H*0.22);g.addColorStop(0,"rgba(0,0,0,.45)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,W,H*0.22);
   g=c.createLinearGradient(0,H*0.5,0,H);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(.55,"rgba(0,0,0,.55)");g.addColorStop(1,"rgba(0,0,0,.85)");c.fillStyle=g;c.fillRect(0,H*0.5,W,H*0.5);
   const story=H/W>1.6;const M=W*0.075;const top=story?H*0.07:H*0.05;
-  /* EC + EUGCEO */
-  const ecPath=document.querySelector("#ec path");if(ecPath){const P=new Path2D(ecPath.getAttribute("d"));const eh=W*0.06,s=eh/25;c.save();c.translate(W/2-21*s,top);c.scale(s,s);c.translate(-29,-39);c.fillStyle="#C4A046";c.fill(P);c.restore()}
+  const ecPath=document.querySelector("#ec path");if(ecPath){if(!VIS.P)VIS.P=new Path2D(ecPath.getAttribute("d"));const eh=W*0.06,s=eh/25;c.save();c.translate(W/2-21*s,top);c.scale(s,s);c.translate(-29,-39);c.fillStyle="#C4A046";c.fill(VIS.P);c.restore()}
   c.fillStyle="#fff";c.font=`500 ${Math.round(W*0.028)}px "Cormorant Garamond"`;c.textAlign="left";c.textBaseline="alphabetic";visSpaced(c,"EUGCEO",W/2,top+W*0.06+W*0.045,W*0.02,"center");
-  /* bloc du bas */
   let y=H-(story?H*0.09:H*0.065);
   const site=v("visSite").trim(),prix=v("visPrix").trim(),l2=v("visL2").trim(),l1=v("visL1").trim(),titre=v("visTitre").trim(),sur=v("visSur").trim();
-  if(site){c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="rgba(255,255,255,.72)";visSpaced(c,site.toUpperCase(),M,y,W*0.006,"left");}
+  if(site){c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="rgba(255,255,255,.72)";visSpaced(c,site.toUpperCase(),M,y,W*0.006,"left")}
   if(prix){c.font=`500 ${Math.round(W*0.06)}px "Cormorant Garamond"`;c.fillStyle="#C4A046";c.textAlign="right";c.fillText(prix,W-M,y+W*0.004);c.textAlign="left"}
   y-=W*0.06;c.fillStyle="#C4A046";c.fillRect(M,y,W*0.12,Math.max(2,W*0.0022));y-=W*0.04;
   c.fillStyle="rgba(255,255,255,.88)";
@@ -1329,10 +1340,27 @@ async function visDraw(){
   if(titre){const s=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.1:0.09)),W-2*M);c.fillStyle="#fff";c.fillText(titre,M,y-W*0.005);y-=s*1.05}
   if(sur){c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="#C4A046";visSpaced(c,sur.toUpperCase(),M,y,W*0.008,"left")}
 }
+function visMime(){const L=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"];for(const m of L)if(MediaRecorder.isTypeSupported(m))return m;return""}
+async function visRec(){
+  const vd=VIS.vid,cv=$("#visCv");if(!vd||!cv)return;const mime=visMime();
+  let stream=cv.captureStream(30);
+  try{if(!VIS.audio){const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const src=ac.createMediaElementSource(vd);const dest=ac.createMediaStreamDestination();src.connect(dest);VIS.audio={ac,dest}}
+    await VIS.audio.ac.resume();VIS.audio.dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t))}catch(_){}
+  let rec;try{rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:8e6}:{videoBitsPerSecond:8e6})}catch(e){toast("Ce navigateur ne sait pas créer de vidéo. Utilise le calque transparent.");return}
+  const parts=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
+  const dur=Math.min(90,vd.duration||90);VIS.rec=rec;VIS.out=null;visActs();
+  rec.onstop=()=>{vd.ontimeupdate=null;vd.onended=null;vd.loop=true;vd.muted=true;vd.play().catch(()=>{});const type=(rec.mimeType||mime||"video/webm").split(";")[0];
+    VIS.out={blob:new Blob(parts,{type}),ext:type.includes("mp4")?"mp4":"webm"};VIS.rec=null;visActs();if(VIS.out.ext==="webm")$("#visNote").textContent="Vidéo prête en WEBM, le format de ce navigateur. Si Instagram la refuse, crée-la depuis ton iPhone : il donne du MP4."};
+  vd.pause();vd.loop=false;vd.currentTime=0;vd.muted=false;
+  await new Promise(r=>{vd.onseeked=()=>{vd.onseeked=null;r()};setTimeout(r,800)});
+  rec.start(500);vd.play().catch(()=>{});
+  vd.ontimeupdate=()=>{const p=$("#visPct");if(p)p.textContent=Math.min(100,Math.round(vd.currentTime/dur*100))+" %";if(vd.currentTime>=dur&&rec.state==="recording")rec.stop()};
+  vd.onended=()=>{if(rec.state==="recording")rec.stop()}}
 function visBlob(){return new Promise(r=>{const cv=$("#visCv");cv.toBlob(b=>r(b),"image/png")})}
-function visNom(){const t=($("#visTitre")||{}).value||"visuel";return"EUGCEO-"+t.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w]+/g,"-").replace(/^-|-$/g,"")+"-"+(($("#visFmt")||{}).value||"post")+".png"}
-async function visDl(){try{const b=await visBlob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=visNom();document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}catch(_){toast("Téléchargement impossible : la photo bloque l'export. Prends-la depuis ton téléphone avec « + Photo ».")}}
-async function visShare(){try{const b=await visBlob();const f=new File([b],visNom(),{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else visDl()}catch(e){if(e&&e.name!=="AbortError")visDl()}}
+function visNom(ext){const t=($("#visTitre")||{}).value||"visuel";return"EUGCEO-"+t.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w]+/g,"-").replace(/^-|-$/g,"")+"-"+(($("#visFmt")||{}).value||"post")+"."+(ext||"png")}
+async function visFichier(){const vid=VIS.type==="video"&&$("#visMode").value!=="calque";if(vid){if(!VIS.out)return null;return new File([VIS.out.blob],visNom(VIS.out.ext),{type:VIS.out.blob.type})}const b=await visBlob();return b?new File([b],visNom("png"),{type:"image/png"}):null}
+async function visDl(){try{const f=await visFichier();if(!f)return;const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}catch(_){toast("Export impossible : prends la photo ou la vidéo depuis ton téléphone avec « + ».")}}
+async function visShare(){try{const f=await visFichier();if(!f)return;if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else visDl()}catch(e){if(e&&e.name!=="AbortError")visDl()}}
 
 /* ---------- Réglages (roue dentée) ---------- */
 function pReglages(){
@@ -1863,7 +1891,9 @@ document.addEventListener("click",e=>{
   const a=b.dataset.act;
   if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
   if(a==="vis-open"){closeSheet(true);S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
-  if(a==="vis-photo"){document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u);return}
+  if(a==="vis-media"){if(VIS.rec)return;document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u,b.dataset.t);return}
+  if(a==="vis-rec"){visRec();return}
+  if(a==="vis-stop"){if(VIS.rec&&VIS.rec.state==="recording")VIS.rec.stop();return}
   if(a==="vis-dl"){visDl();return}
   if(a==="vis-share"){visShare();return}
   if(a==="rdv-st"){rdvStatut(b);return}
@@ -1963,14 +1993,14 @@ document.addEventListener("input",e=>{
   if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
   if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
-  if(e.target.closest("#visForm")){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}visDraw();return}
+  if(e.target.closest("#visForm")){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
   if(e.target.closest("#tfForm"))tfPreview();
 });
 document.addEventListener("change",e=>{
-  if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f))}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else visDraw();return}
+  if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
