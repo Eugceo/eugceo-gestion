@@ -365,6 +365,14 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.tile:hover{border-color:var(--gold,#C4A046)}
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* ===== rendez-vous ===== */
+.rdv-h{display:flex;flex-direction:column;gap:6px}
+.rdv-hl{display:grid;grid-template-columns:92px 1fr 1fr;gap:8px;align-items:center;font-size:14px}
+.rdv-hl span{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:4px;min-width:0}.rdv-hl i{font-style:normal;color:var(--muted);font-size:12px}
+.rdv-hl input{padding:7px 4px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}
+.line.rdvp{display:grid;grid-template-columns:1fr 80px auto;gap:8px;margin-bottom:6px}
+label.chk{display:flex;gap:10px;align-items:center;font-size:14.5px;cursor:pointer}label.chk input{width:auto}
+@media (max-width:640px){.rdv-hl{grid-template-columns:minmax(0,1fr)}.rdv-hl{padding-bottom:6px;border-bottom:1px solid var(--hair)}}
 /* ===== nouvelle organisation : 5 espaces ===== */
 header.top .hdbtn{align-self:center;background:none;border:0;color:#bdbdbd;cursor:pointer;line-height:0;padding:6px}
 header.top .hdbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -747,8 +755,8 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages"}[S.page]||"Gestion";return}}
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages"}[S.page]||"Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -765,7 +773,8 @@ function aFaire(){
   const L2=[];const add=(n0,t,sub,attrs,lvl)=>{if(n0)L2.push({n:n0,t,sub,attrs,lvl:lvl||""})};
   const exp=S.ventes.filter(aExpedier).length;add(exp,"À expédier",exp+" commande"+(exp>1?"s":"")+" à préparer et envoyer",'data-act="goto" data-tab="ventes" data-filter="expedier"',"warn");
   const att=S.ventes.filter(v=>v.statut==="En attente de paiement");const reste=r2(att.reduce((t,v)=>t+venteReste(v),0));add(att.length,"À encaisser",eur(reste)+" sur "+att.length+" vente"+(att.length>1?"s":""),'data-act="goto" data-tab="ventes" data-filter="attente"');
-  const dem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;add(dem,"Demandes du site",dem+" nouvelle"+(dem>1?"s":"")+" à traiter",'data-act="page" data-p="demandes"',"warn");
+  const rc=rdvAConfirmer().length;add(rc,"Rendez-vous à confirmer",rc+" demande"+(rc>1?"s":"")+" depuis le site",'data-act="page" data-p="rdv" data-f="confirmer"',"warn");
+  const dem=(S.demandes||[]).filter(d=>d.type!=="liste"&&!(d.type==="rdv"&&d.date)&&(d.statut||"Nouvelle")==="Nouvelle").length;add(dem,"Demandes du site",dem+" nouvelle"+(dem>1?"s":"")+" à traiter",'data-act="page" data-p="demandes"',"warn");
   const dv=(S.devis||[]).filter(d=>d.statut==="Accepté"&&!d.venteId).length;add(dv,"Devis acceptés",dv+" à transformer en vente",'data-act="page" data-p="devis"',"ok");
   const ar=commandes(S.achats.filter(a=>!a.dateReception)).length;add(ar,"Colis attendus",ar+" commande"+(ar>1?"s":"")+" pas encore reçue"+(ar>1?"s":""),'data-act="goto" data-tab="stock" data-filter="attente"');
   const al=S.produits.filter(p=>!isPrestation(p)&&p.statut!=="Archivé").filter(p=>{const q=stockQty(p);return q<=0||q<=n(p.seuil)}).length;add(al,"Ruptures de stock",al+" référence"+(al>1?"s":"")+" à 0 ou sous le seuil",'data-act="goto" data-tab="stock" data-filter="alerte"');
@@ -794,6 +803,7 @@ function vAccueil(){
     <h2>À faire</h2>
     <div class="list">${todo.length?todo.map(x=>`<button class="row" ${x.attrs}><span class="t">${x.t}</span><span class="v">${x.lvl?`<span class="chip ${x.lvl}">${x.n}</span>`:`<b class="num">${x.n}</b>`}</span><span class="s">${esc(x.sub)}</span></button>`).join(""):`<div class="empty">Rien d'urgent. Tout est à jour.</div>`}</div>
   </section>
+  ${(()=>{const L=rdvListe().filter(d=>rdvSt(d)==="Confirmé"&&!rdvPasse(d)).sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).slice(0,3);return L.length?`<section class="full" aria-label="Rendez-vous"><h2>Prochains rendez-vous</h2><div class="list">${L.map(d=>`<button class="row" data-act="page" data-p="rdv" data-f="avenir"><span class="t" style="text-transform:capitalize">${esc(rdvJour(d.date))} · ${esc(d.heure)}</span><span class="v">›</span><span class="s">${esc(d.prestation||"")} · ${esc(d.nom||"")} · ${d.lieu==="domicile"?"chez la cliente":"à "+esc(rdvCfg().ville)}</span></button>`).join("")}</div></section>`:""})()}
   <section class="hero" aria-label="Trésorerie">
     <p class="eyebrow">Argent en banque (estimé)</p>
     <div class="money-big num">${eur(t)}</div>
@@ -903,14 +913,14 @@ function vVentes(){
     return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${rep&&venteReste(v)?eur(venteReste(v)):eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} ${rep?(v.statut==="Payée"?`<span class="chip ok">soldée le ${dfr(v.dateEncaissement)}</span>`:`<span class="chip warn">reportée · reste ${eur(venteReste(v))} sur ${eur(venteTotal(v))}</span>`):`<span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}`}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}</span></button>`};
   const rows=list.map(v=>row(v,false)).join("");const repRows=report.map(v=>row(v,true)).join("");
   const ca=list.filter(dansCA);const tot=r2(ca.reduce((t,v)=>t+venteTotal(v),0)),reste=r2(list.concat(report).reduce((t,v)=>t+venteReste(v),0));
-  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
+  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&!(d.type==="rdv"&&d.date)&&(d.statut||"Nouvelle")==="Nouvelle").length;
   return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["attente","À encaisser"],["expedier","À expédier"]])}
   ${f==="tout"&&!q?monthBar():`<p class="note">${q?"Recherche sur tous les mois.":"Tous les mois confondus."}</p>`}
   <div class="band"><span><b class="num">${ca.length}</b>vente${ca.length>1?"s":""}</span><span><b class="num">${eur(tot)}</b>au total</span><span><b class="num${reste?" warnv":""}">${eur(reste)}</b>reste à encaisser</span></div>
   <input class="search" id="q" type="search" placeholder="Chercher une cliente, un code, une facture" value="${esc(S.q)}">
   ${loadingOr("ventes",`${repRows?`<h3 class="sec">Reportées des mois précédents</h3><div class="list">${repRows}</div><h3 class="sec">Ventes du mois</h3>`:""}<div class="list">${rows||`<div class="empty">${f==="tout"&&!q?"Aucune vente ce mois-ci.":"Rien ici."}</div>`}</div>`)}
   ${repRows?`<p class="note">Une vente pas entièrement payée revient chaque mois suivant, jusqu'à ce que le reste soit à zéro. Elle reste comptée dans le chiffre d'affaires de son mois d'origine.</p>`:""}
-  ${moreLinks([['data-act="page" data-p="factures"',"Factures"],['data-act="page" data-p="devis"',"Devis"],['data-act="page" data-p="demandes"',"Demandes du site",nDem],['data-act="page" data-p="ambassadrices"',"Ambassadrices"]])}`;
+  ${moreLinks([['data-act="page" data-p="rdv"',"Rendez-vous",rdvAConfirmer().length],['data-act="page" data-p="factures"',"Factures"],['data-act="page" data-p="devis"',"Devis"],['data-act="page" data-p="demandes"',"Demandes du site",nDem],['data-act="page" data-p="ambassadrices"',"Ambassadrices"]])}`;
 }
 function exChip(d){return""}
 function vMatieres(){
@@ -1139,10 +1149,109 @@ function pFournisseur(key){
 async function lotUpdate(b,champ){const ids=(b.dataset.ids||"").split(",").filter(Boolean);if(!ids.length)return;b.disabled=true;
   try{for(const id of ids)await db.collection(b.dataset.col).doc(id).update({[champ]:today(),modifieLe:new Date().toISOString()});toast(champ==="dateReception"?"Reçue : ajoutée au stock":"Marquée payée")}catch(e){b.disabled=false;toast(dbErr(e))}}
 
+/* ---------- rendez-vous pris sur le site ---------- */
+const RDV_DEF={actif:true,ville:"Cesson-Sévigné",prestations:[{nom:"Pose de perruque",duree:120},{nom:"Pose de tissage",duree:180}],jours:{},fermes:[],pas:30,delaiH:24,horizonJ:45,marge:30,domicile:true,km:{tranche:5,prix:3,allerRetour:false,max:0}};
+const JOURS_SEM=[[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[7,"Dimanche"]];
+function rdvCfg(){const c={...RDV_DEF,...((S.siteContenu||{}).rdv||{})};c.km={...RDV_DEF.km,...(((S.siteContenu||{}).rdv||{}).km||{})};return c}
+function rdvListe(){return(S.demandes||[]).filter(d=>d.type==="rdv"&&d.date)}
+function rdvSt(d){return d.rdvStatut||"À confirmer"}
+function rdvFin(d){const[a,b]=String(d.heure||"0:0").split(":");const m=Number(a)*60+Number(b||0)+(Number(d.duree)||60);return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function rdvPasse(d){return(d.date+" "+rdvFin(d))<(today()+" "+new Date().toTimeString().slice(0,5))}
+function rdvJour(s){return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}
+function rdvDuree(m){m=Number(m)||0;const h=Math.floor(m/60),r=m%60;return h?(h+" h"+(r?" "+String(r).padStart(2,"0"):"")):r+" min"}
+function rdvAConfirmer(){return rdvListe().filter(d=>rdvSt(d)==="À confirmer"&&!rdvPasse(d))}
+function rdvMessage(d,kind){
+  const pr=(d.nom||"").split(" ")[0];const quand=rdvJour(d.date)+" à "+String(d.heure).replace(":"," h ");const adr=(S.rdvPrive||{}).adresse||"";
+  if(kind==="ok")return`Bonjour ${pr},\n\nVotre rendez-vous est confirmé : ${d.prestation}, ${quand} (environ ${rdvDuree(d.duree)}).\n${d.lieu==="domicile"?`Nous viendrons chez vous : ${d.adresseCliente||""}\nFrais de déplacement : ${eur(n(d.fraisDeplacement))}`:`Adresse : ${adr||"[adresse]"}`}\n\nÀ bientôt,\nEUGCEO`;
+  if(kind==="non")return`Bonjour ${pr},\n\nMerci pour votre demande. Le créneau du ${quand} n'est malheureusement pas disponible. Vous pouvez choisir une autre date sur https://eugceo.fr/#/rendezvous ou nous répondre avec vos disponibilités.\n\nÀ bientôt,\nEUGCEO`;
+  return`Bonjour ${pr},\n\nNous sommes désolés, nous devons annuler votre rendez-vous du ${quand}. Vous pouvez en choisir un autre sur https://eugceo.fr/#/rendezvous ou nous répondre avec vos disponibilités.\n\nÀ bientôt,\nEUGCEO`}
+function rdvCarte(d){
+  const st=rdvSt(d),ro=!(db&&canWrite);const tel=d.telephone?waNum(d.telephone):"";
+  const kind=st==="Confirmé"?"ok":st==="Refusé"?"non":st==="Annulé"?"annule":"";
+  const msg=kind?rdvMessage(d,kind):"";
+  const prev=kind&&!rdvPasse(d)?`<span class="chips">${tel?`<a class="sitebtn" href="https://wa.me/${esc(tel)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Prévenir par WhatsApp</a>`:""}${d.email&&!ro?`<button type="button" class="sitebtn" data-act="rdv-mail" data-id="${esc(d.id)}" data-k="${kind}">Prévenir par e-mail</button>`:""}${d.prevenue?`<span class="chip ok">e-mail envoyé ${new Date(d.prevenue).toLocaleDateString("fr-FR")}</span>`:""}</span>`:"";
+  const chip=st==="Confirmé"?"ok":st==="À confirmer"?"warn":"bad";
+  return`<div class="card"><span class="top"><b>${esc(d.prestation||"Rendez-vous")}</b><span class="chip ${chip}">${esc(st.toLowerCase())}</span></span>
+    <span class="lines"><span style="color:var(--fg);font-size:14.5px;text-transform:capitalize">${esc(rdvJour(d.date))} · ${esc(d.heure)}–${esc(rdvFin(d))}</span>
+    <span>${d.lieu==="domicile"?`Chez la cliente : ${esc(d.adresseCliente||"?")} · environ ${esc(d.kmEstime??"?")} km · frais ${eur(n(d.fraisDeplacement))}`:"À "+esc(rdvCfg().ville)}</span>
+    <span><b style="color:var(--fg);font-weight:500">${esc(d.nom||"")}</b>${d.telephone?` · <a href="tel:${esc(String(d.telephone).replace(/[^\d+]/g,""))}">${esc(d.telephone)}</a>`:""}${d.email?" · "+esc(d.email):""}</span>
+    ${d.message?`<span>« ${esc(d.message)} »</span>`:""}</span>
+    ${ro?"":`<span class="chips">${st==="À confirmer"?`<button type="button" class="btn small" data-act="rdv-st" data-id="${esc(d.id)}" data-st="Confirmé">Confirmer</button><button type="button" class="btn ghost small" data-act="rdv-st" data-id="${esc(d.id)}" data-st="Refusé">Refuser</button>`:""}${st==="Confirmé"&&!rdvPasse(d)?`<button type="button" class="btn ghost small" data-act="rdv-st" data-id="${esc(d.id)}" data-st="Annulé">Annuler</button>`:""}${st==="Confirmé"?`<button type="button" class="btn ghost small" data-act="rdv-vente" data-id="${esc(d.id)}">Créer la vente</button>`:""}${st!=="À confirmer"&&!rdvPasse(d)?`<button type="button" class="linkbtn" data-act="rdv-st" data-id="${esc(d.id)}" data-st="À confirmer">Remettre à confirmer</button>`:""}</span>`}
+    ${prev}</div>`}
+function pRdv(){
+  const f=S.rdvFilter||"confirmer";const L=rdvListe();
+  let X=f==="confirmer"?L.filter(d=>rdvSt(d)==="À confirmer"&&!rdvPasse(d)):f==="avenir"?L.filter(d=>rdvSt(d)==="Confirmé"&&!rdvPasse(d)):f==="passes"?L.filter(d=>rdvSt(d)==="Confirmé"&&rdvPasse(d)):L.filter(d=>["Refusé","Annulé"].includes(rdvSt(d))||(rdvSt(d)==="À confirmer"&&rdvPasse(d)));
+  X.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure));if(f==="passes"||f==="autres")X.reverse();
+  const nb=L.filter(d=>rdvSt(d)==="À confirmer"&&!rdvPasse(d)).length;
+  const cfg=rdvCfg();const ouvert=Object.values(cfg.jours||{}).some(x=>x&&x.length);
+  return`${pageHead("Rendez-vous","Pris sur le site. Un créneau demandé est bloqué pour les autres clientes jusqu'à ta réponse. Après « Confirmer » ou « Refuser », préviens la cliente par WhatsApp ou par e-mail : le message est déjà écrit.")}
+  ${ouvert?"":`<div class="banner">Aucun horaire n'est ouvert : le site affiche encore l'ancien formulaire. <button class="linkbtn" data-act="page" data-p="rdvreglages">Régler les jours et les heures</button></div>`}
+  ${filterBar("rdvFilter",f,[["confirmer","À confirmer"+(nb?" ("+nb+")":"")],["avenir","À venir"],["passes","Passés"],["autres","Refusés, annulés"]])}
+  <div class="cards">${X.map(rdvCarte).join("")||`<div class="empty">Rien ici.</div>`}</div>
+  ${moreLinks([['data-act="page" data-p="rdvreglages"',"Jours, heures et prestations"]])}`}
+async function rdvStatut(b){const d=rdvListe().find(x=>x.id===b.dataset.id);if(!d)return;const st=b.dataset.st;b.disabled=true;
+  try{await db.collection("demandes").doc(d.id).update({rdvStatut:st,statut:st==="À confirmer"?"Nouvelle":"Traitée",traiteLe:new Date().toISOString(),prevenue:null});
+    toast(st==="Confirmé"?"Confirmé : préviens la cliente":st==="Refusé"?"Refusé : préviens la cliente":st==="Annulé"?"Annulé : préviens la cliente":"Remis à confirmer");
+    if(st==="Confirmé")S.rdvFilter="avenir";if(st==="Refusé"||st==="Annulé")S.rdvFilter="autres";render()}catch(e){b.disabled=false;toast(dbErr(e))}}
+async function rdvMail(b){const d=rdvListe().find(x=>x.id===b.dataset.id);if(!d||!d.email)return;const k=b.dataset.k;b.disabled=true;
+  const sub=k==="ok"?"Votre rendez-vous EUGCEO est confirmé":k==="non"?"Votre demande de rendez-vous EUGCEO":"Annulation de votre rendez-vous EUGCEO";
+  try{await sendMail({to:d.email,subject:sub,text:rdvMessage(d,k)});await db.collection("demandes").doc(d.id).update({prevenue:new Date().toISOString()});toast("E-mail envoyé")}
+  catch(e){b.disabled=false;toast(e&&e.code==="non_configure"?"L'envoi d'e-mails n'est pas configuré":"L'e-mail n'est pas parti. Utilise WhatsApp.")}}
+/* réglages : jours, heures, prestations, déplacement, notification */
+function pRdvReglages(){
+  const c=rdvCfg(),P=S.rdvPrive||{},ro=!(db&&canWrite);
+  const pl=(j,i)=>((c.jours||{})[j]||[])[i]||["",""];
+  const t=(name,v)=>`<input type="time" step="900" name="${name}" value="${esc(v||"")}" aria-label="${name}">`;
+  return`${pageHead("Rendez-vous : réglages","Ce qui s'affiche sur la page Rendez-vous du site. Les clientes ne voient que les créneaux libres.")}
+  <form class="f" id="rdvForm" novalidate>
+   <fieldset><legend>Jours et heures d'ouverture</legend>
+    <p class="note">Laisse vide un jour fermé. Deuxième plage facultative (ex. 9 h–12 h puis 14 h–18 h).</p>
+    <div class="rdv-h">${JOURS_SEM.map(([j,l])=>`<div class="rdv-hl"><b>${l}</b><span>${t("j"+j+"a0",pl(j,0)[0])}<i>à</i>${t("j"+j+"b0",pl(j,0)[1])}</span><span>${t("j"+j+"a1",pl(j,1)[0])}<i>à</i>${t("j"+j+"b1",pl(j,1)[1])}</span></div>`).join("")}</div>
+    ${F("fermes","Jours fermés (congés, jours pris)",`<textarea id="fermes" name="fermes" placeholder="Une date par ligne, ex. 24/12/2026">${esc((c.fermes||[]).map(x=>dfr(x)).join("\n"))}</textarea>`,"Une date par ligne. Ces jours-là, aucun créneau n'est proposé.")}
+   </fieldset>
+   <fieldset><legend>Prestations</legend>
+    <div id="rdvPrest">${(c.prestations||[]).map(p=>rdvPrestLigne(p)).join("")}</div>
+    ${ro?"":`<button type="button" class="linkbtn addline" data-act="rdvp-add">+ Ajouter une prestation</button>`}
+    <p class="note">Durée en minutes : 120 = 2 h, 180 = 3 h. Le créneau bloqué dans l'agenda correspond à cette durée.</p>
+   </fieldset>
+   <fieldset><legend>Créneaux</legend>
+    <div class="two">${F("pas","Un créneau toutes les (minutes)",inp("pas",c.pas,'inputmode="numeric"'))}${F("marge","Temps libre entre deux rendez-vous (minutes)",inp("marge",c.marge,'inputmode="numeric"'),"Pour la route ou le rangement.")}</div>
+    <div class="two">${F("delaiH","Délai minimum avant un rendez-vous (heures)",inp("delaiH",c.delaiH,'inputmode="numeric"'),"24 = pas de rendez-vous pour le lendemain matin pris la veille au soir.")}${F("horizonJ","Réservable jusqu'à (jours)",inp("horizonJ",c.horizonJ,'inputmode="numeric"'))}</div>
+   </fieldset>
+   <fieldset><legend>Lieu et déplacement</legend>
+    ${F("ville","Ville affichée sur le site",inp("ville",c.ville))}
+    ${F("adresse","Adresse exacte (jamais affichée sur le site)",inp("adresse",P.adresse),"Envoyée à la cliente seulement dans le message de confirmation.")}
+    <label class="chk"><input type="checkbox" name="domicile" ${c.domicile!==false?"checked":""}> Proposer le rendez-vous chez la cliente</label>
+    <div class="two">${F("kmPrix","Prix par tranche (€)",money("kmPrix",c.km.prix))}${F("kmTranche","Tranche (km)",inp("kmTranche",c.km.tranche,'inputmode="numeric"'))}</div>
+    <div class="two">${F("kmMax","Distance maximum (km)",inp("kmMax",c.km.max||"",'inputmode="numeric"'),"Vide = pas de limite.")}<label class="chk" style="align-self:end"><input type="checkbox" name="allerRetour" ${c.km.allerRetour?"checked":""}> Compter l'aller-retour</label></div>
+    <p class="note">Exemple avec ces réglages : 12 km ${c.km.allerRetour?"(24 km aller-retour) ":""}→ ${eur(Math.ceil((c.km.allerRetour?24:12)/(n(c.km.tranche)||5))*n(c.km.prix))}. La distance est estimée par le site à partir de l'adresse de la cliente : tu peux ajuster avant de confirmer.</p>
+   </fieldset>
+   <fieldset><legend>Être prévenu</legend>
+    ${F("notifEmail","E-mail qui reçoit les demandes",inp("notifEmail",P.notifEmail||"",'type="email" placeholder="'+esc(soc().email||"contact@eugceo.fr")+'"'),"Vide = l'e-mail de la société.")}
+    <div class="two">${F("whatsappTel","Ton numéro WhatsApp",inp("whatsappTel",P.whatsappTel||"",'inputmode="tel" placeholder="+33 6 …"'))}${F("callmebotKey","Clé CallMeBot",inp("callmebotKey",P.callmebotKey||"",'autocomplete="off" spellcheck="false"'),"Facultatif : pour recevoir aussi un WhatsApp à chaque demande.")}</div>
+   </fieldset>
+   <label class="chk"><input type="checkbox" name="actif" ${c.actif!==false?"checked":""}> Prise de rendez-vous en ligne active</label>
+   <p class="err" id="rdvMsg" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  </form>`}
+function rdvPrestLigne(p){p=p||{};return`<div class="line rdvp"><input class="rpNom" value="${esc(p.nom||"")}" placeholder="Prestation" aria-label="Prestation"><input class="rpDur" inputmode="numeric" value="${esc(p.duree||"")}" placeholder="min" aria-label="Durée en minutes"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
+async function saveRdvReglages(form){
+  const m=$("#rdvMsg");const E=form.elements;const v=k=>E[k]?String(E[k].value||"").trim():"";
+  const jours={};for(const[j]of JOURS_SEM){const pl=[];for(const i of[0,1]){const a=v("j"+j+"a"+i),b=v("j"+j+"b"+i);if(a&&b){if(b<=a){m.textContent="Heures incohérentes le "+JOURS_SEM[j-1][1].toLowerCase()+" : la fin doit être après le début.";m.hidden=false;return}pl.push([a,b])}}if(pl.length)jours[j]=pl}
+  const fermes=[];for(const l of v("fermes").split(/\n+/).map(x=>x.trim()).filter(Boolean)){const x=l.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/)||l.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!x){m.textContent="Date non comprise : « "+l+" ». Écris-la comme 24/12/2026.";m.hidden=false;return}
+    fermes.push(x[1].length===4?`${x[1]}-${x[2]}-${x[3]}`:`${x[3].length===2?"20"+x[3]:x[3]}-${x[2].padStart(2,"0")}-${x[1].padStart(2,"0")}`)}
+  const prestations=[...form.querySelectorAll(".rdvp")].map(l=>({nom:l.querySelector(".rpNom").value.trim(),duree:Math.round(n(l.querySelector(".rpDur").value))})).filter(p=>p.nom&&p.duree>0);
+  if(!prestations.length){m.textContent="Indique au moins une prestation avec sa durée.";m.hidden=false;return}
+  const cfg={...rdvCfg(),actif:!!E.actif.checked,ville:v("ville")||"Cesson-Sévigné",prestations,jours,fermes:[...new Set(fermes)].sort(),pas:Math.max(15,Math.round(n(v("pas")))||30),marge:Math.max(0,Math.round(n(v("marge")))),delaiH:Math.max(0,Math.round(n(v("delaiH")))),horizonJ:Math.min(180,Math.max(7,Math.round(n(v("horizonJ")))||45)),domicile:!!E.domicile.checked,
+    km:{prix:n(v("kmPrix")),tranche:Math.max(1,Math.round(n(v("kmTranche")))||5),allerRetour:!!E.allerRetour.checked,max:Math.max(0,Math.round(n(v("kmMax"))))}};
+  const em=v("notifEmail");if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){m.textContent="L'e-mail de notification semble incomplet.";m.hidden=false;return}
+  try{await db.collection("site_contenu").doc("rdv").set(cfg);await db.doc("reglages/rdv").set({...(S.rdvPrive||{}),adresse:v("adresse"),notifEmail:em,whatsappTel:v("whatsappTel"),callmebotKey:v("callmebotKey"),modifieLe:new Date().toISOString()});
+    delete form.dataset.dirty;m.hidden=true;toast("Rendez-vous : réglages enregistrés, en ligne")}catch(e){m.textContent=dbErr(e);m.hidden=false}}
+
 /* ---------- Réglages (roue dentée) ---------- */
 function pReglages(){
   const R=(attrs,t,sub,badge)=>`<button class="row" ${attrs}><span class="t">${t}${badge?` <span class="chip warn">${badge}</span>`:""}</span><span class="v">›</span><span class="s">${sub}</span></button>`;
-  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
+  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&!(d.type==="rdv"&&d.date)&&(d.statut||"Nouvelle")==="Nouvelle").length;
   return`${pageHead("Réglages","Ce qu'on règle rarement. Le quotidien est dans les 5 espaces du bas.")}
   <h3 class="sec">Prix</h3><div class="list">
     ${R('data-act="reglages"',"Réglages des prix","Marges, transport, grille, options")}
@@ -1151,7 +1260,8 @@ function pReglages(){
   </div>
   <h3 class="sec">Site eugceo.fr</h3><div class="list">
     ${R('data-act="page" data-p="site"',"Le site","Textes, photos, créations en ligne")}
-    ${R('data-act="page" data-p="demandes"',"Demandes reçues","Commandes, rendez-vous, messages",nDem||"")}
+    ${R('data-act="page" data-p="rdvreglages"',"Rendez-vous en ligne","Jours, heures, prestations, déplacement")}
+    ${R('data-act="page" data-p="demandes"',"Demandes reçues","Commandes et messages",nDem||"")}
   </div>
   <h3 class="sec">Société</h3><div class="list">
     ${R('data-act="page" data-p="societe"',"Société","SIREN, adresse, mentions des factures")}
@@ -1665,7 +1775,11 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act],[data-tab]");if(!b)return;
   const a=b.dataset.act;
   if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
-  if(a==="page"){S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
+  if(a==="rdv-st"){rdvStatut(b);return}
+  if(a==="rdv-mail"){rdvMail(b);return}
+  if(a==="rdvp-add"){const bx=$("#rdvPrest");if(bx){bx.insertAdjacentHTML("beforeend",rdvPrestLigne({}));const fm=bx.closest("form");if(fm)fm.dataset.dirty="1"}return}
+  if(a==="rdv-vente"){const d=rdvListe().find(x=>x.id===b.dataset.id);if(d)openForm("ventes",null,{client:d.nom,email:d.email||"",telephone:d.telephone||"",date:d.date,port:d.lieu==="domicile"?d.fraisDeplacement||"":"",commentaire:"Rendez-vous du "+dfr(d.date)+" à "+d.heure+" · "+(d.prestation||"")});return}
+  if(a==="page"){if(b.dataset.f)S.rdvFilter=b.dataset.f;S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
   if(a==="fact-pdf"){factPdfDl(b);return}
@@ -2119,7 +2233,7 @@ async function sendAnnonce(b){
 
 /* demandes */
 function pDemandes(){
-  const f=S.demFilter||"nouvelles";let L2=(S.demandes||[]).filter(d=>d.type!=="liste");
+  const f=S.demFilter||"nouvelles";let L2=(S.demandes||[]).filter(d=>d.type!=="liste"&&!(d.type==="rdv"&&d.date));
   if(f==="nouvelles")L2=L2.filter(d=>(d.statut||"Nouvelle")==="Nouvelle");
   if(f==="traitees")L2=L2.filter(d=>d.statut==="Traitée");
   L2.sort((a,b)=>(b.envoyeLe||"").localeCompare(a.envoyeLe||""));
@@ -2388,7 +2502,7 @@ async function lienSolde(b){
 }
 
 /* ---------- pages de gestion ---------- */
-function pageHead(t,sub){const r=["societe","referentiel","controles","site","demandes"].includes(S.page);return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="${r?"reglages":""}">‹ ${r?"Réglages":"Retour"}</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
+function pageHead(t,sub){const r=["societe","referentiel","controles","site","demandes","rdvreglages"].includes(S.page);return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="${r?"reglages":""}">‹ ${r?"Réglages":"Retour"}</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
 function table(head,rows,foot){return`<div class="tbl-wrap"><table class="tbl"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")||`<tr><td colspan="${head.length}" class="muted">Rien pour l'instant.</td></tr>`}</tbody>${foot?`<tfoot>${foot}</tfoot>`:""}</table></div>`}
 
 function pResultat(){
@@ -2800,6 +2914,7 @@ async function startData(session){
   db.collection("devis").onSnapshot(snap=>{S.devis=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("codes_promo").onSnapshot(snap=>{S.codes=S.codes_promo=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render()},()=>{});
+  db.doc("reglages/rdv").onSnapshot(x=>{S.rdvPrive=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/societe").onSnapshot(x=>{S.societe=x.exists?x.data():null;render()},()=>{});
   db.doc("reglages/referentiel").onSnapshot(x=>{S.referentiel=x.exists?x.data():null;applyListes();render()},()=>{});
   db.doc("reglages/prix").onSnapshot(s=>{if(s.exists)S.reglages={...DEF_REGLAGES,...s.data()};S.reglagesOk=true;render();syncPlanchers()},()=>{});
@@ -2807,6 +2922,7 @@ async function startData(session){
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&db)loaders.forEach(f=>f())});
 document.addEventListener("submit",e=>{const id=e.target.id;
   if(id==="loginForm"){e.preventDefault();e.stopImmediatePropagation();loginSubmit(e.target)}
+  else if(id==="rdvForm"){e.preventDefault();e.stopImmediatePropagation();saveRdvReglages(e.target)}
   else if(id==="socForm"){e.preventDefault();e.stopImmediatePropagation();saveSociete(e.target)}
   else if(id==="tfForm"){e.preventDefault();e.stopImmediatePropagation();saveTransfo()}
   else if(id==="dvForm"){e.preventDefault();e.stopImmediatePropagation();saveDevis()}
