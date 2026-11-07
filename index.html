@@ -884,6 +884,10 @@ async function prixApply(b){const p=prod(b.dataset.id);if(!p)return;const v=n(b.
   const o={prixBase:v,modifieLe:new Date().toISOString()};if(p.site)o.site={...p.site,prix:v};
   try{await db.collection("produits").doc(p.id).update(o);toast("Prix mis à "+eur(v))}catch(e){b.disabled=false;toast(dbErr(e))}}
 function filterBar(name,cur,opts){return`<div class="seg" role="group">${opts.map(([k,l])=>`<button data-act="filter" data-name="${name}" data-val="${k}" aria-pressed="${cur===k}">${l}</button>`).join("")}</div>`}
+/* vente d'un mois précédent pas encore soldée pendant le mois k (ou soldée pendant k) */
+function reporteeDans(v,k){if(!dansCA(v)||!v.date||ym(v.date)>=k||k>ym(today()))return false;
+  if(v.statut==="En attente de paiement")return venteReste(v)>0;
+  return v.statut==="Payée"&&v.avanceType&&v.avanceType!=="Aucune"&&!!v.dateEncaissement&&ym(v.dateEncaissement)>=k}
 function monthBar(){return`<div class="monthbar"><button class="iconbtn" data-act="mprev" aria-label="Mois précédent">‹</button><strong>${esc(monthName(S.month))}</strong><button class="iconbtn" data-act="mnext" aria-label="Mois suivant">›</button></div>`}
 function moreLinks(items){return`<div class="morel">${items.map(([attrs,l,badge])=>`<button type="button" class="sitebtn" ${attrs}>${esc(l)}${badge?` <span class="chip warn">${badge}</span>`:""}</button>`).join("")}</div>`}
 function vVentes(){
@@ -891,18 +895,21 @@ function vVentes(){
   const q=S.q.trim().toLowerCase();let list=[...S.ventes];
   if(f==="attente")list=list.filter(v=>v.statut==="En attente de paiement");
   else if(f==="expedier")list=list.filter(aExpedier);
-  else if(!q)list=list.filter(v=>ym(v.date)===S.month);
+  let report=[];
+  if(f==="tout"&&!q){report=S.ventes.filter(v=>reporteeDans(v,S.month)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));list=list.filter(v=>ym(v.date)===S.month)}
   if(q)list=list.filter(v=>(v.client+" "+(prod(v.produitId)?.code||"")+" "+(v.designation||"")+" "+(v.numFacture||"")).toLowerCase().includes(q));
   list.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.creeLe||"").localeCompare(a.creeLe||""));
-  const rows=list.map(v=>{const p=prod(v.produitId);const st=v.statut==="Payée"?"ok":v.statut==="En attente de paiement"?"warn":"bad";
-    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} <span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}</span></button>`}).join("");
-  const ca=list.filter(dansCA);const tot=r2(ca.reduce((t,v)=>t+venteTotal(v),0)),reste=r2(list.reduce((t,v)=>t+venteReste(v),0));
+  const row=(v,rep)=>{const p=prod(v.produitId);const st=v.statut==="Payée"?"ok":v.statut==="En attente de paiement"?"warn":"bad";
+    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${rep&&venteReste(v)?eur(venteReste(v)):eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} ${rep?(v.statut==="Payée"?`<span class="chip ok">soldée le ${dfr(v.dateEncaissement)}</span>`:`<span class="chip warn">reportée · reste ${eur(venteReste(v))} sur ${eur(venteTotal(v))}</span>`):`<span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}`}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}</span></button>`};
+  const rows=list.map(v=>row(v,false)).join("");const repRows=report.map(v=>row(v,true)).join("");
+  const ca=list.filter(dansCA);const tot=r2(ca.reduce((t,v)=>t+venteTotal(v),0)),reste=r2(list.concat(report).reduce((t,v)=>t+venteReste(v),0));
   const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
   return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["attente","À encaisser"],["expedier","À expédier"]])}
   ${f==="tout"&&!q?monthBar():`<p class="note">${q?"Recherche sur tous les mois.":"Tous les mois confondus."}</p>`}
   <div class="band"><span><b class="num">${ca.length}</b>vente${ca.length>1?"s":""}</span><span><b class="num">${eur(tot)}</b>au total</span><span><b class="num${reste?" warnv":""}">${eur(reste)}</b>reste à encaisser</span></div>
   <input class="search" id="q" type="search" placeholder="Chercher une cliente, un code, une facture" value="${esc(S.q)}">
-  ${loadingOr("ventes",`<div class="list">${rows||`<div class="empty">${f==="tout"&&!q?"Aucune vente ce mois-ci.":"Rien ici."}</div>`}</div>`)}
+  ${loadingOr("ventes",`${repRows?`<h3 class="sec">Reportées des mois précédents</h3><div class="list">${repRows}</div><h3 class="sec">Ventes du mois</h3>`:""}<div class="list">${rows||`<div class="empty">${f==="tout"&&!q?"Aucune vente ce mois-ci.":"Rien ici."}</div>`}</div>`)}
+  ${repRows?`<p class="note">Une vente pas entièrement payée revient chaque mois suivant, jusqu'à ce que le reste soit à zéro. Elle reste comptée dans le chiffre d'affaires de son mois d'origine.</p>`:""}
   ${moreLinks([['data-act="page" data-p="factures"',"Factures"],['data-act="page" data-p="devis"',"Devis"],['data-act="page" data-p="demandes"',"Demandes du site",nDem],['data-act="page" data-p="ambassadrices"',"Ambassadrices"]])}`;
 }
 function exChip(d){return""}
