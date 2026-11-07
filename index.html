@@ -1287,7 +1287,9 @@ function pVisuel(){
       <span class="hint">${md.length?"Celles de la fiche « Sur le site », ou une du téléphone.":"Rien sur la fiche : prends une photo ou une vidéo du téléphone avec « + »."}</span></div>
     <div class="two">${F("visFmt","Format",`<select id="visFmt" name="visFmt">${Object.entries(VIS_FORMATS).map(([k,v])=>`<option value="${k}">${v[2]}</option>`).join("")}</select>`)}
      ${F("visMode","Type",`<select id="visMode" name="visMode"><option value="photo">Avec la photo ou la vidéo</option><option value="calque">Calque transparent seul</option></select>`)}</div>
-    <div class="two">${F("visY","Cadrage (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}${F("visZoom","Zoom",`<input type="range" id="visZoom" name="visZoom" min="100" max="200" value="100">`)}</div>
+    ${F("visZoom","Taille de la photo ou vidéo (plus petite ↔ plus grande)",`<input type="range" id="visZoom" name="visZoom" min="40" max="200" value="100">`,"Au milieu = elle remplit tout le cadre. Plus petite : un fond flouté complète les bords.")}
+    <div class="two">${F("visX","Position (gauche ↔ droite)",`<input type="range" id="visX" name="visX" min="0" max="100" value="50">`)}${F("visY","Position (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}</div>
+    <div class="two">${F("visLogo","Logo EC EUGCEO",`<select id="visLogo" name="visLogo"><option value="hc">En haut, au centre</option><option value="hg">En haut, à gauche</option><option value="hd">En haut, à droite</option><option value="bd">En bas, à droite</option><option value="non">Pas de logo</option></select>`)}${F("visLogoT","Taille du logo",`<input type="range" id="visLogoT" name="visLogoT" min="50" max="150" value="100">`)}</div>
     <h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
     ${F("visSur","Petit titre",inp("visSur",T.sur),"Ex. Disponible, Sur commande, Nouvelle création, Pose réalisée.")}
     ${F("visTitre","Titre",inp("visTitre",T.titre,'placeholder="ex. Body Wave 24″"'))}
@@ -1331,14 +1333,22 @@ function visDraw(sync){
   const[W,H]=VIS_FORMATS[v("visFmt")||"post"];if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}const c=cv.getContext("2d");
   const calque=v("visMode")==="calque";c.clearRect(0,0,W,H);
   if(!calque){c.fillStyle="#111";c.fillRect(0,0,W,H);const src=VIS.vid||VIS.img;
-    if(src&&(src.videoWidth||src.width)){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const sc=Math.max(W/sw,H/sh)*z;const iw=sw*sc,ih=sh*sc;
-      const fy=(n(v("visY"))||50)/100;c.drawImage(src,(W-iw)/2,(H-ih)*fy,iw,ih)}
+    if(src&&(src.videoWidth||src.width)){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const cov=Math.max(W/sw,H/sh);const sc=cov*z;const iw=sw*sc,ih=sh*sc;
+      const fx=(v("visX")===""?50:n(v("visX")))/100,fy=(v("visY")===""?50:n(v("visY")))/100;
+      if(iw<W-1||ih<H-1){const bw=sw*cov*1.1,bh=sh*cov*1.1;if("filter" in c){c.filter="blur(28px) brightness(.55)";c.drawImage(src,(W-bw)/2,(H-bh)/2,bw,bh);c.filter="none"}else{c.drawImage(src,(W-bw)/2,(H-bh)/2,bw,bh);c.fillStyle="rgba(0,0,0,.62)";c.fillRect(0,0,W,H)}}
+      const x0=iw>W?(W-iw)*fx:(W-iw)*fx,y0=ih>H?(H-ih)*fy:(H-ih)*fy;c.drawImage(src,x0,y0,iw,ih)}
     else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.err||(VIS.src?"Chargement…":"Choisis une photo ou une vidéo"),W/2,H/2)}}
-  let g=c.createLinearGradient(0,0,0,H*0.22);g.addColorStop(0,"rgba(0,0,0,.45)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,W,H*0.22);
+  const lp=v("visLogo")||"hc",lt=(n(v("visLogoT"))||100)/100;
+  let g;if(lp[0]==="h"){g=c.createLinearGradient(0,0,0,H*0.22);g.addColorStop(0,"rgba(0,0,0,.45)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,W,H*0.22)}
   g=c.createLinearGradient(0,H*0.5,0,H);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(.55,"rgba(0,0,0,.55)");g.addColorStop(1,"rgba(0,0,0,.85)");c.fillStyle=g;c.fillRect(0,H*0.5,W,H*0.5);
   const story=H/W>1.6;const M=W*0.075;const top=story?H*0.07:H*0.05;
-  const ecPath=document.querySelector("#ec path");if(ecPath){if(!VIS.P)VIS.P=new Path2D(ecPath.getAttribute("d"));const eh=W*0.06,s=eh/25;c.save();c.translate(W/2-21*s,top);c.scale(s,s);c.translate(-29,-39);c.fillStyle="#C4A046";c.fill(VIS.P);c.restore()}
-  c.fillStyle="#fff";c.font=`500 ${Math.round(W*0.028)}px "Cormorant Garamond"`;c.textAlign="left";c.textBaseline="alphabetic";visSpaced(c,"EUGCEO",W/2,top+W*0.06+W*0.045,W*0.02,"center");
+  c.textAlign="left";c.textBaseline="alphabetic";
+  if(lp!=="non"){const eh=W*0.06*lt,s=eh/25,ew=42*s;const fs=Math.round(W*0.028*lt),sp=W*0.02*lt;c.font=`500 ${fs}px "Cormorant Garamond"`;
+    const tw=[..."EUGCEO"].reduce((a,ch)=>a+c.measureText(ch).width,0)+sp*5;const bw=Math.max(ew,tw);
+    const bh=eh+W*0.045*lt;const ly=lp==="bd"?H-(story?H*0.09:H*0.065)-W*0.16-bh:top;
+    const cx=lp==="hg"?M+bw/2:(lp==="hd"||lp==="bd")?W-M-bw/2:W/2;
+    const ecPath=document.querySelector("#ec path");if(ecPath){if(!VIS.P)VIS.P=new Path2D(ecPath.getAttribute("d"));c.save();c.translate(cx-ew/2,ly);c.scale(s,s);c.translate(-29,-39);c.fillStyle="#C4A046";c.fill(VIS.P);c.restore()}
+    c.fillStyle="#fff";c.font=`500 ${fs}px "Cormorant Garamond"`;visSpaced(c,"EUGCEO",cx,ly+eh+W*0.045*lt,sp,"center")}
   let y=H-(story?H*0.09:H*0.065);
   const site=v("visSite").trim(),prix=v("visPrix").trim(),l2=v("visL2").trim(),l1=v("visL1").trim(),titre=v("visTitre").trim(),sur=v("visSur").trim();
   if(site){c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="rgba(255,255,255,.72)";visSpaced(c,site.toUpperCase(),M,y,W*0.006,"left")}
@@ -2010,7 +2020,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
