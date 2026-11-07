@@ -348,6 +348,23 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 }
 @keyframes panelIn{from{transform:translateX(30px);opacity:.4}to{transform:none;opacity:1}}
 @media (min-width:1024px) and (prefers-color-scheme: dark){:root:not([data-theme="light"]) nav.tabs [data-tab][aria-current="page"]{background:#262626}}
+
+/* accueil : actions, à faire, tout trouver */
+.search.big{font-size:16px;padding:14px 16px;border-radius:14px}
+.gs{display:flex;flex-direction:column;gap:10px}.gres{display:flex;flex-direction:column;gap:6px}
+.acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.acts.small{grid-template-columns:repeat(2,minmax(0,1fr));margin:6px 0 4px}
+.act{display:flex;flex-direction:column;gap:3px;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--hair,#e6e1db);background:var(--bg,#fff);color:var(--fg,#111);font:inherit;cursor:pointer;text-decoration:none;min-height:68px;box-shadow:var(--shadow)}
+.act b{font-size:15px;font-weight:600}.act span{font-size:12.5px;color:var(--muted,#777)}
+.act:hover{border-color:var(--gold,#C4A046)}
+.act.main{background:#111;color:#fff;border-color:#111}.act.main b{color:var(--gold,#C4A046)}.act.main span{color:#ddd}
+.hub{display:grid;grid-template-columns:1fr;gap:14px}
+.hubg{display:flex;flex-direction:column;gap:8px}.hubg h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-d,#8a6f2c);margin:4px 0 0;font-weight:500}
+.hubt{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--hair,#e6e1db);background:var(--bg,#fff);color:var(--fg,#111);font:inherit;cursor:pointer}
+.hubt b{font-size:14.5px;font-weight:500}.hubt span{font-size:12.5px;color:var(--muted,#777)}.hubt:hover{border-color:var(--gold,#C4A046)}
+button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.tile:hover{border-color:var(--gold,#C4A046)}
+@media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -690,8 +707,8 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
   v.innerHTML=fn();
@@ -703,16 +720,47 @@ function banner(){
   return"";
 }
 function loadingOr(key,html){if(S.loaded.has(key))return html;return dbState==="ok"||dbState==="wait"?`<div class="empty">Chargement…</div>`:""}
+/* ---------- accueil : tout est accessible d'ici ---------- */
+function aFaire(){
+  const L2=[];const add=(n0,t,sub,attrs,lvl)=>{if(n0)L2.push({n:n0,t,sub,attrs,lvl:lvl||""})};
+  const exp=S.ventes.filter(aExpedier).length;add(exp,"À expédier",exp+" commande"+(exp>1?"s":"")+" à préparer et envoyer",'data-act="goto" data-tab="ventes" data-filter="expedier"',"warn");
+  const att=S.ventes.filter(v=>v.statut==="En attente de paiement");const reste=r2(att.reduce((t,v)=>t+venteReste(v),0));add(att.length,"À encaisser",eur(reste)+" sur "+att.length+" vente"+(att.length>1?"s":""),'data-act="goto" data-tab="ventes" data-filter="attente"');
+  const dem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;add(dem,"Demandes du site",dem+" nouvelle"+(dem>1?"s":"")+" à traiter",'data-act="page" data-p="demandes"',"warn");
+  const dv=(S.devis||[]).filter(d=>d.statut==="Accepté"&&!d.venteId).length;add(dv,"Devis acceptés",dv+" à transformer en vente",'data-act="page" data-p="devis"',"ok");
+  const ar=S.achats.filter(a=>!a.dateReception).length;add(ar,"Colis attendus",ar+" achat"+(ar>1?"s":"")+" pas encore reçu"+(ar>1?"s":""),'data-act="goto" data-tab="stock" data-filter="attente"');
+  const al=S.produits.filter(p=>!isPrestation(p)&&p.statut!=="Archivé").filter(p=>{const q=stockQty(p);return q<=0||q<=n(p.seuil)}).length;add(al,"Ruptures de stock",al+" référence"+(al>1?"s":"")+" à 0 ou sous le seuil",'data-act="goto" data-tab="stock" data-filter="alerte"');
+  const ab=S.abonnements.filter(a=>!a.fin||a.fin>=today()).filter(a=>aboOccurrences(a).includes(ym(today()))&&!(a.mois||[]).includes(ym(today()))&&Number(today().slice(8))>=n(a.jour)).length;add(ab,"Abonnements à pointer",ab+" prélèvement"+(ab>1?"s":"")+" de ce mois",'data-act="goto" data-tab="frais" data-filter="abonnements"');
+  const ju=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;add(ju,"Justificatifs manquants",ju+" facture"+(ju>1?"s":"")+" à ajouter",'data-act="page" data-p="justificatifs"');
+  const px=prixAlertes().length;add(px,"Prix à vérifier",px+" article"+(px>1?"s":"")+" (plancher, site, calcul)",'data-act="page" data-p="prix"',"warn");
+  return L2}
 function vAccueil(){
   const k=S.month,m=moisStats(k),t=tresorerie();
-  const attente=S.ventes.filter(v=>v.statut==="En attente de paiement");
-  const reste=attente.reduce((s,v)=>s+venteReste(v),0);
-  const actifs=S.produits.filter(p=>!isPrestation(p)&&p.statut!=="Archivé");
-  let pieces=0,valeur=0;const alertes=[];
-  for(const p of actifs){const q=stockQty(p);if(q>0){pieces+=q;valeur+=q*coutMoyen(p)}if(q<=0||q<=n(p.seuil))alertes.push(p)}
-  
-  const aPointer=S.abonnements.filter(a=>!a.fin||a.fin>=today()).filter(a=>aboOccurrences(a).includes(ym(today()))&&!(a.mois||[]).includes(ym(today()))&&Number(today().slice(8))>=n(a.jour));
+  const todo=aFaire();
+  const A=(attrs,titre,sous,cls)=>`<button class="act${cls?" "+cls:""}" ${attrs}><b>${titre}</b><span>${sous}</span></button>`;
+  const T=(attrs,titre,sous,badge)=>`<button class="hubt" ${attrs}><b>${titre}${badge?` <span class="chip warn">${badge}</span>`:""}</b><span>${sous}</span></button>`;
+  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
   return `${banner()}
+  <section class="full gs" aria-label="Recherche">
+    <input class="search big" id="gq" type="search" placeholder="Chercher : cliente, code, produit, facture…" value="${esc(S.gq||"")}" autocomplete="off">
+    ${(S.gq||"").trim().length>=2?gsearchHtml(S.gq):""}
+  </section>
+  <section class="full" aria-label="Actions">
+    <h2>Que veux-tu faire ?</h2>
+    <div class="acts">
+      ${A('data-act="new" data-col="ventes"',"+ Nouvelle vente","Une création ou une prestation","main")}
+      ${A('data-act="goto" data-tab="stock" data-filter="tarifs"',"Les prix","Tarifs de chaque article et options")}
+      ${A('data-act="page" data-p="clientes"',"Clientes","Coordonnées et historique")}
+      ${A('data-act="goto" data-tab="stock" data-filter="dispo"',"Le stock","Ce qui est disponible")}
+      ${A('data-act="goto" data-tab="ventes" data-filter="tout"',"Les ventes","Toutes les commandes")}
+      ${A('data-act="new" data-col="achats"',"+ Achat","Une commande fournisseur")}
+      ${A('data-act="new" data-col="depenses"',"+ Dépense","Frais, matériel, emballage…")}
+      ${A('data-act="goto" data-tab="frais" data-filter="tout"',"L'argent","Achats, dépenses, apports")}
+    </div>
+  </section>
+  <section class="full" aria-label="À faire">
+    <h2>À faire</h2>
+    <div class="list">${todo.length?todo.map(x=>`<button class="row" ${x.attrs}><span class="t">${x.t}</span><span class="v">${x.lvl?`<span class="chip ${x.lvl}">${x.n}</span>`:`<b class="num">${x.n}</b>`}</span><span class="s">${esc(x.sub)}</span></button>`).join(""):`<div class="empty">Rien d'urgent. Tout est à jour.</div>`}</div>
+  </section>
   <section class="hero" aria-label="Trésorerie">
     <p class="eyebrow">Argent en banque (estimé)</p>
     <div class="money-big num">${eur(t)}</div>
@@ -721,60 +769,124 @@ function vAccueil(){
   <section style="display:flex;flex-direction:column;gap:10px">
     <div class="monthbar"><button class="iconbtn" data-act="mprev" aria-label="Mois précédent">‹</button><strong>${esc(monthName(k))}</strong><button class="iconbtn" data-act="mnext" aria-label="Mois suivant">›</button></div>
     <div class="grid2">
-      <div class="tile"><span>Chiffre d'affaires</span><b class="num">${eur(m.ca)}</b><span>${m.nb} vente${m.nb>1?"s":""}</span></div>
+      <button class="tile" data-act="goto" data-tab="ventes" data-filter="mois"><span>Chiffre d'affaires</span><b class="num">${eur(m.ca)}</b><span>${m.nb} vente${m.nb>1?"s":""}</span></button>
       <div class="tile"><span>Marge sur les produits</span><b class="num">${eur(m.marge)}</b><span>CA − coût des pièces vendues</span></div>
-      <div class="tile"><span>Frais du mois</span><b class="num">${eur(m.dep)}</b><span>dépenses + abonnements</span></div>
-      <div class="tile"><span>Résultat du mois</span><b class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</b><span>${m.arrhes?"dont arrhes gardées "+eur(m.arrhes):"avant impôt"}</span></div>
+      <button class="tile" data-act="goto" data-tab="frais" data-filter="depenses"><span>Frais du mois</span><b class="num">${eur(m.dep)}</b><span>dépenses + abonnements</span></button>
+      <button class="tile" data-act="page" data-p="resultat"><span>Résultat du mois</span><b class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</b><span>${m.arrhes?"dont arrhes gardées "+eur(m.arrhes):"avant impôt"}</span></button>
     </div>
   </section>
-  <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>À suivre</h2>
-    <div class="list">
-      <button class="row" data-act="page" data-p="dettes"><span class="t">La société doit</span><span class="v num">${eur(dettes().reduce((t,[k,v])=>t+v.total,0))}</span><span class="s">${dettes().map(([k,v])=>esc(k.split(" ")[0])+" "+eur(v.total)).join(" · ")||"rien"}</span></button>
-      ${(()=>{const k=S.ventes.filter(aExpedier).length;return k?`<button class="row" data-act="goto" data-tab="ventes" data-filter="expedier"><span class="t">À expédier</span><span class="v num">${k}</span><span class="s">vente${k>1?"s":""} payée${k>1?"s":""} pas encore envoyée${k>1?"s":""}</span></button>`:""})()}
-      <button class="row" data-act="goto" data-tab="ventes" data-filter="attente"><span class="t">Reste à encaisser</span><span class="v num">${eur(reste)}</span><span class="s">${attente.length} vente${attente.length>1?"s":""} en attente de paiement</span></button>
-      <button class="row" data-act="goto" data-tab="stock" data-filter="alerte"><span class="t">Stock</span><span class="v num">${pieces} pièce${pieces>1?"s":""}</span><span class="s">valeur ${eur(valeur)}${alertes.length?` · <span class="chip warn">${alertes.length} en rupture ou sous le seuil</span>`:""}</span></button>
-      ${aPointer.length?`<button class="row" data-act="goto" data-tab="frais" data-filter="abonnements"><span class="t">Abonnements à pointer ce mois-ci</span><span class="v">${aPointer.length}</span><span class="s">${aPointer.map(a=>esc(a.fournisseur)).join(", ")}</span></button>`:""}
-    </div>
-  </section>
-  <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>Site internet</h2>
-    <div class="list">
-      <button class="row" data-act="page" data-p="site"><span class="t">Site eugceo.fr</span><span class="v">›</span><span class="s">Textes, photos, vidéos et créations en ligne.</span></button>
-      <button class="row" data-act="page" data-p="demandes"><span class="t">Demandes reçues</span><span class="v">${(()=>{const k=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;return k?`<span class="chip warn">${k} nouvelle${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Commandes, rendez-vous et messages du site.</span></button>
-    </div>
-  </section>
-  <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>Gestion</h2>
-    <div class="list">
-      <button class="row" data-act="page" data-p="justificatifs"><span class="t">Justificatifs</span><span class="v">${(()=>{const m=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;return m?`<span class="chip warn">${m} manquant${m>1?"s":""}</span>`:"›"})()}</span><span class="s">Toutes les factures et pièces, à voir ou remplacer.</span></button>
-      <button class="row" data-act="page" data-p="devis"><span class="t">Devis</span><span class="v">${(()=>{const k=(S.devis||[]).filter(d=>d.statut==="Accepté"&&!d.venteId).length;return k?`<span class="chip ok">${k} accepté${k>1?"s":""}</span>`:"›"})()}</span><span class="s">Préparer, envoyer, suivre les acceptations.</span></button>
-      <button class="row" data-act="page" data-p="factures"><span class="t">Factures</span><span class="v">›</span><span class="s">Toutes les factures clientes, à imprimer ou en PDF.</span></button>
-      <button class="row" data-act="page" data-p="resultat"><span class="t">Résultat de l'exercice</span><span class="v">›</span><span class="s">Chiffre d'affaires, charges, bénéfice et impôt estimé.</span></button>
-      <button class="row" data-act="page" data-p="tresorerie"><span class="t">Trésorerie</span><span class="v">›</span><span class="s">Entrées, sorties et solde mois par mois.</span></button>
-      <button class="row" data-act="page" data-p="tva"><span class="t">Franchise de TVA</span><span class="v">›</span><span class="s">Où vous en êtes par rapport aux seuils.</span></button>
-      <button class="row" data-act="page" data-p="inventaire"><span class="t">Inventaire</span><span class="v">›</span><span class="s">Compter le stock et corriger les écarts.</span></button>
-      <button class="row" data-act="page" data-p="controles"><span class="t">Contrôles</span><span class="v">${(()=>{const c=controles();const w=c.filter(x=>x.lvl!=="info").length;return c.length?`<span class="chip ${w?"warn":""}">${c.length}</span>`:`<span class="chip ok">0</span>`})()}</span><span class="s">Ce qui manque ou paraît anormal.</span></button>
-    </div>
-  </section>
-  <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>Réglages</h2>
-    <div class="list">
-      <button class="row" data-act="page" data-p="societe"><span class="t">Société</span><span class="v">›</span><span class="s">SIREN, adresse, exercice : utilisés sur les factures.</span></button>
-      <button class="row" data-act="page" data-p="ambassadrices"><span class="t">Ambassadrices</span><span class="v">›</span><span class="s">Leurs codes, les ventes apportées et leur cagnotte.</span></button>
-      <button class="row" data-act="reglages"><span class="t">Réglages des prix</span><span class="v">›</span><span class="s">Taux horaire, transport, packaging, marge, coefficient.</span></button>
-      <button class="row" data-act="page" data-p="referentiel"><span class="t">Référentiel</span><span class="v">›</span><span class="s">Toutes les listes : couleurs, modèles, constructions, laces, cheveux, bundles, collections, paiements, catégories.</span></button>
-      <button class="row" data-act="export-xlsx"><span class="t">Exporter pour Excel</span><span class="v">↓</span><span class="s">Un fichier .xlsx avec tout, pour un comptable.</span></button>
-    </div>
-  </section>
-  <section style="display:flex;flex-direction:column;gap:10px">
-    <h2>Compte</h2>
-    <div class="list">
-      <button class="row" data-act="export"><span class="t">Télécharger une sauvegarde</span><span class="v">↓</span><span class="s">Toutes les données dans un fichier, à garder dans 02_Finances.</span></button>
-      <button class="row" data-act="logout"><span class="t">Se déconnecter</span><span class="v">›</span><span class="s">${esc(myId||"")}</span></button>
+  <section class="full" aria-label="Tout trouver">
+    <h2>Tout trouver</h2>
+    <div class="hub">
+      <div class="hubg"><h3>Ventes et clientes</h3>
+        ${T('data-act="page" data-p="clientes"',"Clientes","Fiches, historique, nouvelle vente")}
+        ${T('data-act="page" data-p="factures"',"Factures","Imprimer, PDF, envoyer par e-mail")}
+        ${T('data-act="page" data-p="devis"',"Devis","Préparer, envoyer, suivre")}
+        ${T('data-act="page" data-p="ambassadrices"',"Ambassadrices","Codes, ventes apportées, cagnotte")}
+      </div>
+      <div class="hubg"><h3>Stock et prix</h3>
+        ${T('data-act="goto" data-tab="stock" data-filter="tarifs"',"Tarifs","Prix fixe de chaque article")}
+        ${T('data-act="page" data-p="prix"',"Contrôle des prix","Tes prix, le calcul, les planchers",prixAlertes().length||"")}
+        ${T('data-act="page" data-p="inventaire"',"Inventaire","Compter et corriger le stock")}
+        ${T('data-act="goto" data-tab="stock" data-filter="matieres"',"Matières","Colorations, colles, oxydants…")}
+      </div>
+      <div class="hubg"><h3>Site eugceo.fr</h3>
+        ${T('data-act="page" data-p="site"',"Le site","Textes, photos, créations en ligne")}
+        ${T('data-act="page" data-p="demandes"',"Demandes reçues","Commandes, rendez-vous, messages",nDem||"")}
+      </div>
+      <div class="hubg"><h3>Argent et comptes</h3>
+        ${T('data-act="page" data-p="resultat"',"Résultat","Chiffre d'affaires, charges, bénéfice")}
+        ${T('data-act="page" data-p="tresorerie"',"Trésorerie","Entrées et sorties mois par mois")}
+        ${T('data-act="page" data-p="dettes"',"Ce que la société doit","Avances des associés")}
+        ${T('data-act="page" data-p="justificatifs"',"Justificatifs","Toutes les factures et pièces")}
+        ${T('data-act="page" data-p="tva"',"Franchise de TVA","Où tu en es par rapport aux seuils")}
+      </div>
+      <div class="hubg"><h3>Réglages</h3>
+        ${T('data-act="reglages"',"Réglages des prix","Marges, transport, grille, options")}
+        ${T('data-act="page" data-p="referentiel"',"Référentiel","Listes, codes, fourchettes d'achat")}
+        ${T('data-act="page" data-p="societe"',"Société","SIREN, adresse, mentions des factures")}
+        ${T('data-act="page" data-p="controles"',"Contrôles","Ce qui manque ou paraît anormal")}
+      </div>
+      <div class="hubg"><h3>Compte</h3>
+        ${T('data-act="export-xlsx"',"Exporter pour Excel","Un fichier pour le comptable")}
+        ${T('data-act="export"',"Sauvegarde","Toutes les données dans un fichier")}
+        ${T('data-act="logout"',"Se déconnecter",esc(myId||""))}
+      </div>
     </div>
   </section>`;
 }
+/* ---------- recherche globale ---------- */
+function gsearchHtml(q0){
+  const q=nomSimple(q0);const has=x=>nomSimple(x).includes(q);const out=[];
+  const pages=[["tarifs","Tarifs (prix)",'data-act="goto" data-tab="stock" data-filter="tarifs"'],["prix controle","Contrôle des prix",'data-act="page" data-p="prix"'],["clientes","Clientes",'data-act="page" data-p="clientes"'],["factures","Factures",'data-act="page" data-p="factures"'],["devis","Devis",'data-act="page" data-p="devis"'],["reglages réglages marge transport","Réglages des prix",'data-act="reglages"'],["referentiel référentiel listes fourchettes","Référentiel",'data-act="page" data-p="referentiel"'],["ambassadrices code promo cagnotte","Ambassadrices",'data-act="page" data-p="ambassadrices"'],["site internet","Le site",'data-act="page" data-p="site"'],["demandes messages","Demandes reçues",'data-act="page" data-p="demandes"'],["tresorerie trésorerie banque","Trésorerie",'data-act="page" data-p="tresorerie"'],["resultat résultat benefice","Résultat",'data-act="page" data-p="resultat"'],["inventaire","Inventaire",'data-act="page" data-p="inventaire"'],["justificatifs","Justificatifs",'data-act="page" data-p="justificatifs"'],["societe société siren","Société",'data-act="page" data-p="societe"']];
+  const pg=pages.filter(([k,l])=>has(k+" "+l)).slice(0,4);if(pg.length)out.push(["Pages",pg.map(([,l,a])=>`<button class="row" ${a}><span class="t">${esc(l)}</span><span class="v">›</span></button>`)]);
+  const cl=clientesListe().filter(c=>has(c.nom+" "+c.email+" "+c.tel+" "+c.ville)).slice(0,6);
+  if(cl.length)out.push(["Clientes",cl.map(c=>`<button class="row" data-act="page" data-p="client" data-id="${esc(c.key)}"><span class="t">${esc(c.nom)}</span><span class="v num">${eur(c.total)}</span><span class="s">${c.nb} achat${c.nb>1?"s":""}${c.tel?" · "+esc(c.tel):""}${c.email?" · "+esc(c.email):""}</span></button>`)]);
+  const pr=S.produits.filter(p=>p.statut!=="Archivé"&&has(p.code+" "+designation(p))).slice(0,6);
+  if(pr.length)out.push(["Produits",pr.map(p=>{const sq=stockQty(p);return`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(designation(p))}</span><span class="v num">${prixBaseDe(p)>0?eur(prixBaseDe(p)):"—"}</span><span class="s"><span class="code">${esc(p.code)}</span>${sq===null?"":" · "+sq+" en stock"}</span></button>`})]);
+  const ve=[...S.ventes].filter(v=>{const p=prod(v.produitId);return has((v.client||"")+" "+(v.numFacture||v.ref||"")+" "+(p?p.code+" "+designation(p):"")+" "+(v.numeroSuivi||""))}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,6);
+  if(ve.length)out.push(["Ventes",ve.map(v=>{const p=prod(v.produitId);return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||""))} · ${esc(v.statut||"")}</span></button>`})]);
+  const ac=S.achats.filter(a=>{const p=prod(a.produitId);return has((a.fournisseur||"")+" "+(a.numFacture||"")+" "+(a.ref||"")+" "+(p?p.code:""))}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
+  if(ac.length)out.push(["Achats",ac.map(a=>{const p=prod(a.produitId);return`<button class="row" data-act="edit" data-col="achats" data-id="${esc(a.id)}"><span class="t">${esc(a.fournisseur||"Achat")}</span><span class="v num">${eur(achatTotal(a))}</span><span class="s">${dfr(a.date)} · ${esc(p?p.code:"")}${a.ref?" · "+esc(a.ref):""}</span></button>`})]);
+  const de=S.depenses.filter(d=>has((d.fournisseur||"")+" "+(d.description||"")+" "+(d.categorie||"")+" "+(d.numFacture||""))).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
+  if(de.length)out.push(["Dépenses",de.map(d=>`<button class="row" data-act="edit" data-col="depenses" data-id="${esc(d.id)}"><span class="t">${esc(d.fournisseur||"Dépense")}</span><span class="v num">${eur(n(d.montant))}</span><span class="s">${dfr(d.date)} · ${esc(d.description||d.categorie||"")}</span></button>`)]);
+  if(!out.length)return`<div class="empty">Rien trouvé pour « ${esc(q0)} ».</div>`;
+  return`<div class="gres">${out.map(([h,rows])=>`<h3 class="sec">${h}</h3><div class="list">${rows.join("")}</div>`).join("")}</div>`}
+/* ---------- clientes (à partir des ventes) ---------- */
+function clientesListe(){
+  const M=new Map();
+  const ventes=[...S.ventes].filter(v=>(v.client||"").trim()&&!/^\s*\[test\]/i.test(v.client)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  for(const v of ventes){const em=String(v.email||"").trim().toLowerCase(),te=telSimple(v.telephone),no=nomSimple(v.client);
+    let c=null;for(const x of M.values()){if((em&&x.emails.has(em))||(te&&x.tels.has(te))||(no&&x.noms.has(no))){c=x;break}}
+    if(!c){c={key:"c"+(M.size+1),nom:v.client.trim(),email:"",tel:"",adresse:"",ville:"",emails:new Set(),tels:new Set(),noms:new Set(),ventes:[],total:0,nb:0,der:""};M.set(c.key,c)}
+    if(em)c.emails.add(em);if(te)c.tels.add(te);if(no)c.noms.add(no);
+    {const nn=v.client.trim();if(!c.nom||(/[A-ZÀ-Ý]/.test(nn)&&!/[A-ZÀ-Ý]/.test(c.nom))||nn.length>c.nom.length)c.nom=nn}if(v.email)c.email=v.email;if(v.telephone)c.tel=v.telephone;if(v.adresse)c.adresse=v.adresse;if(v.ville)c.ville=v.ville;
+    c.ventes.push(v);if(dansCA(v)){c.total=r2(c.total+venteTotal(v));c.nb++}c.der=v.date||c.der}
+  /* clé stable : e-mail, sinon téléphone, sinon nom */
+  return[...M.values()].map(c=>({...c,key:[...c.emails][0]||(([...c.tels][0])?"t"+[...c.tels][0]:"n"+[...c.noms][0])})).sort((a,b)=>(b.der||"").localeCompare(a.der||""))}
+function clienteDe(key){return clientesListe().find(c=>c.key===key)||null}
+function pClientes(){
+  const q=nomSimple(S.cq||"");let L2=clientesListe();if(q)L2=L2.filter(c=>nomSimple(c.nom+" "+c.email+" "+c.tel+" "+c.ville).includes(q));
+  return`${pageHead("Clientes","Toutes les personnes qui ont acheté, retrouvées à partir des ventes (même e-mail, même téléphone ou même nom = même cliente).")}
+  <input class="search" id="cq" type="search" placeholder="Chercher une cliente : nom, téléphone, e-mail, ville" value="${esc(S.cq||"")}" autocomplete="off">
+  <div class="list">${L2.map(c=>{const amb=ambDe(c.nom,c.email,c.tel);return`<button class="row" data-act="page" data-p="client" data-id="${esc(c.key)}"><span class="t">${esc(c.nom)}${amb?` <span class="chip ok">ambassadrice</span>`:""}</span><span class="v num">${eur(c.total)}</span><span class="s">${c.nb} achat${c.nb>1?"s":""} · dernier le ${dfr(c.der)}${c.ville?" · "+esc(c.ville):""}</span></button>`}).join("")||`<div class="empty">${q?"Aucune cliente trouvée.":"Pas encore de cliente : elles apparaissent dès la première vente."}</div>`}</div>`}
+function pClient(key){
+  const c=clienteDe(key);if(!c)return`${pageHead("Cliente","")}<div class="empty">Cliente introuvable.</div>`;
+  const amb=ambDe(c.nom,c.email,c.tel);const st=amb?etatAmb(amb):null;
+  const tel=String(c.tel||"").replace(/[^\d+]/g,"");const wa=tel?"https://wa.me/"+(tel.startsWith("+")?tel.slice(1):tel.startsWith("0")?"33"+tel.slice(1):tel):"";
+  const vs=[...c.ventes].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="clientes">‹ Clientes</button></div>
+  <div><h2 class="ptitle">${esc(c.nom)}</h2><p class="note">${c.nb} achat${c.nb>1?"s":""} · ${eur(c.total)} au total · cliente depuis le ${dfr(c.ventes[0]&&c.ventes[0].date)}</p></div>
+  <div class="acts small">
+    <button class="act main" data-act="client-vente" data-id="${esc(c.key)}"><b>+ Nouvelle vente</b><span>Ses coordonnées déjà remplies</span></button>
+    ${tel?`<a class="act" href="tel:${esc(tel)}"><b>Appeler</b><span>${esc(c.tel)}</span></a><a class="act" href="${esc(wa)}" target="_blank" rel="noopener"><b>WhatsApp</b><span>Écrire un message</span></a>`:""}
+    ${c.email?`<a class="act" href="mailto:${esc(c.email)}"><b>E-mail</b><span>${esc(c.email)}</span></a>`:""}
+  </div>
+  <section><h2>Coordonnées</h2><div class="list">
+    <div class="row" style="cursor:default"><span class="t">Téléphone</span><span class="s">${esc(c.tel||"—")}</span></div>
+    <div class="row" style="cursor:default"><span class="t">E-mail</span><span class="s">${esc(c.email||"—")}</span></div>
+    <div class="row" style="cursor:default"><span class="t">Adresse</span><span class="s">${esc([c.adresse,c.ville].filter(Boolean).join(", ")||"—")}</span></div>
+  </div><p class="note">Pour corriger une coordonnée, modifie-la dans sa dernière vente.</p></section>
+  ${amb?`<section><h2>Ambassadrice</h2><div class="list"><button class="row" data-act="page" data-p="ambassadrices"><span class="t">Code <span class="code">${esc(amb.id)}</span></span><span class="v num">${eur(st?st.solde:0)}</span><span class="s">cagnotte disponible${st&&st.enAttente?" · "+st.enAttente+" commande(s) en attente":""}</span></button></div></section>`:""}
+  <section><h2>Ses achats</h2><div class="list">${vs.map(v=>{const p=prod(v.produitId);const s2=v.statut==="Payée"?"ok":v.statut==="En attente de paiement"?"warn":"bad";return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(p?designation(p):(v.designation||"Vente"))}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} <span class="chip ${s2}">${esc(v.statut||"")}</span>${venteReste(v)?` <span class="chip">reste ${eur(venteReste(v))}</span>`:""}</span></button>`}).join("")}</div></section>`}
+/* ---------- contrôle des prix ---------- */
+function prixLigne(p){const pb=prixBaseDe(p),calc=prixBaseConseille(p),pl=n(plancherSite(p)),site=p.site&&n(p.site.prix)>0?n(p.site.prix):0;
+  const pbs=n(p.prixBase)>0?n(p.prixBase):0;const al=[];
+  if(pb&&pl&&pb<pl)al.push(["bad","sous le plancher"]);if(site&&pl&&site<pl)al.push(["bad","site sous le plancher"]);
+  if(site&&pbs&&site!==pbs)al.push(["warn","site ≠ prix de base"]);if(calc&&pb&&Math.abs(calc-pb)>5)al.push(["",calc>pb?"calcul plus haut":"calcul plus bas"]);
+  return{p,pb,calc,pl,site,al}}
+function prixAlertes(){return S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).map(prixLigne).filter(x=>x.al.some(a=>a[0]))}
+function pPrix(){
+  const L2=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).map(prixLigne).sort((a,b)=>b.al.filter(x=>x[0]).length-a.al.filter(x=>x[0]).length||(a.p.code||"").localeCompare(b.p.code||""));
+  const ro=!(db&&canWrite);
+  return`${pageHead("Contrôle des prix","Pour chaque article : ton prix, le prix calculé par l'app, le plancher (coûts + marge minimale) et le prix du site. Rouge = à corriger, orange = à vérifier, gris = simple écart avec le calcul.")}
+  <div class="list">${L2.map(x=>`<div class="row" style="cursor:default"><span class="t">${esc(designation(x.p))}</span><span class="v num">${x.pb?eur(x.pb):"—"}</span>
+    <span class="s"><span class="code">${esc(x.p.code)}</span> · calcul ${x.calc?eur(x.calc):"—"} · plancher ${x.pl?eur(x.pl):"—"}${x.site?" · site "+eur(x.site):""} ${x.al.map(a=>`<span class="chip ${a[0]}">${a[1]}</span>`).join(" ")}</span>
+    <span class="s">${ro?"":`${x.calc&&x.calc!==x.pb?`<button type="button" class="sitebtn" data-act="prix-apply" data-id="${esc(x.p.id)}" data-v="${x.calc}">Prendre le calcul (${eur(x.calc)})</button>`:""}${x.site&&x.pb&&x.site!==x.pb?`<button type="button" class="sitebtn" data-act="prix-apply" data-id="${esc(x.p.id)}" data-v="${x.pb}">Mettre le site à ${eur(x.pb)}</button>`:""}`}<button type="button" class="sitebtn" data-act="edit" data-col="produits" data-id="${esc(x.p.id)}">Ouvrir la fiche</button></span></div>`).join("")||`<div class="empty">Aucun article.</div>`}</div>
+  <p class="note">« Prendre le calcul » met le prix de base et le prix du site au prix calculé. Tes prix ne changent jamais tout seuls.</p>`}
+async function prixApply(b){const p=prod(b.dataset.id);if(!p)return;const v=n(b.dataset.v);b.disabled=true;
+  const o={prixBase:v,modifieLe:new Date().toISOString()};if(p.site)o.site={...p.site,prix:v};
+  try{await db.collection("produits").doc(p.id).update(o);toast("Prix mis à "+eur(v))}catch(e){b.disabled=false;toast(dbErr(e))}}
 function filterBar(name,cur,opts){return`<div class="seg" role="group">${opts.map(([k,l])=>`<button data-act="filter" data-name="${name}" data-val="${k}" aria-pressed="${cur===k}">${l}</button>`).join("")}</div>`}
 function vVentes(){
   const f=S.ventesFilter;let list=[...S.ventes];
@@ -1446,6 +1558,8 @@ document.addEventListener("click",e=>{
   else if(a==="av-add"){const box=$("#avLines");box.insertAdjacentHTML("beforeend",avLine({moyen:box.children.length?"Virement":"Espèces"}));const i=box.lastElementChild.querySelector(".avM");if(i)i.focus();livePreview()}
   else if(a==="line-rm"){const fm=b.closest("#refForm");if(fm)fm.dataset.dirty="1";b.closest(".line").remove();livePreview()}
   else if(a==="rp-cancel"){remisePrixSet(0);livePreview()}
+  else if(a==="prix-apply"){prixApply(b)}
+  else if(a==="client-vente"){const c=clienteDe(b.dataset.id);if(c)openForm("ventes",null,{client:c.nom,email:c.email,telephone:c.tel,adresse:c.adresse,ville:c.ville,date:today()})}
   else if(a==="use-price"){const f=$("#prixTTC");if(f){f.value=String(b.dataset.v);livePreview()}}
   else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
@@ -1456,6 +1570,7 @@ document.addEventListener("input",e=>{
   if(e.target.matches&&e.target.matches('input[name="ville"],input[name="cpVille"],#dv_ville'))villeAuto(e.target);
   if(e.target.id==="cliente"&&current&&current.col==="codes_promo"&&!current.id){const c=$("#code");if(c&&(!c.value||c.value===current.autoCode)){current.autoCode=e.target.value.trim()?codeAuto(e.target.value):"";c.value=current.autoCode}}
   if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
+  if(e.target.id==="gq"||e.target.id==="cq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
