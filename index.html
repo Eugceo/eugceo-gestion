@@ -748,7 +748,7 @@ function doRender(){
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
   if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages"}[S.page]||"Gestion";return}}
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages"}[S.page]||"Gestion";return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -2388,7 +2388,7 @@ async function lienSolde(b){
 }
 
 /* ---------- pages de gestion ---------- */
-function pageHead(t,sub){return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="">‹ Retour</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
+function pageHead(t,sub){const r=["societe","referentiel","controles","site","demandes"].includes(S.page);return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="${r?"reglages":""}">‹ ${r?"Réglages":"Retour"}</button></div><div><h2 class="ptitle">${esc(t)}</h2>${sub?`<p class="note">${sub}</p>`:""}</div>`}
 function table(head,rows,foot){return`<div class="tbl-wrap"><table class="tbl"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")||`<tr><td colspan="${head.length}" class="muted">Rien pour l'instant.</td></tr>`}</tbody>${foot?`<tfoot>${foot}</tfoot>`:""}</table></div>`}
 
 function pResultat(){
@@ -2535,7 +2535,7 @@ function pSociete(){
    <div class="two">${f("villeRcs","Ville du greffe (RCS)")}${f("tvaIntra","N° TVA intracommunautaire","Seulement si la société en a un.")}</div>
    ${f("president","Président(e)")}
    <div class="two">${f("email","E-mail")}${f("site","Site internet")}</div>
-   ${f("iban","IBAN","Facultatif : affiché sur les factures non payées.")}
+   ${f("iban","IBAN","Celui du compte Qonto (commence par FR76). Affiché sur les factures pas encore payées.",'autocomplete="off" autocapitalize="characters" spellcheck="false" autocorrect="off" placeholder="FR76 …"')}
    <fieldset><legend>Exercice</legend><div class="two">${f("debutExercice","Début","",'type="date"')}${f("finExercice","Fin","",'type="date"')}</div>${f("banqueDebut","Argent en banque au début (€)","0 pour le premier exercice.",'inputmode="decimal"')}</fieldset>
    <fieldset><legend>Factures</legend>${f("conditions","Conditions de paiement")}${f("mention","Mention en bas de facture")}</fieldset>
    <p class="err" id="socMsg" hidden></p>
@@ -2544,7 +2544,7 @@ function pSociete(){
 }
 async function saveSociete(form){
   const o={};form.querySelectorAll("input[name]").forEach(i=>{o[i.name]=["capital","banqueDebut"].includes(i.name)?n(i.value):i.value.trim()});
-  try{await db.doc("reglages/societe").set({...soc(),...o,modifieLe:new Date().toISOString()});toast("Enregistré")}catch(e){const m=$("#socMsg");m.textContent=dbErr(e);m.hidden=false}
+  try{await db.doc("reglages/societe").set({...soc(),...o,modifieLe:new Date().toISOString()});delete form.dataset.dirty;$("#socMsg").hidden=true;toast("Enregistré")}catch(e){const m=$("#socMsg");m.textContent=dbErr(e);m.hidden=false}
 }
 function lxLine(x,i){i=i||{};const cl="lx"+(1+(x.c?1:0)+(x.b?1:0));
   return`<div class="line ${cl}"><input class="lxNom" value="${esc(i.nom||"")}" placeholder="Nom" aria-label="Nom">${x.c?`<input class="lxCode" value="${esc(i.code||"")}" placeholder="CODE" aria-label="Code">`:""}${x.b?`<input class="lxBonus" inputmode="decimal" value="${String(i.bonus??0).replace(".",",")}" aria-label="Bonus">`:""}<button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
@@ -2574,7 +2574,7 @@ function pReferentiel(){
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
   </form>`;
 }
-document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest("#refForm");if(f)f.dataset.dirty="1"});
+document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest("#view form");if(f)f.dataset.dirty="1"});
 async function saveReferentiel(form){
   const couleurs=[...form.querySelectorAll("#rfLines .line")].map(l=>({nom:l.querySelector(".rfNom").value.trim(),code:l.querySelector(".rfCode").value.trim().toUpperCase(),bonus:n(l.querySelector(".rfBonus").value)})).filter(x=>x.nom&&x.code);
   const modeles=[...form.querySelectorAll("#rmLines .line")].map(l=>({nom:l.querySelector(".rmNom").value.trim(),code:l.querySelector(".rmCode").value.trim().toUpperCase(),bonus:n(l.querySelector(".rmBonus").value)})).filter(x=>x.nom&&x.code);
