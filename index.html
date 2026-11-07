@@ -365,19 +365,58 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.tile:hover{border-color:var(--gold,#C4A046)}
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* ===== nouvelle organisation : 5 espaces ===== */
+header.top .hdbtn{align-self:center;background:none;border:0;color:#bdbdbd;cursor:pointer;line-height:0;padding:6px}
+header.top .hdbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+header.top .hdbtn:hover{color:#C4A046}
+header.top .plustop{width:36px;height:36px;border-radius:50%;background:#C4A046;color:#111;font-size:24px;line-height:1;display:grid;place-items:center;padding:0;margin-left:4px}
+header.top .plustop:hover{color:#111;background:#d4b25a}
+header.top .plustop[disabled]{opacity:.35}
+nav.tabs .plus{display:none}
+.band{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.band>span{background:var(--bg);border:1px solid var(--hair);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.band b{font-size:17px;color:var(--fg);font-weight:600}
+.band .warnv{color:var(--warn)}
+.morel{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.morel .sitebtn{margin:0;padding:7px 14px;font-size:13px}
+.bt{width:100%;border-collapse:separate;border-spacing:0;background:var(--bg);border:1px solid var(--hair);border-radius:14px;overflow:hidden;font-size:14px}
+.bt th,.bt td{padding:8px 10px;border-top:1px solid var(--hair);text-align:left;vertical-align:top}
+.bt thead th{border-top:0;background:var(--soft);font-size:12px;font-weight:500;color:var(--muted)}
+.bt tbody th{font-weight:600;white-space:nowrap}
+.bt .dash{color:var(--muted)}
+.cellbtn{display:flex;flex-direction:column;gap:1px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.cellbtn b{font-weight:600}.cellbtn span{font-size:11.5px;color:var(--muted)}
+.cellbtn:hover b{color:var(--gold-d)}
+.card{background:var(--bg);border:1px solid var(--hair);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+.card .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.card .top b{font-weight:600}
+.card .lines{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)}
+.card .lines button{background:none;border:0;padding:2px 0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.card .lines button:hover{color:var(--gold-d)}
+.card .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cards{display:flex;flex-direction:column;gap:10px}
+.kline{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--muted)}
+.kline.head{font-size:15px;color:var(--fg);font-weight:600}
+.kline .in{color:var(--ok)}.kline .out{color:var(--bad)}
+button.card{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
+button.card:hover{border-color:var(--gold)}
+.grid2.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:640px){.grid2.g4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1024px){header.top .plustop{display:none}nav.tabs .plus{display:flex}}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ec" viewBox="29 39 42 25"><path fill="#C4A046" d="M45.1 62H30.62Q30.52 62 30.52 61.8Q30.52 61.59 30.62 61.59Q31.78 61.59 32.37 61.42Q32.97 61.25 33.17 60.74Q33.37 60.23 33.37 59.25V43.5Q33.37 42.52 33.17 42.02Q32.97 41.53 32.37 41.34Q31.78 41.16 30.62 41.16Q30.52 41.16 30.52 40.95Q30.52 40.75 30.62 40.75H44.49Q44.83 40.75 44.83 41.06L44.9 45.34Q44.9 45.44 44.71 45.46Q44.53 45.48 44.49 45.37Q44.25 43.5 43.17 42.53Q42.08 41.57 40.31 41.57H38.58Q37.56 41.57 37.01 41.74Q36.47 41.91 36.26 42.36Q36.06 42.82 36.06 43.64V59.11Q36.06 59.93 36.25 60.39Q36.43 60.84 36.94 61.03Q37.45 61.22 38.37 61.22H40.62Q42.55 61.22 43.81 60.08Q45.07 58.94 45.55 56.83Q45.55 56.73 45.75 56.76Q45.95 56.8 45.95 56.9Q45.82 57.82 45.72 59.11Q45.61 60.4 45.61 61.49Q45.61 62 45.1 62ZM43.2 54.18Q43.2 52.72 42.37 52.02Q41.53 51.32 39.7 51.32H34.77V50.54H39.8Q41.53 50.54 42.35 49.95Q43.17 49.35 43.17 48.09Q43.17 48.03 43.35 48.03Q43.54 48.03 43.54 48.09Q43.54 49.15 43.52 49.73Q43.51 50.3 43.51 50.95Q43.51 51.73 43.56 52.51Q43.61 53.3 43.61 54.18Q43.61 54.25 43.4 54.25Q43.2 54.25 43.2 54.18ZM61.73 40.38Q63.02 40.38 64.13 40.49Q65.23 40.61 66.2 40.89Q67.17 41.16 68.05 41.6Q68.33 41.7 68.38 41.82Q68.43 41.94 68.46 42.35L68.9 46.63Q68.9 46.7 68.72 46.75Q68.53 46.8 68.5 46.67Q67.65 43.84 65.91 42.4Q64.18 40.95 61.49 40.95Q58.77 40.95 56.73 42.21Q54.69 43.47 53.54 45.77Q52.38 48.06 52.38 51.19Q52.38 53.5 53.09 55.44Q53.81 57.38 55.08 58.82Q56.36 60.27 58.04 61.05Q59.72 61.83 61.66 61.83Q64.38 61.83 66.06 60.47Q67.75 59.11 68.77 56.32Q68.84 56.22 69.01 56.25Q69.18 56.29 69.18 56.39L68.8 60.27Q68.77 60.67 68.68 60.78Q68.6 60.88 68.36 61.01Q66.63 61.8 65.05 62.12Q63.46 62.44 61.66 62.44Q58.06 62.44 55.25 61.03Q52.45 59.62 50.85 57.12Q49.25 54.62 49.25 51.32Q49.25 48.88 50.19 46.87Q51.12 44.86 52.82 43.4Q54.52 41.94 56.78 41.16Q59.04 40.38 61.73 40.38Z"/></symbol></svg>
 <div class="intro" id="intro" aria-hidden="true"><svg><use href="#ec"/></svg><span>EUGCEO</span><small>Gestion</small></div>
-<header class="top"><div class="wrap"><svg class="hd-ec" aria-hidden="true"><use href="#ec"/></svg><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span><button type="button" class="reload" id="reloadBtn" title="Recharger l'app" aria-label="Recharger l'app"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div></header>
+<header class="top"><div class="wrap"><svg class="hd-ec" aria-hidden="true"><use href="#ec"/></svg><span class="brand">EUGCEO</span><h1 id="screenTitle">Accueil</h1><span class="status" id="status">Connexion…</span><button type="button" class="reload" id="reloadBtn" title="Recharger l'app" aria-label="Recharger l'app"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button><button type="button" class="hdbtn gear" data-act="page" data-p="reglages" title="Réglages" aria-label="Réglages"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button type="button" class="hdbtn plustop" id="plusTop" aria-label="Ajouter">+</button></div></header>
 <div class="majbar" id="majBar" hidden>Une nouvelle version de l'app est prête. <button type="button" id="majBtn">Mettre à jour</button></div>
 <main><div class="wrap" id="view"></div></main>
 <nav class="tabs" aria-label="Sections"><div class="wrap">
   <div class="side-brand" aria-hidden="true"><svg><use href="#ec"/></svg><span>EUGCEO</span><small>Gestion</small></div>
-  <button data-tab="accueil" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</button>
-  <button data-tab="ventes"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Ventes</button>
   <button class="plus" id="plusBtn" aria-label="Ajouter">+</button>
+  <button data-tab="accueil" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Aujourd'hui</button>
+  <button data-tab="ventes"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Ventes</button>
+  <button data-tab="carnet"><svg viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16a3.5 3.5 0 0 1 7 0"/></svg>Carnet</button>
   <button data-tab="stock"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>Stock</button>
   <button data-tab="frais"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Argent</button>
 </div></nav>
@@ -462,8 +501,8 @@ const TRAVAUX={"Pose":2,"Remise en forme":1,"Préparation de base":1.5,"Colorati
 function prepBase(p){if(!p||isPrestation(p))return 0;if(p.construction==="Bundle (Tissage)")return 0;if(["Demi-tête (Half Wig)","Ponytail (Queue de cheval)"].includes(p.construction))return 0.5;return 1.5}
 
 /* ---------- état ---------- */
-const S={devis:[],demandes:[],codes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",month:ym(today()),fraisFilter:"tout",ventesFilter:"tout",stockFilter:"dispo",q:""};
-NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];navRestore();
+const S={devis:[],demandes:[],codes:[],referentiel:null,societe:null,page:null,pageId:null,produits:[],ventes:[],achats:[],depenses:[],financement:[],abonnements:[],mouvements:[],matieres:[],reglages:{...DEF_REGLAGES},loaded:new Set(),tab:"accueil",carnetTab:"clientes",month:ym(today()),fraisFilter:"mois",ventesFilter:"tout",stockFilter:"dispo",q:""};
+NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter","carnetTab"];navRestore();
 let db=null,assets=null,user=null,myId=null,canWrite=true,dbState="wait";
 
 /* ---------- utilitaires ---------- */
@@ -694,23 +733,24 @@ function aReporter(){let c=0;for(const k of COLS)for(const d of S[k])if(d.excel&
 /* ---------- rendu ---------- */
 let rq=0;function render(){cancelAnimationFrame(rq);rq=requestAnimationFrame(doRender)}
 /* garde l'écran affiché pour le retrouver après un rechargement */
-var NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter"];
+var NAV_KEYS=["tab","page","pageId","month","fraisFilter","ventesFilter","stockFilter","carnetTab"];
 function navSave(){try{const o={};NAV_KEYS.forEach(k=>o[k]=S[k]);o.y=window.scrollY;sessionStorage.setItem("eug_nav",JSON.stringify(o))}catch(_){}}
 function navRestore(){try{const o=JSON.parse(sessionStorage.getItem("eug_nav")||"null");if(!o)return;NAV_KEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});S._scrollY=o.y||0}catch(_){}}
 window.addEventListener("pagehide",navSave);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")navSave()});
 function doRender(){
-  const titles={accueil:"Accueil",ventes:"Ventes",stock:"Stock",frais:"Argent"};setTimeout(navSave,0);document.body.dataset.tab=S.page?"page":S.tab;
+  if(S.page==="clientes"||S.page==="fournisseurs"){S.tab="carnet";S.carnetTab=S.page;S.page=null}
+  const titles={accueil:"Aujourd'hui",ventes:"Ventes",carnet:"Carnet",stock:"Stock",frais:"Argent"};setTimeout(navSave,0);document.body.dataset.tab=S.page?"page":S.tab;
   if(S._scrollY&&S.loaded.size>=3){const y=S._scrollY;S._scrollY=0;setTimeout(()=>window.scrollTo(0,y),60)}
   $("#screenTitle").textContent=titles[S.tab];
   document.querySelectorAll("nav.tabs [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===S.tab?"page":"false"));
-  $("#plusBtn").disabled=!(db&&canWrite);
+  $("#plusBtn").disabled=!(db&&canWrite);$("#plusTop").disabled=!(db&&canWrite);
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent="Gestion";return}}
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";if(keep&&v.dataset.page===S.page&&(v.querySelector("input:focus")||v.querySelector("form[data-dirty]")))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages"}[S.page]||"Gestion";return}}
   v.dataset.page="";
-  const fn={accueil:vAccueil,ventes:vVentes,stock:vStock,frais:vFrais}[S.tab];
+  const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
 }
 function banner(){
@@ -727,7 +767,7 @@ function aFaire(){
   const att=S.ventes.filter(v=>v.statut==="En attente de paiement");const reste=r2(att.reduce((t,v)=>t+venteReste(v),0));add(att.length,"À encaisser",eur(reste)+" sur "+att.length+" vente"+(att.length>1?"s":""),'data-act="goto" data-tab="ventes" data-filter="attente"');
   const dem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;add(dem,"Demandes du site",dem+" nouvelle"+(dem>1?"s":"")+" à traiter",'data-act="page" data-p="demandes"',"warn");
   const dv=(S.devis||[]).filter(d=>d.statut==="Accepté"&&!d.venteId).length;add(dv,"Devis acceptés",dv+" à transformer en vente",'data-act="page" data-p="devis"',"ok");
-  const ar=S.achats.filter(a=>!a.dateReception).length;add(ar,"Colis attendus",ar+" achat"+(ar>1?"s":"")+" pas encore reçu"+(ar>1?"s":""),'data-act="goto" data-tab="stock" data-filter="attente"');
+  const ar=commandes(S.achats.filter(a=>!a.dateReception)).length;add(ar,"Colis attendus",ar+" commande"+(ar>1?"s":"")+" pas encore reçue"+(ar>1?"s":""),'data-act="goto" data-tab="stock" data-filter="attente"');
   const al=S.produits.filter(p=>!isPrestation(p)&&p.statut!=="Archivé").filter(p=>{const q=stockQty(p);return q<=0||q<=n(p.seuil)}).length;add(al,"Ruptures de stock",al+" référence"+(al>1?"s":"")+" à 0 ou sous le seuil",'data-act="goto" data-tab="stock" data-filter="alerte"');
   const ab=S.abonnements.filter(a=>!a.fin||a.fin>=today()).filter(a=>aboOccurrences(a).includes(ym(today()))&&!(a.mois||[]).includes(ym(today()))&&Number(today().slice(8))>=n(a.jour)).length;add(ab,"Abonnements à pointer",ab+" prélèvement"+(ab>1?"s":"")+" de ce mois",'data-act="goto" data-tab="frais" data-filter="abonnements"');
   const ju=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;add(ju,"Justificatifs manquants",ju+" facture"+(ju>1?"s":"")+" à ajouter",'data-act="page" data-p="justificatifs"');
@@ -737,24 +777,17 @@ function vAccueil(){
   const k=S.month,m=moisStats(k),t=tresorerie();
   const todo=aFaire();
   const A=(attrs,titre,sous,cls)=>`<button class="act${cls?" "+cls:""}" ${attrs}><b>${titre}</b><span>${sous}</span></button>`;
-  const T=(attrs,titre,sous,badge)=>`<button class="hubt" ${attrs}><b>${titre}${badge?` <span class="chip warn">${badge}</span>`:""}</b><span>${sous}</span></button>`;
-  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
   return `${banner()}
   <section class="full gs" aria-label="Recherche">
-    <input class="search big" id="gq" type="search" placeholder="Chercher : cliente, code, produit, facture…" value="${esc(S.gq||"")}" autocomplete="off">
+    <input class="search big" id="gq" type="search" placeholder="Chercher : cliente, fournisseur, code, facture…" value="${esc(S.gq||"")}" autocomplete="off">
     ${(S.gq||"").trim().length>=2?gsearchHtml(S.gq):""}
   </section>
   <section class="full" aria-label="Actions">
-    <h2>Que veux-tu faire ?</h2>
     <div class="acts">
-      ${A('data-act="new" data-col="ventes"',"+ Nouvelle vente","Une création ou une prestation","main")}
-      ${A('data-act="goto" data-tab="stock" data-filter="tarifs"',"Les prix","Tarifs de chaque article et options")}
-      ${A('data-act="page" data-p="clientes"',"Clientes","Coordonnées et historique")}
-      ${A('data-act="goto" data-tab="stock" data-filter="dispo"',"Le stock","Ce qui est disponible")}
-      ${A('data-act="goto" data-tab="ventes" data-filter="tout"',"Les ventes","Toutes les commandes")}
+      ${A('data-act="new" data-col="ventes"',"+ Vente","Une création ou une prestation","main")}
       ${A('data-act="new" data-col="achats"',"+ Achat","Une commande fournisseur")}
       ${A('data-act="new" data-col="depenses"',"+ Dépense","Frais, matériel, emballage…")}
-      ${A('data-act="goto" data-tab="frais" data-filter="tout"',"L'argent","Achats, dépenses, apports")}
+      ${A('data-act="goto" data-tab="stock" data-filter="tarifs"',"Les prix","Le tarif de chaque article")}
     </div>
   </section>
   <section class="full" aria-label="À faire">
@@ -764,64 +797,27 @@ function vAccueil(){
   <section class="hero" aria-label="Trésorerie">
     <p class="eyebrow">Argent en banque (estimé)</p>
     <div class="money-big num">${eur(t)}</div>
-    <small>Apports et emprunts + encaissements − dépenses, achats et abonnements payés.</small>
+    <small>Apports + encaissements − tout ce qui a été payé.</small>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
-    <div class="monthbar"><button class="iconbtn" data-act="mprev" aria-label="Mois précédent">‹</button><strong>${esc(monthName(k))}</strong><button class="iconbtn" data-act="mnext" aria-label="Mois suivant">›</button></div>
+    ${monthBar()}
     <div class="grid2">
-      <button class="tile" data-act="goto" data-tab="ventes" data-filter="mois"><span>Chiffre d'affaires</span><b class="num">${eur(m.ca)}</b><span>${m.nb} vente${m.nb>1?"s":""}</span></button>
-      <div class="tile"><span>Marge sur les produits</span><b class="num">${eur(m.marge)}</b><span>CA − coût des pièces vendues</span></div>
-      <button class="tile" data-act="goto" data-tab="frais" data-filter="depenses"><span>Frais du mois</span><b class="num">${eur(m.dep)}</b><span>dépenses + abonnements</span></button>
-      <button class="tile" data-act="page" data-p="resultat"><span>Résultat du mois</span><b class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</b><span>${m.arrhes?"dont arrhes gardées "+eur(m.arrhes):"avant impôt"}</span></button>
-    </div>
-  </section>
-  <section class="full" aria-label="Tout trouver">
-    <h2>Tout trouver</h2>
-    <div class="hub">
-      <div class="hubg"><h3>Ventes et clientes</h3>
-        ${T('data-act="page" data-p="clientes"',"Clientes","Fiches, historique, nouvelle vente")}
-        ${T('data-act="page" data-p="factures"',"Factures","Imprimer, PDF, envoyer par e-mail")}
-        ${T('data-act="page" data-p="devis"',"Devis","Préparer, envoyer, suivre")}
-        ${T('data-act="page" data-p="ambassadrices"',"Ambassadrices","Codes, ventes apportées, cagnotte")}
-      </div>
-      <div class="hubg"><h3>Stock et prix</h3>
-        ${T('data-act="goto" data-tab="stock" data-filter="tarifs"',"Tarifs","Prix fixe de chaque article")}
-        ${T('data-act="page" data-p="prix"',"Contrôle des prix","Tes prix, le calcul, les planchers",prixAlertes().length||"")}
-        ${T('data-act="page" data-p="inventaire"',"Inventaire","Compter et corriger le stock")}
-        ${T('data-act="goto" data-tab="stock" data-filter="matieres"',"Matières","Colorations, colles, oxydants…")}
-      </div>
-      <div class="hubg"><h3>Site eugceo.fr</h3>
-        ${T('data-act="page" data-p="site"',"Le site","Textes, photos, créations en ligne")}
-        ${T('data-act="page" data-p="demandes"',"Demandes reçues","Commandes, rendez-vous, messages",nDem||"")}
-      </div>
-      <div class="hubg"><h3>Argent et comptes</h3>
-        ${T('data-act="page" data-p="resultat"',"Résultat","Chiffre d'affaires, charges, bénéfice")}
-        ${T('data-act="page" data-p="tresorerie"',"Trésorerie","Entrées et sorties mois par mois")}
-        ${T('data-act="page" data-p="dettes"',"Ce que la société doit","Avances des associés")}
-        ${T('data-act="page" data-p="justificatifs"',"Justificatifs","Toutes les factures et pièces")}
-        ${T('data-act="page" data-p="tva"',"Franchise de TVA","Où tu en es par rapport aux seuils")}
-      </div>
-      <div class="hubg"><h3>Réglages</h3>
-        ${T('data-act="reglages"',"Réglages des prix","Marges, transport, grille, options")}
-        ${T('data-act="page" data-p="referentiel"',"Référentiel","Listes, codes, fourchettes d'achat")}
-        ${T('data-act="page" data-p="societe"',"Société","SIREN, adresse, mentions des factures")}
-        ${T('data-act="page" data-p="controles"',"Contrôles","Ce qui manque ou paraît anormal")}
-      </div>
-      <div class="hubg"><h3>Compte</h3>
-        ${T('data-act="export-xlsx"',"Exporter pour Excel","Un fichier pour le comptable")}
-        ${T('data-act="export"',"Sauvegarde","Toutes les données dans un fichier")}
-        ${T('data-act="logout"',"Se déconnecter",esc(myId||""))}
-      </div>
+      <button class="tile" data-act="goto" data-tab="ventes" data-filter="tout"><span>Ventes</span><b class="num">${eur(m.ca)}</b><span>${m.nb} vente${m.nb>1?"s":""}</span></button>
+      <div class="tile"><span>Marge sur les produits</span><b class="num">${eur(m.marge)}</b><span>ventes − coût des pièces vendues</span></div>
+      <button class="tile" data-act="goto" data-tab="frais" data-filter="sorties"><span>Frais du mois</span><b class="num">${eur(m.dep)}</b><span>dépenses + abonnements</span></button>
+      <button class="tile" data-act="goto" data-tab="frais" data-filter="mois"><span>Résultat du mois</span><b class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</b><span>${m.arrhes?"dont arrhes gardées "+eur(m.arrhes):"avant impôt"}</span></button>
     </div>
   </section>`;
 }
 /* ---------- recherche globale ---------- */
 function gsearchHtml(q0){
   const q=nomSimple(q0);const has=x=>nomSimple(x).includes(q);const out=[];
-  const pages=[["tarifs","Tarifs (prix)",'data-act="goto" data-tab="stock" data-filter="tarifs"'],["prix controle","Contrôle des prix",'data-act="page" data-p="prix"'],["clientes","Clientes",'data-act="page" data-p="clientes"'],["factures","Factures",'data-act="page" data-p="factures"'],["devis","Devis",'data-act="page" data-p="devis"'],["reglages réglages marge transport","Réglages des prix",'data-act="reglages"'],["referentiel référentiel listes fourchettes","Référentiel",'data-act="page" data-p="referentiel"'],["ambassadrices code promo cagnotte","Ambassadrices",'data-act="page" data-p="ambassadrices"'],["site internet","Le site",'data-act="page" data-p="site"'],["demandes messages","Demandes reçues",'data-act="page" data-p="demandes"'],["tresorerie trésorerie banque","Trésorerie",'data-act="page" data-p="tresorerie"'],["resultat résultat benefice","Résultat",'data-act="page" data-p="resultat"'],["inventaire","Inventaire",'data-act="page" data-p="inventaire"'],["justificatifs","Justificatifs",'data-act="page" data-p="justificatifs"'],["societe société siren","Société",'data-act="page" data-p="societe"']];
+  const pages=[["tarifs","Tarifs (prix)",'data-act="goto" data-tab="stock" data-filter="tarifs"'],["prix controle","Contrôle des prix",'data-act="page" data-p="prix"'],["clientes carnet","Clientes",'data-act="goto" data-tab="carnet" data-filter="clientes"'],["fournisseurs carnet","Fournisseurs",'data-act="goto" data-tab="carnet" data-filter="fournisseurs"'],["factures","Factures",'data-act="page" data-p="factures"'],["devis","Devis",'data-act="page" data-p="devis"'],["reglages réglages marge transport","Réglages des prix",'data-act="reglages"'],["referentiel référentiel listes fourchettes","Référentiel",'data-act="page" data-p="referentiel"'],["ambassadrices code promo cagnotte","Ambassadrices",'data-act="page" data-p="ambassadrices"'],["site internet","Le site",'data-act="page" data-p="site"'],["demandes messages","Demandes reçues",'data-act="page" data-p="demandes"'],["tresorerie trésorerie banque","Trésorerie",'data-act="page" data-p="tresorerie"'],["resultat résultat benefice","Résultat",'data-act="page" data-p="resultat"'],["inventaire","Inventaire",'data-act="page" data-p="inventaire"'],["justificatifs","Justificatifs",'data-act="page" data-p="justificatifs"'],["societe société siren","Société",'data-act="page" data-p="societe"']];
   const pg=pages.filter(([k,l])=>has(k+" "+l)).slice(0,4);if(pg.length)out.push(["Pages",pg.map(([,l,a])=>`<button class="row" ${a}><span class="t">${esc(l)}</span><span class="v">›</span></button>`)]);
   const cl=clientesListe().filter(c=>has(c.nom+" "+c.email+" "+c.tel+" "+c.ville)).slice(0,6);
   if(cl.length)out.push(["Clientes",cl.map(c=>`<button class="row" data-act="page" data-p="client" data-id="${esc(c.key)}"><span class="t">${esc(c.nom)}</span><span class="v num">${eur(c.total)}</span><span class="s">${c.nb} achat${c.nb>1?"s":""}${c.tel?" · "+esc(c.tel):""}${c.email?" · "+esc(c.email):""}</span></button>`)]);
+  const fo=fournisseursListe().filter(f=>has(f.nom+" "+(f.pays||""))).slice(0,5);
+  if(fo.length)out.push(["Fournisseurs",fo.map(f=>`<button class="row" data-act="page" data-p="fournisseur" data-id="${esc(f.key)}"><span class="t">${esc(f.nom)}</span><span class="v num">${eur(f.paye+f.apayer)}</span><span class="s">${esc(f.resume)}</span></button>`)]);
   const pr=S.produits.filter(p=>p.statut!=="Archivé"&&has(p.code+" "+designation(p))).slice(0,6);
   if(pr.length)out.push(["Produits",pr.map(p=>{const sq=stockQty(p);return`<button class="row" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(designation(p))}</span><span class="v num">${prixBaseDe(p)>0?eur(prixBaseDe(p)):"—"}</span><span class="s"><span class="code">${esc(p.code)}</span>${sq===null?"":" · "+sq+" en stock"}</span></button>`})]);
   const ve=[...S.ventes].filter(v=>{const p=prod(v.produitId);return has((v.client||"")+" "+(v.numFacture||v.ref||"")+" "+(p?p.code+" "+designation(p):"")+" "+(v.numeroSuivi||""))}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,6);
@@ -855,7 +851,7 @@ function pClient(key){
   const amb=ambDe(c.nom,c.email,c.tel);const st=amb?etatAmb(amb):null;
   const tel=String(c.tel||"").replace(/[^\d+]/g,"");const wa=tel?"https://wa.me/"+(tel.startsWith("+")?tel.slice(1):tel.startsWith("0")?"33"+tel.slice(1):tel):"";
   const vs=[...c.ventes].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  return`<div class="pagehead noprint"><button class="linkbtn back" data-act="page" data-p="clientes">‹ Clientes</button></div>
+  return`<div class="pagehead noprint"><button class="linkbtn back" data-act="goto" data-tab="carnet" data-filter="clientes">‹ Carnet</button></div>
   <div><h2 class="ptitle">${esc(c.nom)}</h2><p class="note">${c.nb} achat${c.nb>1?"s":""} · ${eur(c.total)} au total · cliente depuis le ${dfr(c.ventes[0]&&c.ventes[0].date)}</p></div>
   <div class="acts small">
     <button class="act main" data-act="client-vente" data-id="${esc(c.key)}"><b>+ Nouvelle vente</b><span>Ses coordonnées déjà remplies</span></button>
@@ -888,24 +884,32 @@ async function prixApply(b){const p=prod(b.dataset.id);if(!p)return;const v=n(b.
   const o={prixBase:v,modifieLe:new Date().toISOString()};if(p.site)o.site={...p.site,prix:v};
   try{await db.collection("produits").doc(p.id).update(o);toast("Prix mis à "+eur(v))}catch(e){b.disabled=false;toast(dbErr(e))}}
 function filterBar(name,cur,opts){return`<div class="seg" role="group">${opts.map(([k,l])=>`<button data-act="filter" data-name="${name}" data-val="${k}" aria-pressed="${cur===k}">${l}</button>`).join("")}</div>`}
+function monthBar(){return`<div class="monthbar"><button class="iconbtn" data-act="mprev" aria-label="Mois précédent">‹</button><strong>${esc(monthName(S.month))}</strong><button class="iconbtn" data-act="mnext" aria-label="Mois suivant">›</button></div>`}
+function moreLinks(items){return`<div class="morel">${items.map(([attrs,l,badge])=>`<button type="button" class="sitebtn" ${attrs}>${esc(l)}${badge?` <span class="chip warn">${badge}</span>`:""}</button>`).join("")}</div>`}
 function vVentes(){
-  const f=S.ventesFilter;let list=[...S.ventes];
+  let f=S.ventesFilter;if(!["tout","attente","expedier"].includes(f))f="tout";
+  const q=S.q.trim().toLowerCase();let list=[...S.ventes];
   if(f==="attente")list=list.filter(v=>v.statut==="En attente de paiement");
-  if(f==="mois")list=list.filter(v=>ym(v.date)===ym(today()));
-  if(f==="expedier")list=list.filter(aExpedier);
-  const q=S.q.trim().toLowerCase();if(q)list=list.filter(v=>(v.client+" "+(prod(v.produitId)?.code||"")+" "+(v.designation||"")).toLowerCase().includes(q));
+  else if(f==="expedier")list=list.filter(aExpedier);
+  else if(!q)list=list.filter(v=>ym(v.date)===S.month);
+  if(q)list=list.filter(v=>(v.client+" "+(prod(v.produitId)?.code||"")+" "+(v.designation||"")+" "+(v.numFacture||"")).toLowerCase().includes(q));
   list.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.creeLe||"").localeCompare(a.creeLe||""));
   const rows=list.map(v=>{const p=prod(v.produitId);const st=v.statut==="Payée"?"ok":v.statut==="En attente de paiement"?"warn":"bad";
-    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} <span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}${exChip(v)}</span></button>`}).join("");
-  return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["mois","Ce mois-ci"],["attente","En attente"],["expedier","À expédier"]])}
-  <input class="search" id="q" type="search" placeholder="Chercher une cliente ou un code" value="${esc(S.q)}">
-  ${loadingOr("ventes",`<div class="list">${rows||`<div class="empty">Aucune vente ${f==="tout"?"pour l'instant":"ici"}. Touche « + » puis « Vente » pour enregistrer la première.</div>`}</div>`)}`;
+    return`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num">${eur(venteTotal(v))}</span><span class="s">${dfr(v.date)} · ${esc(p?p.code:(v.designation||"?"))} <span class="chip ${st}">${esc(v.statut)}</span>${venteReste(v)?`<span class="chip">reste ${eur(venteReste(v))}</span>`:""}${aExpedier(v)?`<span class="chip">${esc(etapeVente(v).toLowerCase())}</span>`:v.etape&&v.etape!=="À préparer"?`<span class="chip ok">${esc(v.etape.toLowerCase())}</span>`:""}</span></button>`}).join("");
+  const ca=list.filter(dansCA);const tot=r2(ca.reduce((t,v)=>t+venteTotal(v),0)),reste=r2(list.reduce((t,v)=>t+venteReste(v),0));
+  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
+  return`${banner()}${filterBar("ventesFilter",f,[["tout","Toutes"],["attente","À encaisser"],["expedier","À expédier"]])}
+  ${f==="tout"&&!q?monthBar():`<p class="note">${q?"Recherche sur tous les mois.":"Tous les mois confondus."}</p>`}
+  <div class="band"><span><b class="num">${ca.length}</b>vente${ca.length>1?"s":""}</span><span><b class="num">${eur(tot)}</b>au total</span><span><b class="num${reste?" warnv":""}">${eur(reste)}</b>reste à encaisser</span></div>
+  <input class="search" id="q" type="search" placeholder="Chercher une cliente, un code, une facture" value="${esc(S.q)}">
+  ${loadingOr("ventes",`<div class="list">${rows||`<div class="empty">${f==="tout"&&!q?"Aucune vente ce mois-ci.":"Rien ici."}</div>`}</div>`)}
+  ${moreLinks([['data-act="page" data-p="factures"',"Factures"],['data-act="page" data-p="devis"',"Devis"],['data-act="page" data-p="demandes"',"Demandes du site",nDem],['data-act="page" data-p="ambassadrices"',"Ambassadrices"]])}`;
 }
 function exChip(d){return""}
 function vMatieres(){
   const list=[...S.matieres].sort((a,b)=>(a.nom||"").localeCompare(b.nom||""));
   const rows=list.map(m=>`<button class="row" data-act="edit" data-col="matieres" data-id="${esc(m.id)}"><span class="t">${esc(m.nom)}</span><span class="v num">${prixU(n(m.prix))} / ${esc(m.unite||"unité")}</span><span class="s">${n(m.contenance)>1?eur(n(m.prixCond))+" les "+n(m.contenance)+" "+esc(m.unite||""):""}${m.fournisseur?" · "+esc(m.fournisseur):""}</span></button>`).join("");
-  return`${banner()}${filterBar("stockFilter","matieres",STOCK_FILTERS)}
+  return`${banner()}${stockBar("matieres")}
   ${loadingOr("matieres",`<div class="list">${rows||`<div class="empty">Aucune matière. Touche « + » puis « Matière » pour ajouter un tube de coloration, un oxydant, de la colle…</div>`}</div>`)}
   <p class="note">Les matières choisies dans une vente s'ajoutent au prix de revient de la perruque.</p>`;
 }
@@ -914,30 +918,41 @@ function vAttente(){
   const list=S.achats.filter(a=>!a.dateReception).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
   const rows=list.map(a=>{const p=prod(a.produitId);const j=Math.floor((Date.now()-new Date(a.date).getTime())/864e5);
     return`<div class="docrow row" style="cursor:default"><button class="docinfo linkrow" data-act="edit" data-col="achats" data-id="${esc(a.id)}"><b class="code">${esc(p?p.code:"?")}</b><span>${n(a.quantite)} pièce${n(a.quantite)>1?"s":""} · ${esc(a.fournisseur||"")} · commandé le ${dfr(a.date)}${j>=0?" (il y a "+j+" j)":""}${a.ref?" · "+esc(a.ref):""}</span></button>${db&&canWrite?`<button type="button" class="btn ghost small" data-act="recu" data-id="${esc(a.id)}">Reçu aujourd'hui</button>`:""}</div>`}).join("");
-  return`${banner()}${filterBar("stockFilter","attente",STOCK_FILTERS)}
+  return`${banner()}${stockBar("attente")}
   ${loadingOr("achats",`<div class="list">${rows||`<div class="empty">Rien en attente de réception.</div>`}</div>`)}
   <p class="note">Une commande entre dans le stock le jour où tu indiques sa réception. Pour une autre date que aujourd'hui, touche la ligne et remplis « Reçu le ».</p>`;
 }
 async function marquerRecu(b){
   b.disabled=true;try{await db.collection("achats").doc(b.dataset.id).update({dateReception:today(),modifieLe:new Date().toISOString()});toast("Reçu : ajouté au stock")}catch(e){b.disabled=false;toast(dbErr(e))}
 }
+function stockBar(f){return filterBar("stockFilter",f,[["tarifs","Tarifs"],["dispo","En stock"],["attente","En route"],["alerte","Ruptures"]])}
+function stockMore(){const f=S.stockFilter;const pa=prixAlertes().length;
+  return`<div class="morel">${[["tout","Tout le stock"],["archives","Archivés"],["matieres","Matières"]].map(([k,l])=>`<button type="button" class="sitebtn${f===k?" on":""}" data-act="filter" data-name="stockFilter" data-val="${k}">${l}</button>`).join("")}<button type="button" class="sitebtn" data-act="page" data-p="inventaire">Inventaire</button><button type="button" class="sitebtn" data-act="page" data-p="prix">Contrôle des prix${pa?` <span class="chip warn">${pa}</span>`:""}</button></div>`}
 const STOCK_FILTERS=[["tarifs","Tarifs"],["dispo","Disponibles"],["attente","En attente"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]];
 /* ---------- Tarifs : prix fixes de chaque référence, sans passer par une vente ---------- */
-function tarifGroupe(p){if(isPrestation(p))return"";if(isBundle(p))return"Bundles · "+(p.typeBundle||"type non précisé");return prepBase(p)===0.5?"Demi-têtes et ponytails":"Perruques"}
+function tarifGroupe(p){if(isPrestation(p))return"";if(isBundle(p))return"Bundles "+(p.modele||"");return prepBase(p)===0.5?"Demi-têtes et ponytails":"Perruques"}
+const ORD_T={"Simple (SD)":0,"Doublé (DD)":1,"Super doublé (SDD)":2};
+function bundleTable(ps){
+  const types=[...new Set(ps.map(p=>p.typeBundle||""))].sort((a,b)=>(ORD_T[a]??9)-(ORD_T[b]??9));
+  const lgs=[...new Set(ps.map(p=>n(p.longueur)))].sort((a,b)=>a-b);
+  const lab=t=>t?t.replace(/\s*\((.*)\)/," $1"):"Type non précisé";
+  const cell=(lg,t)=>{const c=ps.filter(p=>n(p.longueur)===lg&&(p.typeBundle||"")===t);if(!c.length)return`<span class="dash">—</span>`;
+    return c.map(p=>{const px=prixBaseDe(p),sq=stockQty(p);return`<button type="button" class="cellbtn" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><b class="num">${px>0?eur(px):"—"}</b><span>${sq>0?sq+" en stock":"pas en stock"}${c.length>1?" · "+esc(p.code):""}</span></button>`}).join("")};
+  return`<table class="bt"><thead><tr><th>Longueur</th>${types.map(t=>`<th>${esc(lab(t))}</th>`).join("")}</tr></thead><tbody>${lgs.map(lg=>`<tr><th>${lg?lg+"″":"?"}</th>${types.map(t=>`<td>${cell(lg,t)}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
 function vTarifs(){
   const q=S.q.trim().toLowerCase();
   let L2=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));
   if(q)L2=L2.filter(p=>(p.code+" "+designation(p)).toLowerCase().includes(q));
   const G={};for(const p of L2){const g=tarifGroupe(p);(G[g]=G[g]||[]).push(p)}
   const order=Object.keys(G).sort((a,b)=>(a.startsWith("Perr")?0:a.startsWith("Demi")?1:2)-(b.startsWith("Perr")?0:b.startsWith("Demi")?1:2)||a.localeCompare(b));
-  const blocs=order.map(g=>{const rows=G[g].sort((a,b)=>(a.modele||"").localeCompare(b.modele||"")||n(a.longueur)-n(b.longueur)).map(p=>{
+  const blocs=order.map(g=>{if(g.startsWith("Bundles"))return`<h3 class="sec">${esc(g)}</h3>${bundleTable(G[g])}`;const rows=G[g].sort((a,b)=>(a.modele||"").localeCompare(b.modele||"")||n(a.longueur)-n(b.longueur)).map(p=>{
       const px=prixBaseDe(p);const sq=stockQty(p);const pl=plancherSite(p);
       return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t">${esc(designation(p))}</span><span class="v num">${px>0?eur(px):"—"}</span><span class="s"><span class="code">${esc(p.code)}</span> · ${sq>0?sq+" en stock":"pas en stock"}${pl?` · plancher ${eur(pl)}`:""}</span></div>`}).join("");
     return`<h3 class="sec">${esc(g)}</h3><div class="list">${rows}</div>`}).join("");
   const opts=SUPS.map(([k,l])=>{const a=n(S.reglages["sup_"+k+"_p"]),b=n(S.reglages["sup_"+k+"_b"]);return a||b?`<tr><td>${esc(l)}</td><td class="num">${a?eur(a):"—"}</td><td class="num">${b?eur(b):"—"}</td></tr>`:""}).join("");
-  return`${filterBar("stockFilter","tarifs",STOCK_FILTERS)}
+  return`${stockBar("tarifs")}
   <input class="search" id="q" type="search" placeholder="Chercher : SDD 24, Bob, Cambodian…" value="${esc(S.q)}">
-  <p class="note">Prix de vente fixe de chaque référence, options non comprises. Une nouvelle commande du même article (même code) garde ce prix, quel que soit le fournisseur. Touche une ligne pour le modifier.</p>
+  <p class="note">Prix de vente fixe de chaque référence, options non comprises. Une nouvelle commande du même article (même code) garde ce prix, quel que soit le fournisseur. Touche un prix pour le modifier. Une nouvelle longueur ou un nouveau modèle de bundle (Caribbean Curly par exemple) apparaît tout seul dès que l'article est créé, par exemple en enregistrant son achat.</p>
   ${loadingOr("produits",blocs||`<div class="empty">Aucune référence.</div>`)}
   <h3 class="sec">Options</h3>
   <table class="tbl"><tr><th>Option</th><th class="num">Perruque</th><th class="num">Par bundle</th></tr>${opts}</table>
@@ -958,27 +973,188 @@ function vStock(){
     const enL=p.site&&p.site.enLigne;
     const sb=db&&canWrite&&f!=="archives"?`<span class="s"><button type="button" class="sitebtn${enL?" on":""}" data-act="site-add" data-id="${esc(p.id)}">${enL?"✓ Sur le site":"+ Ajouter au site"}</button></span>`:"";
     return`<div class="row" role="button" tabindex="0" data-act="edit" data-col="produits" data-id="${esc(p.id)}"><span class="t code">${esc(p.code)}</span><span class="v num">${q===null?"—":q+" en stock"}${(()=>{const pv=prixBaseDe(p);if(!(pv>0))return"";const ps=p.site&&n(p.site.prix)>0?n(p.site.prix):0;return`<br><span class="pxu">${eur(pv)} / pièce</span>${ps&&ps!==pv?`<br><span class="pxu ${ps<n(plancherSite(p))?"bad":"warn"}">site ${eur(ps)}</span>`:""}`})()}</span><span class="s">${esc(designation(p))} ${chip}${exChip(p)}</span>${sb}</div>`}).join("");
-  return`${banner()}${filterBar("stockFilter",f,STOCK_FILTERS)}
+  return`${banner()}${stockBar(f)}
   <input class="search" id="q" type="search" placeholder="Chercher un code ou un modèle" value="${esc(S.q)}">
   ${loadingOr("produits",`<div class="list">${rows||`<div class="empty">Rien ici. Touche « + » puis « Produit » pour créer une référence.</div>`}</div>`)}
   <p class="note">Le stock compte : stock de départ + achats reçus − ventes + corrections. Un achat sans date de réception n'est pas encore en stock.</p>`;
 }
+/* ---------- Argent : le mois, entrées, sorties, comptes ---------- */
+function finSigne(x){return L.natures[x.nature]||1}
+function soldeFin(k){return r2(n(soc().banqueDebut)+mouvementsArgent().filter(x=>x.d&&ym(x.d)<=k).reduce((t,x)=>t+x.m,0))}
+function entreesMois(k){
+  const out=[];
+  for(const v of S.ventes){const p=prod(v.produitId);const es=encaissements(v).filter(e=>e.d&&ym(e.d)===k);
+    es.forEach((e,i)=>out.push({d:e.d,m:e.m,k:"ventes",html:`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num" style="color:var(--ok)">+ ${eur(e.m)}</span><span class="s">${dfr(e.d)} · ${esc(p?p.code:(v.designation||""))}${encaissements(v).length>1?(i===0&&v.avanceType&&v.avanceType!=="Aucune"?" · "+esc(v.avanceType.toLowerCase()):" · solde"):""}</span></button>`}))}
+  for(const x of S.financement){if(finSigne(x)<0||ym(x.date)!==k)continue;
+    out.push({d:x.date,m:n(x.montant),k:"apports",html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num" style="color:var(--ok)">+ ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}${x.personne?" · "+esc(x.personne):""}</span></button>`})}
+  return out.sort((a,b)=>(b.d||"").localeCompare(a.d||""))}
+function factChip(path){return path?`<span class="chip ok">facture ✓</span>`:`<span class="chip bad">facture manquante</span>`}
+function sortiesMois(k){
+  const ach=S.achats.filter(a=>ym(a.date)===k);
+  const cm={};for(const a of ach){const key=fournKey(a.fournisseur)+"|"+(a.numFacture||a.date);(cm[key]=cm[key]||[]).push(a)}
+  const achats=Object.values(cm).map(ls=>{const a=ls[0];const tot=r2(ls.reduce((t,x)=>t+achatTotal(x),0));const path=(ls.find(x=>x.justificatif)||{}).justificatif;
+    const recu=ls.every(x=>x.dateReception),paye=ls.every(x=>x.datePaiement);const nb=ls.reduce((t,x)=>t+n(x.quantite),0);
+    return{d:a.date,m:tot,html:`<button class="row" data-act="page" data-p="fournisseur" data-id="${esc(fournKey(a.fournisseur))}"><span class="t">${esc(a.fournisseur||"Achat")}</span><span class="v num">− ${eur(tot)}</span><span class="s">${dfr(a.date)} · ${nb} pièce${nb>1?"s":""}${a.numFacture?" · n° "+esc(a.numFacture):""} ${factChip(path)}${recu?"":`<span class="chip warn">en route</span>`}${paye?"":`<span class="chip warn">à payer</span>`}</span></button>`}});
+  const abos=S.abonnements.filter(a=>aboOccurrences(a).includes(k)).map(a=>{const m=aboMontant(a,k),ok=(a.mois||[]).includes(k);
+    return{d:k,m,html:`<div class="row" style="cursor:default"><span class="t">${esc(a.fournisseur)}</span><span class="v num">− ${eur(m)}</span><span class="s">${esc(a.description||"")} · ${ok?`<span class="chip ok">prélevé ✓</span>`:`<span class="chip warn">pas encore pointé</span>`} ${db&&canWrite?`<button type="button" class="sitebtn" data-act="pointer" data-id="${esc(a.id)}" data-k="${k}" aria-pressed="${ok}">${ok?"Dépointer":"Pointer : c'est passé"}</button>`:""}</span></div>`}});
+  const deps=S.depenses.filter(d=>ym(d.date)===k).map(d=>({d:d.date,m:n(d.montant),html:`<button class="row" data-act="edit" data-col="depenses" data-id="${esc(d.id)}"><span class="t">${esc(d.fournisseur||"Dépense")}</span><span class="v num">− ${eur(n(d.montant))}</span><span class="s">${dfr(d.date)} · ${esc(d.description||d.categorie||"")} ${factChip(d.justificatif)}${d.datePaiement?"":`<span class="chip warn">à payer</span>`}</span></button>`}));
+  const remb=S.financement.filter(x=>finSigne(x)<0&&ym(x.date)===k).map(x=>({d:x.date,m:n(x.montant),html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num">− ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}</span></button>`}));
+  const so=L2=>L2.sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+  const tot=L2=>r2(L2.reduce((t,x)=>t+x.m,0));
+  return{achats:so(achats),abos,deps:so(deps),remb:so(remb),tAchats:tot(achats),tAbos:tot(abos),tDeps:tot(deps),tRemb:tot(remb),total:tot(achats)+tot(abos)+tot(deps)+tot(remb)}}
+function aPayer(){
+  const M={};const add=(nom,m)=>{const k=fournKey(nom)||"?";(M[k]=M[k]||{k,nom:nom||"Fournisseur",m:0}).m+=m};
+  for(const a of S.achats)if(!a.datePaiement)add(a.fournisseur,achatTotal(a));
+  for(const d of S.depenses)if(!d.datePaiement)add(d.fournisseur,n(d.montant));
+  return Object.values(M).map(x=>({...x,m:r2(x.m)})).filter(x=>x.m>0).sort((a,b)=>b.m-a.m)}
 function vFrais(){
-  const f=S.fraisFilter;const items=[];
-  if(f==="tout"||f==="achats")for(const a of S.achats){const p=prod(a.produitId);items.push({d:a.date,html:`<button class="row" data-act="edit" data-col="achats" data-id="${esc(a.id)}"><span class="t">${esc(a.fournisseur||"Achat")}</span><span class="v num">− ${eur(achatTotal(a))}</span><span class="s">${dfr(a.date)} · Achat ${esc(a.ref||"")} · ${n(a.quantite)} × ${esc(p?p.code:"?")} ${a.dateReception?`<span class="chip ok">reçu</span>`:`<span class="chip warn">pas encore reçu</span>`}${a.datePaiement?"":`<span class="chip">non payé</span>`}${exChip(a)}</span></button>`})}
-  if(f==="tout"||f==="depenses")for(const d of S.depenses)items.push({d:d.date,html:`<button class="row" data-act="edit" data-col="depenses" data-id="${esc(d.id)}"><span class="t">${esc(d.fournisseur||"Dépense")}</span><span class="v num">− ${eur(n(d.montant))}</span><span class="s">${dfr(d.date)} · ${esc(d.ref?d.ref+" · ":"")}${esc(d.description||d.categorie||"")}${d.datePaiement?"":` <span class="chip">non payée</span>`}${exChip(d)}</span></button>`});
-  if(f==="tout"||f==="financement")for(const x of S.financement){const s=L.natures[x.nature]||1;items.push({d:x.date,html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num" style="color:${s>0?"var(--ok)":"inherit"}">${s>0?"+":"−"} ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}${exChip(x)}</span></button>`})}
-  items.sort((a,b)=>(b.d||"").localeCompare(a.d||""));
-  let body;
+  let f=S.fraisFilter;const map={tout:"mois",achats:"sorties",depenses:"sorties",financement:"entrees"};if(map[f])f=map[f];
+  const bar=filterBar("fraisFilter",f==="abonnements"?"comptes":f,[["mois","Le mois"],["entrees","Entrées"],["sorties","Sorties"],["comptes","Comptes"]]);
+  const k=S.month;let body="";
   if(f==="abonnements"){
     const cur=ym(today());
-    body=S.abonnements.map(a=>{const occ=aboOccurrences(a).slice(-6);
-      return`<div class="row" style="cursor:default"><span class="t">${esc(a.fournisseur)} · ${esc(a.description||"")}</span><span class="v num">${eur(n(a.montant))}</span><span class="s">${esc(a.frequence||"Mensuel")}, le ${esc(a.jour||"?")} · ${exChip(a)} <button class="linkbtn" data-act="edit" data-col="abonnements" data-id="${esc(a.id)}">Modifier</button></span>
-      <span class="s" style="flex-direction:column;align-items:flex-start"><span>Mois payés (touche pour pointer) :</span><span class="months">${occ.map(k=>`<button data-act="pointer" data-id="${esc(a.id)}" data-k="${k}" aria-pressed="${(a.mois||[]).includes(k)}" ${canWrite&&db?"":"disabled"}>${esc(monthName(k))}${k===cur?" •":""}${a.montantsMois&&a.montantsMois[k]!==undefined?" · "+eur(aboMontant(a,k)):""}</button>`).join("")||"<span>début à venir</span>"}</span></span></div>`}).join("");
-    body=`<div class="list">${body||`<div class="empty">Aucun abonnement. Touche « + » puis « Abonnement ».</div>`}</div><p class="note">Pointe un mois quand le prélèvement est passé sur le relevé : il compte alors dans la trésorerie et les frais du mois.</p>`;
-  } else body=`<div class="list">${items.map(i=>i.html).join("")||`<div class="empty">Rien d'enregistré ici pour l'instant.</div>`}</div>`;
-  return`${banner()}${filterBar("fraisFilter",f,[["tout","Tout"],["achats","Achats"],["depenses","Dépenses"],["abonnements","Abonnements"],["financement","Apports"]])}${loadingOr("depenses",body)}`;
+    const rows=S.abonnements.map(a=>{const occ=aboOccurrences(a).slice(-6);
+      return`<div class="row" style="cursor:default"><span class="t">${esc(a.fournisseur)} · ${esc(a.description||"")}</span><span class="v num">${eur(n(a.montant))}</span><span class="s">${esc(a.frequence||"Mensuel")}, le ${esc(a.jour||"?")} · <button class="linkbtn" data-act="edit" data-col="abonnements" data-id="${esc(a.id)}">Modifier</button></span>
+      <span class="s" style="flex-direction:column;align-items:flex-start"><span>Mois payés (touche pour pointer) :</span><span class="months">${occ.map(m=>`<button data-act="pointer" data-id="${esc(a.id)}" data-k="${m}" aria-pressed="${(a.mois||[]).includes(m)}" ${canWrite&&db?"":"disabled"}>${esc(monthName(m))}${m===cur?" •":""}${a.montantsMois&&a.montantsMois[m]!==undefined?" · "+eur(aboMontant(a,m)):""}</button>`).join("")||"<span>début à venir</span>"}</span></span></div>`}).join("");
+    body=`<h3 class="sec">Abonnements</h3><div class="list">${rows||`<div class="empty">Aucun abonnement. Touche « + » puis « Abonnement ».</div>`}</div><p class="note">Pointe un mois quand le prélèvement est passé sur le relevé : il compte alors dans la banque et les frais du mois.</p>`;
+  } else if(f==="comptes"){
+    const ju=S.achats.filter(a=>!a.justificatif).length+S.depenses.filter(d=>!d.justificatif).length;
+    const R=(attrs,t,sub,badge)=>`<button class="row" ${attrs}><span class="t">${t}${badge?` <span class="chip warn">${badge}</span>`:""}</span><span class="v">›</span><span class="s">${sub}</span></button>`;
+    body=`<div class="list">
+      ${R('data-act="page" data-p="tresorerie"',"Banque mois par mois","Entrées, sorties et solde de chaque mois")}
+      ${R('data-act="page" data-p="resultat"',"Résultat de l'année","Chiffre d'affaires, charges, bénéfice")}
+      ${R('data-act="page" data-p="dettes"',"Ce que la société doit","Avances des associés, à rembourser")}
+      ${R('data-act="filter" data-name="fraisFilter" data-val="abonnements"',"Abonnements","Pointer les prélèvements de chaque mois")}
+      ${R('data-act="page" data-p="justificatifs"',"Justificatifs","Toutes les factures et pièces",ju||"")}
+      ${R('data-act="page" data-p="tva"',"Franchise de TVA","Où tu en es par rapport aux seuils")}
+      ${R('data-act="export-xlsx"',"Exporter pour Excel","Un fichier pour le comptable")}
+    </div>`;
+  } else if(f==="entrees"){
+    const E=entreesMois(k);const tv=r2(E.filter(x=>x.k==="ventes").reduce((t,x)=>t+x.m,0)),ta=r2(E.filter(x=>x.k==="apports").reduce((t,x)=>t+x.m,0));
+    body=`${monthBar()}<div class="band"><span><b class="num" style="color:var(--ok)">${eur(tv+ta)}</b>entré ce mois</span><span><b class="num">${eur(tv)}</b>ventes encaissées</span><span><b class="num">${eur(ta)}</b>apports</span></div>
+    <div class="list">${E.map(x=>x.html).join("")||`<div class="empty">Rien n'est entré ce mois-ci.</div>`}</div>
+    <p class="note">L'argent réellement reçu ce mois-ci : paiements des clientes (acomptes et soldes, à leur date d'encaissement) et apports des associés.</p>`;
+  } else if(f==="sorties"){
+    const X=sortiesMois(k);const G=(t,tt,rows,vide)=>`<h3 class="sec" style="display:flex;justify-content:space-between"><span>${t}</span><span>${eur(tt)}</span></h3><div class="list">${rows.map(x=>x.html).join("")||`<div class="empty">${vide}</div>`}</div>`;
+    body=`${monthBar()}<div class="band"><span><b class="num">${eur(X.total)}</b>sorti ce mois</span><span><b class="num">${X.achats.length+X.deps.length}</b>facture${X.achats.length+X.deps.length>1?"s":""}</span><span><b class="num${(X.achats.concat(X.deps)).some(x=>x.html.includes("facture manquante"))?" warnv":""}">${X.achats.concat(X.deps).filter(x=>x.html.includes("facture manquante")).length}</b>facture(s) manquante(s)</span></div>
+    ${G("Achats de marchandise",X.tAchats,X.achats,"Aucun achat ce mois-ci.")}
+    ${G("Abonnements",X.tAbos,X.abos,"Aucun abonnement ce mois-ci.")}
+    ${G("Dépenses",X.tDeps,X.deps,"Aucune dépense ce mois-ci.")}
+    ${X.remb.length?G("Remboursements",X.tRemb,X.remb,""):""}
+    <p class="note">Rangé par date de facture. Un achat ouvre la fiche du fournisseur, avec la commande et sa facture.</p>`;
+  } else {
+    const E=entreesMois(k);const tv=r2(E.filter(x=>x.k==="ventes").reduce((t,x)=>t+x.m,0)),ta=r2(E.filter(x=>x.k==="apports").reduce((t,x)=>t+x.m,0));
+    const X=sortiesMois(k),m=moisStats(k),cur=k===ym(today()),ap=aPayer();
+    body=`${monthBar()}
+    <section class="hero"><p class="eyebrow">${cur?"Argent en banque aujourd'hui (estimé)":"Argent en banque fin "+esc(monthName(k))}</p><div class="money-big num">${eur(cur?tresorerie():soldeFin(k))}</div><small>Doit correspondre au relevé Qonto. Sinon, il manque un paiement ou une date de paiement.</small></section>
+    <button class="card" data-act="filter" data-name="fraisFilter" data-val="entrees"><span class="kline head"><span class="in">↓ Entrées</span><span class="in num">+ ${eur(tv+ta)}</span></span><span class="kline"><span>Ventes encaissées</span><span class="num">${eur(tv)}</span></span><span class="kline"><span>Apports (capital, associés)</span><span class="num">${eur(ta)}</span></span></button>
+    <button class="card" data-act="filter" data-name="fraisFilter" data-val="sorties"><span class="kline head"><span class="out">↑ Sorties</span><span class="out num">− ${eur(X.total)}</span></span><span class="kline"><span>Achats de marchandise</span><span class="num">${eur(X.tAchats)}</span></span><span class="kline"><span>Abonnements</span><span class="num">${eur(X.tAbos)}</span></span><span class="kline"><span>Dépenses</span><span class="num">${eur(X.tDeps)}</span></span>${X.tRemb?`<span class="kline"><span>Remboursements</span><span class="num">${eur(X.tRemb)}</span></span>`:""}</button>
+    <div class="card"><span class="kline head"><span>Résultat du mois</span><span class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</span></span><span class="kline"><span>Ventes</span><span class="num">${eur(m.ca)}</span></span><span class="kline"><span>− coût des pièces vendues</span><span class="num">${eur(m.cout)}</span></span><span class="kline"><span>− frais (dépenses, abonnements)</span><span class="num">${eur(m.dep)}</span></span><span class="note">Les achats de stock ne sont pas une perte : ils restent en stock et comptent quand la pièce est vendue.</span></div>
+    ${ap.length?`<h3 class="sec">À payer (tous mois)</h3><div class="list">${ap.map(x=>`<button class="row" data-act="page" data-p="fournisseur" data-id="${esc(x.k)}"><span class="t">${esc(x.nom)}</span><span class="v num">${eur(x.m)}</span></button>`).join("")}</div>`:""}`;
+  }
+  return`${banner()}${bar}${loadingOr("depenses",body)}`;
 }
+
+/* ---------- Carnet : clientes et fournisseurs ---------- */
+function vCarnet(){
+  const t=S.carnetTab==="fournisseurs"?"fournisseurs":"clientes";
+  return`${banner()}${filterBar("carnetTab",t,[["clientes","Clientes"],["fournisseurs","Fournisseurs"]])}${t==="clientes"?carnetClientes():carnetFournisseurs()}`}
+function carnetClientes(){
+  const q=nomSimple(S.cq||"");let L2=clientesListe();if(q)L2=L2.filter(c=>nomSimple(c.nom+" "+c.email+" "+c.tel+" "+c.ville).includes(q));
+  return`<input class="search" id="cq" type="search" placeholder="Chercher une cliente : nom, téléphone, e-mail, ville" value="${esc(S.cq||"")}" autocomplete="off">
+  ${loadingOr("ventes",`<div class="list">${L2.map(c=>{const amb=ambDe(c.nom,c.email,c.tel);return`<button class="row" data-act="page" data-p="client" data-id="${esc(c.key)}"><span class="t">${esc(c.nom)}${amb?` <span class="chip ok">ambassadrice</span>`:""}</span><span class="v num">${eur(c.total)}</span><span class="s">${c.nb} achat${c.nb>1?"s":""} · dernier le ${dfr(c.der)}${c.ville?" · "+esc(c.ville):""}</span></button>`}).join("")||`<div class="empty">${q?"Aucune cliente trouvée.":"Pas encore de cliente : elles apparaissent dès la première vente."}</div>`}</div>`)}
+  <p class="note">Chaque cliente est créée à partir de ses ventes (même e-mail, même téléphone ou même nom = même cliente). Un clic : ses achats, ses factures, ses coordonnées.</p>`}
+/* même fournisseur même s'il est écrit un peu différemment (majuscules, accents, « Co., Ltd. »…) */
+function fournKey(s){return nomSimple(s).replace(/[.,()&'’\-]/g," ").replace(/\b(co|ltd|limited|company|sarl|sasu|sas|inc|llc|gmbh|eurl|sa)\b/g," ").replace(/\s+/g," ").trim()}
+function commandes(achats){
+  const M={};for(const a of achats){const k=a.numFacture||a.date||a.id;(M[k]=M[k]||[]).push(a)}
+  return Object.values(M).map(ls=>{ls.sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    return{date:ls[0].date,num:ls[0].numFacture||"",lignes:ls,total:r2(ls.reduce((t,x)=>t+achatTotal(x),0)),recu:ls.every(x=>x.dateReception),paye:ls.every(x=>x.datePaiement),path:(ls.find(x=>x.justificatif)||{}).justificatif||"",docId:(ls.find(x=>x.justificatif)||ls[0]).id}}).sort((a,b)=>(b.date||"").localeCompare(a.date||""))}
+function fournisseursListe(){
+  const M=new Map();const rank={achat:0,abo:1,dep:2};
+  const get=(nom,type)=>{nom=String(nom||"").trim();const k=fournKey(nom);if(!k)return null;let f=M.get(k);
+    if(!f){f={key:k,nom,type,achats:[],depenses:[],abos:[],pays:""};M.set(k,f)}
+    if(nom.length>f.nom.length)f.nom=nom;if(rank[type]<rank[f.type])f.type=type;return f};
+  for(const a of S.achats){const f=get(a.fournisseur,"achat");if(f){f.achats.push(a);if(a.pays)f.pays=a.pays}}
+  for(const a of S.abonnements){const f=get(a.fournisseur,"abo");if(f)f.abos.push(a)}
+  for(const d of S.depenses){const f=get(d.fournisseur,"dep");if(f)f.depenses.push(d)}
+  return[...M.values()].map(f=>{const cmds=commandes(f.achats);
+    const paye=r2(f.achats.filter(a=>a.datePaiement).reduce((t,a)=>t+achatTotal(a),0)+f.depenses.filter(d=>d.datePaiement).reduce((t,d)=>t+n(d.montant),0)+f.abos.reduce((t,a)=>t+aboPaid(a),0));
+    const apayer=r2(f.achats.filter(a=>!a.datePaiement).reduce((t,a)=>t+achatTotal(a),0)+f.depenses.filter(d=>!d.datePaiement).reduce((t,d)=>t+n(d.montant),0));
+    const enRoute=cmds.filter(c=>!c.recu).length;
+    const der=[...f.achats.map(a=>a.date),...f.depenses.map(d=>d.date),...f.abos.flatMap(a=>(a.mois||[]).map(m=>m+"-01"))].filter(Boolean).sort().pop()||"";
+    const abo=f.abos.find(a=>!a.fin||a.fin>=today());
+    const parts=[];if(f.pays)parts.push(f.pays);if(cmds.length)parts.push(cmds.length+" commande"+(cmds.length>1?"s":""));if(f.depenses.length)parts.push(f.depenses.length+" dépense"+(f.depenses.length>1?"s":""));if(abo)parts.push((abo.description||"abonnement")+" · "+eur(n(abo.montant))+" / mois");if(enRoute)parts.push(enRoute+" colis en route");
+    return{...f,cmds,paye,apayer,enRoute,der,resume:parts.join(" · ")}}).sort((a,b)=>(b.der||"").localeCompare(a.der||""))}
+function carnetFournisseurs(){
+  const q=nomSimple(S.fq||"");let L2=fournisseursListe();if(q)L2=L2.filter(f=>nomSimple(f.nom+" "+f.pays+" "+f.resume).includes(q));
+  const row=f=>`<button class="row" data-act="page" data-p="fournisseur" data-id="${esc(f.key)}"><span class="t">${esc(f.nom)}</span><span class="v num">${eur(f.paye+f.apayer)}</span><span class="s">${esc(f.resume)}${f.apayer?` <span class="chip warn">à payer ${eur(f.apayer)}</span>`:""}</span></button>`;
+  const G=(t,type)=>{const r=L2.filter(f=>f.type===type);return r.length?`<h3 class="sec">${t}</h3><div class="list">${r.map(row).join("")}</div>`:""};
+  return`<input class="search" id="fq" type="search" placeholder="Chercher un fournisseur : nom, pays" value="${esc(S.fq||"")}" autocomplete="off">
+  ${loadingOr("achats",(G("Marchandise","achat")+G("Abonnements","abo")+G("Dépenses et services","dep"))||`<div class="empty">${q?"Aucun fournisseur trouvé.":"Les fournisseurs apparaissent dès le premier achat, la première dépense ou le premier abonnement."}</div>`)}
+  <p class="note">Créés tout seuls à partir des achats, dépenses et abonnements. Un même fournisseur écrit un peu différemment (majuscules, accents, « Co., Ltd. ») est regroupé. Un clic : toutes ses commandes et toutes ses factures.</p>`}
+function pFournisseur(key){
+  const f=fournisseursListe().find(x=>x.key===key);
+  const back=`<div class="pagehead noprint"><button class="linkbtn back" data-act="goto" data-tab="carnet" data-filter="fournisseurs">‹ Carnet</button></div>`;
+  if(!f)return`${back}<div class="empty">Fournisseur introuvable.</div>`;
+  const ro=!(db&&canWrite);
+  const items=[];
+  for(const c of f.cmds){const nb=c.lignes.reduce((t,x)=>t+n(x.quantite),0);const ids=c.lignes.map(x=>x.id).join(",");
+    const lignes=c.lignes.map(a=>{const p=prod(a.produitId);const pu=n(a.prixUnit);return`<button type="button" data-act="edit" data-col="achats" data-id="${esc(a.id)}">${n(a.quantite)} × ${esc(p?designation(p):"article ?")} · ${pu?(a.devise&&a.devise!=="EUR"?pu+" "+esc(a.devise):eur(pu))+" pièce":""}</button>`}).join("");
+    const dates=[];if(c.paye){const dp=c.lignes.map(x=>x.datePaiement).sort().pop();dates.push("payée le "+dfr(dp))}if(c.recu){const dr=c.lignes.map(x=>x.dateReception).sort().pop();dates.push("reçue le "+dfr(dr))}
+    items.push({d:c.date,html:`<div class="card"><span class="top"><b>${c.num?"Commande n° "+esc(c.num):"Commande du "+dfr(c.date)}</b><b class="num">${eur(c.total)}</b></span>
+      <span class="lines">${lignes}<span>${dfr(c.date)} · ${nb} pièce${nb>1?"s":""}${dates.length?" · "+dates.join(" · "):""}</span></span>
+      <span class="chips">${c.recu?`<span class="chip ok">reçue · en stock</span>`:`<span class="chip warn">en route · pas encore reçue</span>`}${c.paye?"":`<span class="chip warn">à payer</span>`} ${docCtl("achats",c.docId,c.path,"set")}
+      ${ro?"":`${c.recu?"":`<button type="button" class="sitebtn" data-act="recu-cmd" data-col="achats" data-ids="${esc(ids)}">Marquer reçue</button>`}${c.paye?"":`<button type="button" class="sitebtn" data-act="payer-cmd" data-col="achats" data-ids="${esc(c.lignes.filter(x=>!x.datePaiement).map(x=>x.id).join(","))}">Marquer payée</button>`}`}</span></div>`})}
+  for(const d of f.depenses)items.push({d:d.date,html:`<div class="card"><span class="top"><b>${esc(d.description||d.categorie||"Dépense")}</b><b class="num">${eur(n(d.montant))}</b></span>
+    <span class="lines"><button type="button" data-act="edit" data-col="depenses" data-id="${esc(d.id)}">${dfr(d.date)}${d.numFacture?" · n° "+esc(d.numFacture):""}${d.categorie?" · "+esc(d.categorie):""} · ouvrir</button></span>
+    <span class="chips">${d.datePaiement?`<span class="chip ok">payée</span>`:`<span class="chip warn">à payer</span>`} ${docCtl("depenses",d.id,d.justificatif,"set")}${ro||d.datePaiement?"":` <button type="button" class="sitebtn" data-act="payer-cmd" data-col="depenses" data-ids="${esc(d.id)}">Marquer payée</button>`}</span></div>`});
+  items.sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+  const byM={};for(const x of items){const m=ym(x.d)||"";(byM[m]=byM[m]||[]).push(x.html)}
+  const mois=Object.keys(byM).sort().reverse().map(m=>`<h3 class="sec">${m?esc(monthName(m)):"Sans date"}</h3><div class="cards">${byM[m].join("")}</div>`).join("");
+  const abos=f.abos.length?`<h3 class="sec">Abonnements</h3><div class="list">${f.abos.map(a=>`<button class="row" data-act="edit" data-col="abonnements" data-id="${esc(a.id)}"><span class="t">${esc(a.description||"Abonnement")}</span><span class="v num">${eur(n(a.montant))} / ${esc((a.frequence||"Mensuel").toLowerCase()==="mensuel"?"mois":a.frequence)}</span><span class="s">depuis le ${dfr(a.debut)}${a.fin?" · jusqu'au "+dfr(a.fin):""} · ${(a.mois||[]).length} prélèvement${(a.mois||[]).length>1?"s":""} pointé${(a.mois||[]).length>1?"s":""} · ${eur(aboPaid(a))} payés</span></button>`).join("")}</div>`:"";
+  /* ce que tu lui achètes : dernier prix de chaque article, comparé à la fourchette */
+  const P={};for(const a of [...f.achats].sort((x,y)=>(x.date||"").localeCompare(y.date||""))){if(!a.produitId)continue;const o=P[a.produitId]=P[a.produitId]||{q:0,a:null};o.q+=n(a.quantite);o.a=a}
+  const quoi=Object.entries(P).map(([id,o])=>{const p=prod(id);if(!p)return"";const a=o.a;const pu=n(a.prixUnit);const v=prixAchatEur(a);const c=catAchat(p);const F=c&&n(p.longueur)?fourchetteDe(c,p.longueur):null;
+    const rep=F&&!F.vide&&v>0?(v>F.max?`<span class="chip warn">⬆ au-dessus de la fourchette</span>`:v<F.min?`<span class="chip ok">⬇ bon prix</span>`:`<span class="chip">✓ dans la fourchette</span>`):"";
+    return`<button class="row" data-act="edit" data-col="produits" data-id="${esc(id)}"><span class="t">${esc(designation(p))}</span><span class="v num">${a.devise&&a.devise!=="EUR"?pu+" "+esc(a.devise):eur(pu)}</span><span class="s">${o.q} pièce${o.q>1?"s":""} achetée${o.q>1?"s":""} · dernier prix ${eur(v)} ${rep}</span></button>`}).join("");
+  return`${back}
+  <div><h2 class="ptitle">${esc(f.nom)}</h2><p class="note">${esc(f.resume)}</p></div>
+  ${ro?"":`<div class="acts small">${f.type!=="dep"?`<button class="act main" data-act="four-achat" data-id="${esc(f.key)}"><b>+ Achat chez lui</b><span>Fournisseur déjà rempli</span></button>`:""}<button class="act${f.type==="dep"?" main":""}" data-act="four-dep" data-id="${esc(f.key)}"><b>+ Dépense chez lui</b><span>Frais, service, matériel</span></button></div>`}
+  <div class="grid2 g4">
+    <div class="tile"><span>Commandes</span><b class="num">${f.cmds.length+f.depenses.length}</b><span>${f.cmds.length} achat${f.cmds.length>1?"s":""}, ${f.depenses.length} dépense${f.depenses.length>1?"s":""}</span></div>
+    <div class="tile"><span>Payé</span><b class="num">${eur(f.paye)}</b><span>depuis le début</span></div>
+    <div class="tile"><span>À payer</span><b class="num" style="color:${f.apayer?"var(--warn)":"inherit"}">${eur(f.apayer)}</b><span>${f.apayer?"pas encore réglé":"rien à régler"}</span></div>
+    <div class="tile"><span>En route</span><b class="num">${f.enRoute}</b><span>colis pas encore reçu${f.enRoute>1?"s":""}</span></div>
+  </div>
+  ${mois}${abos}
+  ${quoi?`<h3 class="sec">Ce que tu lui achètes</h3><div class="list">${quoi}</div>`:""}`}
+async function lotUpdate(b,champ){const ids=(b.dataset.ids||"").split(",").filter(Boolean);if(!ids.length)return;b.disabled=true;
+  try{for(const id of ids)await db.collection(b.dataset.col).doc(id).update({[champ]:today(),modifieLe:new Date().toISOString()});toast(champ==="dateReception"?"Reçue : ajoutée au stock":"Marquée payée")}catch(e){b.disabled=false;toast(dbErr(e))}}
+
+/* ---------- Réglages (roue dentée) ---------- */
+function pReglages(){
+  const R=(attrs,t,sub,badge)=>`<button class="row" ${attrs}><span class="t">${t}${badge?` <span class="chip warn">${badge}</span>`:""}</span><span class="v">›</span><span class="s">${sub}</span></button>`;
+  const nDem=(S.demandes||[]).filter(d=>d.type!=="liste"&&(d.statut||"Nouvelle")==="Nouvelle").length;
+  return`${pageHead("Réglages","Ce qu'on règle rarement. Le quotidien est dans les 5 espaces du bas.")}
+  <h3 class="sec">Prix</h3><div class="list">
+    ${R('data-act="reglages"',"Réglages des prix","Marges, transport, grille, options")}
+    ${R('data-act="page" data-p="prix"',"Contrôle des prix","Tes prix, le calcul, les planchers",prixAlertes().length||"")}
+    ${R('data-act="page" data-p="referentiel"',"Référentiel","Listes, codes, fourchettes d'achat")}
+  </div>
+  <h3 class="sec">Site eugceo.fr</h3><div class="list">
+    ${R('data-act="page" data-p="site"',"Le site","Textes, photos, créations en ligne")}
+    ${R('data-act="page" data-p="demandes"',"Demandes reçues","Commandes, rendez-vous, messages",nDem||"")}
+  </div>
+  <h3 class="sec">Société</h3><div class="list">
+    ${R('data-act="page" data-p="societe"',"Société","SIREN, adresse, mentions des factures")}
+    ${R('data-act="page" data-p="controles"',"Contrôles","Ce qui manque ou paraît anormal")}
+  </div>
+  <h3 class="sec">Données et compte</h3><div class="list">
+    ${R('data-act="export-xlsx"',"Exporter pour Excel","Un fichier pour le comptable")}
+    ${R('data-act="export"',"Sauvegarde","Toutes les données dans un fichier")}
+    ${R('data-act="logout"',"Se déconnecter",esc(myId||""))}
+  </div>`}
 
 /* ---------- formulaires ---------- */
 const FORMS={
@@ -1538,7 +1714,10 @@ document.addEventListener("click",e=>{
   if(a==="fq-add"){const box=$("#fqLines");if(box){const fm=box.closest("form");if(fm)fm.dataset.dirty="1";box.insertAdjacentHTML("beforeend",fqLine());}return}
   if(a==="lx-add"){const x=LISTES.find(y=>y.k===b.dataset.k);const box=document.querySelector(`.lxLines[data-k="${b.dataset.k}"]`);if(x&&box){const fm=box.closest("form");if(fm)fm.dataset.dirty="1";box.insertAdjacentHTML("beforeend",lxLine(x,{}));const i=box.lastElementChild.querySelector("input");if(i)i.focus()}return}
   if(a==="rm-add"){$("#rmLines").insertAdjacentHTML("beforeend",`<div class="line rm3"><input class="rmNom" placeholder="Nom" aria-label="Modèle"><input class="rmCode" placeholder="CODE" aria-label="Code"><input class="rmBonus" inputmode="decimal" value="0" aria-label="Bonus"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`);return}
-  if(a==="goto"){S.page=null;S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;S.q="";window.scrollTo(0,0);render()}
+  if(a==="four-achat"){const f=fournisseursListe().find(x=>x.key===b.dataset.id);openForm("achats",null,f?{fournisseur:f.nom,pays:f.pays||"Chine"}:{});return}
+  if(a==="four-dep"){const f=fournisseursListe().find(x=>x.key===b.dataset.id);openForm("depenses",null,f?{fournisseur:f.nom}:{});return}
+  if(a==="recu-cmd"||a==="payer-cmd"){lotUpdate(b,a==="recu-cmd"?"dateReception":"datePaiement");return}
+  if(a==="goto"){S.page=null;S.tab=b.dataset.tab;const fl=b.dataset.filter;if(S.tab==="ventes")S.ventesFilter=fl;if(S.tab==="stock")S.stockFilter=fl;if(S.tab==="frais")S.fraisFilter=fl;if(S.tab==="carnet"&&fl)S.carnetTab=fl;S.q="";window.scrollTo(0,0);render()}
   else if(a==="mprev"){S.month=addMonths(S.month,-1);render()}
   else if(a==="mnext"){S.month=addMonths(S.month,1);render()}
   else if(a==="filter"){S[b.dataset.name]=b.dataset.val;render()}
@@ -1564,13 +1743,13 @@ document.addEventListener("click",e=>{
   else if(a==="pw-toggle"){const f=$("#lgPw");if(f){const show=f.type==="password";f.type=show?"text":"password";b.textContent=show?"Masquer":"Afficher";b.setAttribute("aria-pressed",String(show))}}
   else if(a==="att-clear"){$("#justificatif").value="";$("#attBox").innerHTML=attView("")}
 });
-$("#plusBtn").addEventListener("click",openChooser);
+$("#plusBtn").addEventListener("click",openChooser);$("#plusTop").addEventListener("click",openChooser);
 document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else save()});
 document.addEventListener("input",e=>{
   if(e.target.matches&&e.target.matches('input[name="ville"],input[name="cpVille"],#dv_ville'))villeAuto(e.target);
   if(e.target.id==="cliente"&&current&&current.col==="codes_promo"&&!current.id){const c=$("#code");if(c&&(!c.value||c.value===current.autoCode)){current.autoCode=e.target.value.trim()?codeAuto(e.target.value):"";c.value=current.autoCode}}
   if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
-  if(e.target.id==="gq"||e.target.id==="cq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
+  if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
