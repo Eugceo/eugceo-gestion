@@ -768,7 +768,7 @@ function doRender(){
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
   if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(v.dataset.page===S.page&&(S.page==="visuel"||v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(S.page==="visuel"&&v.dataset.page==="visuel"){visListe();$("#screenTitle").textContent=pt;return}if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -1273,7 +1273,7 @@ function visTextes(p){
   return{titre,l1,l2,prix:px>0?String(Math.round(px))+" €":"",sur:stockQty(p)>0?"Disponible":"Sur commande"}}
 function visMedias(p){const s=(p&&p.site)||{};const L=(Array.isArray(s.photos)?s.photos:[]).filter(x=>!/^videos\//.test(x)).map(x=>({u:pubUrl(x),t:"image"}));if(s.video)L.push({u:pubUrl(s.video),t:"video"});return L}
 function pVisuel(){
-  const ps=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).sort((a,b)=>designation(a).localeCompare(designation(b)));
+  const ps=visProduits();
   const p=prod(S.pageId)||null;const T=visTextes(p);const md=visMedias(p);
   setTimeout(()=>{visCharger(md[0]?md[0].u:"",md[0]?md[0].t:"image")},0);
   const vidOk=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
@@ -1281,7 +1281,7 @@ function pVisuel(){
   <div class="vis">
    <div class="vis-prev" data-act="vis-play"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
-    ${F("visProd","Article",`<select id="visProd" name="visProd"><option value="">Autre (pas dans la liste) : texte libre</option>${ps.map(x=>`<option value="${esc(x.id)}"${p&&x.id===p.id?" selected":""}>${esc(designation(x))}</option>`).join("")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
+    ${F("visProd","Article",`<select id="visProd" name="visProd" data-k="${esc(ps.map(x=>x.id+designation(x)).join("|"))}">${visOptions(p?p.id:"")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
     <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
       <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
       <span class="hint">${md.length?"Celles de la fiche « Sur le site », ou une du téléphone.":"Rien sur la fiche : prends une photo ou une vidéo du téléphone avec « + »."}</span></div>
@@ -1298,6 +1298,10 @@ function pVisuel(){
     <p class="note" id="visNote"></p>
    </form>
   </div>`}
+function visProduits(){return S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).sort((a,b)=>designation(a).localeCompare(designation(b)))}
+function visOptions(cur){return`<option value="">Autre (pas dans la liste) : texte libre</option>${visProduits().map(x=>`<option value="${esc(x.id)}"${x.id===cur?" selected":""}>${esc(designation(x))}</option>`).join("")}`}
+/* la liste des articles se complète dès qu'ils sont chargés, sans toucher au reste de la page */
+function visListe(){const sel=$("#visProd");if(!sel)return;const k=visProduits().map(p=>p.id+designation(p)).join("|");if(sel.dataset.k===k)return;const cur=sel.value;sel.innerHTML=visOptions(cur);sel.value=cur;sel.dataset.k=k}
 function visActs(){const box=$("#visActs");if(!box)return;const vid=VIS.type==="video"&&$("#visMode").value!=="calque";
   const share=!!navigator.canShare;
   if(VIS.rec){box.innerHTML=`<div class="vis-rec"><b>Création de la vidéo… <span id="visPct">0 %</span></b><span>Laisse cette page ouverte jusqu'à la fin.</span><button type="button" class="btn ghost small" data-act="vis-stop">Arrêter</button></div>`;return}
