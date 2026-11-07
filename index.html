@@ -368,7 +368,7 @@ button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.til
 /* ===== visuels réseaux ===== */
 .vis{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 .vis-prev{position:sticky;top:64px;z-index:1;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/20px 20px;border:1px solid var(--hair);border-radius:12px;padding:8px;display:flex;justify-content:center}
-.vis-prev canvas{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.vis-prev canvas{display:block;max-width:100%;max-height:40vh;width:auto;height:auto;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
 .vis-ph{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .vis-th{flex:none;width:64px;height:80px;border:2px solid transparent;border-radius:8px;overflow:hidden;padding:0;background:var(--soft);cursor:pointer;display:grid;place-items:center;font-size:12px;color:var(--muted)}
 .vis-th{position:relative}.vis-th img,.vis-th video{width:100%;height:100%;object-fit:cover;display:block}.vis-th i{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-style:normal;font-size:20px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
@@ -1279,19 +1279,20 @@ function pVisuel(){
   const vidOk=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
   return`${pageHead("Visuel pour les réseaux","Choisis un article, une photo ou une vidéo, et un format. Tu obtiens une image ou une vidéo prête à poster, avec EUGCEO et les détails de l'article.")}
   <div class="vis">
-   <div class="vis-prev"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
+   <div class="vis-prev" data-act="vis-play"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
-    ${F("visProd","Article",`<select id="visProd" name="visProd"><option value="">— Choisir —</option>${ps.map(x=>`<option value="${esc(x.id)}"${p&&x.id===p.id?" selected":""}>${esc(designation(x))}</option>`).join("")}</select>`)}
+    ${F("visProd","Article",`<select id="visProd" name="visProd"><option value="">Autre (pas dans la liste) : texte libre</option>${ps.map(x=>`<option value="${esc(x.id)}"${p&&x.id===p.id?" selected":""}>${esc(designation(x))}</option>`).join("")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
     <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
       <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
       <span class="hint">${md.length?"Celles de la fiche « Sur le site », ou une du téléphone.":"Rien sur la fiche : prends une photo ou une vidéo du téléphone avec « + »."}</span></div>
     <div class="two">${F("visFmt","Format",`<select id="visFmt" name="visFmt">${Object.entries(VIS_FORMATS).map(([k,v])=>`<option value="${k}">${v[2]}</option>`).join("")}</select>`)}
      ${F("visMode","Type",`<select id="visMode" name="visMode"><option value="photo">Avec la photo ou la vidéo</option><option value="calque">Calque transparent seul</option></select>`)}</div>
     <div class="two">${F("visY","Cadrage (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}${F("visZoom","Zoom",`<input type="range" id="visZoom" name="visZoom" min="100" max="200" value="100">`)}</div>
+    <h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
     ${F("visSur","Petit titre",inp("visSur",T.sur),"Ex. Disponible, Sur commande, Nouvelle création, Pose réalisée.")}
-    ${F("visTitre","Titre",inp("visTitre",T.titre))}
-    ${F("visL1","Détail 1",inp("visL1",T.l1))}
-    ${F("visL2","Détail 2",inp("visL2",T.l2))}
+    ${F("visTitre","Titre",inp("visTitre",T.titre,'placeholder="ex. Body Wave 24″"'))}
+    ${F("visL1","Détail 1",inp("visL1",T.l1,'placeholder="ex. Lace 13x6 HD · Raw hair"'))}
+    ${F("visL2","Détail 2",inp("visL2",T.l2,'placeholder="ex. Noir naturel · 250 %"'))}
     <div class="two">${F("visPrix","Prix",inp("visPrix",T.prix),"Vide = pas de prix.")}${F("visSite","En bas",inp("visSite","eugceo.fr"))}</div>
     <div id="visActs"></div>
     <p class="note" id="visNote"></p>
@@ -1305,11 +1306,15 @@ function visActs(){const box=$("#visActs");if(!box)return;const vid=VIS.type==="
   box.innerHTML=`<div class="acts small"><button type="button" class="act main" data-act="vis-dl"><b>Télécharger</b><span>Image PNG</span></button>${share?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, WhatsApp…</span></button>`:""}</div>`;
   $("#visNote").textContent=$("#visMode").value==="calque"?"Calque transparent : à poser au-dessus de ta vidéo dans ton appli de montage.":"L'image n'est pas enregistrée dans l'app : télécharge-la ou partage-la directement."}
 function visStopLoop(){cancelAnimationFrame(VIS.raf);VIS.raf=0}
-function visCharger(u,t){visStopLoop();if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.out=null;VIS.audio=null;
+function visCharger(u,t){visStopLoop();if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.pend=null;VIS.err="";VIS.out=null;VIS.audio=null;
   if(!u){visDraw();visActs();return}
-  if(VIS.type==="video"){const vd=document.createElement("video");vd.crossOrigin="anonymous";vd.muted=true;vd.loop=true;vd.playsInline=true;vd.setAttribute("playsinline","");vd.preload="auto";
-    vd.onloadeddata=()=>{if(VIS.src!==u)return;VIS.vid=vd;vd.play().catch(()=>{});visLoop();visActs()};vd.onerror=()=>{toast("Vidéo impossible à lire");visDraw()};vd.src=u;visDraw();visActs();return}
-  const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;visDraw()}};im.onerror=()=>{toast("Photo impossible à charger");visDraw()};im.src=u;visDraw();visActs()}
+  if(VIS.type==="video"){const vd=document.createElement("video");if(!/^blob:/.test(u))vd.crossOrigin="anonymous";vd.muted=true;vd.defaultMuted=true;vd.loop=true;vd.autoplay=true;vd.playsInline=true;vd.setAttribute("playsinline","");vd.setAttribute("muted","");vd.preload="auto";
+    VIS.pend=vd;const pret=()=>{if(VIS.src!==u||VIS.vid===vd||!vd.videoWidth)return;VIS.vid=vd;VIS.pend=null;VIS.err="";vd.play().catch(()=>{});visLoop();visActs()};
+    ["loadedmetadata","loadeddata","canplay","playing"].forEach(ev=>vd.addEventListener(ev,pret));
+    vd.onerror=()=>{if(VIS.src!==u)return;VIS.err="Cette vidéo ne peut pas être lue ici.";VIS.pend=null;visDraw()};
+    vd.src=u;try{vd.load()}catch(_){}vd.play().catch(()=>{});
+    setTimeout(()=>{if(VIS.src===u&&!VIS.vid&&!VIS.err){VIS.err="Touche l'aperçu pour lancer la vidéo.";visDraw()}},4000);visDraw();visActs();return}
+  const im=new Image();if(!/^blob:/.test(u))im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;VIS.err="";visDraw()}};im.onerror=()=>{if(VIS.src!==u)return;VIS.err="Cette photo ne peut pas être lue ici.";visDraw()};im.src=u;visDraw();visActs()}
 function visLoop(){visStopLoop();const tick=()=>{if(!$("#visCv")||!VIS.vid){visStopLoop();if(VIS.vid&&!$("#visCv")){try{VIS.vid.pause()}catch(_){}}return}visDraw(true);VIS.raf=requestAnimationFrame(tick)};VIS.raf=requestAnimationFrame(tick)}
 function visSpaced(c,t,x,y,sp,align){const chars=[...t];const w=chars.reduce((s,ch)=>s+c.measureText(ch).width,0)+sp*(chars.length-1);let cx=align==="center"?x-w/2:align==="right"?x-w:x;
   for(const ch of chars){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}return w}
@@ -1322,9 +1327,9 @@ function visDraw(sync){
   const[W,H]=VIS_FORMATS[v("visFmt")||"post"];if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}const c=cv.getContext("2d");
   const calque=v("visMode")==="calque";c.clearRect(0,0,W,H);
   if(!calque){c.fillStyle="#111";c.fillRect(0,0,W,H);const src=VIS.vid||VIS.img;
-    if(src){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const sc=Math.max(W/sw,H/sh)*z;const iw=sw*sc,ih=sh*sc;
+    if(src&&(src.videoWidth||src.width)){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const sc=Math.max(W/sw,H/sh)*z;const iw=sw*sc,ih=sh*sc;
       const fy=(n(v("visY"))||50)/100;c.drawImage(src,(W-iw)/2,(H-ih)*fy,iw,ih)}
-    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.src?"Chargement…":"Choisis une photo ou une vidéo",W/2,H/2)}}
+    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.err||(VIS.src?"Chargement…":"Choisis une photo ou une vidéo"),W/2,H/2)}}
   let g=c.createLinearGradient(0,0,0,H*0.22);g.addColorStop(0,"rgba(0,0,0,.45)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,W,H*0.22);
   g=c.createLinearGradient(0,H*0.5,0,H);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(.55,"rgba(0,0,0,.55)");g.addColorStop(1,"rgba(0,0,0,.85)");c.fillStyle=g;c.fillRect(0,H*0.5,W,H*0.5);
   const story=H/W>1.6;const M=W*0.075;const top=story?H*0.07:H*0.05;
@@ -1893,6 +1898,7 @@ document.addEventListener("click",e=>{
   if(a==="vis-open"){closeSheet(true);S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
   if(a==="vis-media"){if(VIS.rec)return;document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u,b.dataset.t);return}
   if(a==="vis-rec"){visRec();return}
+  if(a==="vis-play"){const vd=VIS.pend||VIS.vid;if(vd)vd.play().catch(()=>{});return}
   if(a==="vis-stop"){if(VIS.rec&&VIS.rec.state==="recording")VIS.rec.stop();return}
   if(a==="vis-dl"){visDl();return}
   if(a==="vis-share"){visShare();return}
