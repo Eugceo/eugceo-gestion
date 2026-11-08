@@ -1574,7 +1574,7 @@ function fVente(d){
     <div class="two">${F("statut","Statut",sel("statut",L.statutsVente,paid))}${F("paiement","Moyen",sel("paiement",L.paiements,d.paiement||"Carte bancaire"))}</div>
     ${F("dateEncaissement","Date d'encaissement",dateI("dateEncaissement",d.dateEncaissement||(d.id?"":today())),"Le jour où l'argent est arrivé (vente payée).")}
   </fieldset>
-  <fieldset><legend>Expédition</legend>
+  <fieldset id="expBox"${isPrestation(prod(d.produitId))?" hidden":""}><legend>Expédition</legend>
     <div class="two">${F("etape","Étape",sel("etape",ETAPES,d.etape||"À préparer"))}${F("transporteur","Transporteur",sel("transporteur",TRANSPORTEURS,d.transporteur||"Colissimo"))}</div>
     ${F("numeroSuivi","Numéro de suivi",inp("numeroSuivi",d.numeroSuivi,'autocomplete="off"'),d.email?"En passant à « Expédiée » avec un numéro de suivi, la cliente reçoit un e-mail avec le lien de suivi.":"Ajoute l'e-mail de la cliente (Coordonnées) pour qu'elle reçoive le suivi par e-mail.")}
     ${d.mailExpeditionLe?`<p class="note">E-mail d'expédition envoyé le ${dfr(String(d.mailExpeditionLe).slice(0,10))}.</p>`:""}
@@ -1720,7 +1720,7 @@ function formData(){
 }
 function livePreview(){
   if(!current)return;const c=current.col;const f=$("#form");if(!f)return;const d=formData();
-  if(c==="ventes"){const pr=isPrestation(prod(d.produitId));const lb=f.querySelector('label[for="port"]');if(lb&&lb.dataset.pr!==String(pr)){lb.dataset.pr=String(pr);lb.textContent=pr?"Frais de déplacement (€)":"Frais de port (€)";const h=$("#portHint");if(h)h.innerHTML=pr?portHintDep():""}}
+  if(c==="ventes"){const pr=isPrestation(prod(d.produitId));const lb=f.querySelector('label[for="port"]');if(lb&&lb.dataset.pr!==String(pr)){lb.dataset.pr=String(pr);lb.textContent=pr?"Frais de déplacement (€)":"Frais de port (€)";const h=$("#portHint");if(h)h.innerHTML=pr?portHintDep():""}const xb=$("#expBox");if(xb)xb.hidden=pr}
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
@@ -2774,8 +2774,8 @@ function pFacture(id){
    <table class="iv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
     <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
     ${(Array.isArray(v.supDetail)&&v.supDetail.length?v.supDetail:(n(v.supplements)?[{nom:"Suppléments",montant:n(v.supplements)}]:[])).map(x=>`<tr><td>${esc(x.nom)}</td><td></td><td></td><td class="r num">${eur(n(x.montant))}</td></tr>`).join("")}
-    ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
-    ${n(v.port)?`<tr><td>${p&&isPrestation(p)?"Frais de déplacement":"Frais de livraison"}</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
+    ${n(v.port)?`<tr><td>${p&&isPrestation(p)?"Frais de déplacement":"Frais de livraison"}</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}
+    ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}</tbody></table>
    <div class="iv-total"><span>Total${s.tva==="Oui"?" TTC":""}</span><b class="num">${eur(tot)}</b></div>
    ${av||!paid?`<div class="iv-sub">${av?`<div><span>${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?`<span class="iv-mini">${esc(detailAv(v))}</span>`:""}</span><span class="num">− ${eur(av)}</span></div>`:""}<div class="iv-reste"><span>Reste à payer</span><span class="num">${eur(reste)}</span></div></div>`:""}
    <p class="iv-merci">Merci pour votre confiance.</p>
