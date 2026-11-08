@@ -714,6 +714,12 @@ function coefVente(p,couleurSpe,niveau,collection){
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
 function isRemise(p){return !!p&&isPrestation(p)&&/remise/i.test(p.modele||"")}
 /* pose : forfait jusqu'à 1 h 30, puis un supplément par demi-heure commencée (Réglages des prix) */
+function hTxt(h){h=n(h);const H=Math.floor(h+1e-9),m=Math.round((h-H)*60);return H?(H+" h"+(m?" "+String(m).padStart(2,"0"):"")):m+" min"}
+/* détail du forfait de pose pour la facture */
+function forfaitPoseTexte(h){const R=S.reglages;const bh=n(R.poseBaseH)||1.5,bp=n(R.poseBasePrix),ph=n(R.posePasH)||0.5,pp=n(R.posePasPrix);h=n(h);if(!(h>0))return"";
+  const k=h<=bh+1e-9?0:Math.ceil((h-bh)/ph-1e-9);
+  const u=Math.abs(ph-0.5)<1e-9?"demi-heure":"tranche de "+hTxt(ph);
+  return`Durée de la pose : ${hTxt(h)}. Forfait pose : ${eur(bp)} jusqu'à ${hTxt(bh)}${k?`, + ${k} ${u}${k>1?"s":""} supplémentaire${k>1?"s":""} × ${eur(pp)} = ${eur(forfaitPose(h))}`:""}.`}
 function forfaitPose(h){const R=S.reglages;const bh=n(R.poseBaseH)||1.5,bp=n(R.poseBasePrix),ph=n(R.posePasH)||0.5,pp=n(R.posePasPrix);h=n(h);
   if(h<=bh+1e-9)return bp;return r2(bp+Math.ceil((h-bh)/ph-1e-9)*pp)}
 function prixConseille(p,pp,couleurSpe,niveau,collection){
@@ -2758,6 +2764,8 @@ function pFacture(id){
   const perso=(Array.isArray(v.travaux)?v.travaux:[]).map(t=>t.nom).filter(x=>x&&x!=="Préparation de base"&&x!=="Pose");
   const persoTxt=[v.couleurSpe&&v.couleurSpe!=="Naturelle"?"couleur "+v.couleurSpe:"",...perso.map(x=>x.toLowerCase())].filter(Boolean);
   const nature=p&&isPrestation(p)?"Prestation de services":"Vente de biens";
+  const poseH=isPose(p)?((Array.isArray(v.travaux)?v.travaux:[]).filter(t=>/pose/i.test(t.nom||"")).reduce((a,t)=>a+n(t.heures),0)||n(v.heures)):0;
+  const poseTxt=poseH?(Math.abs(forfaitPose(poseH)-n(v.prixTTC))<0.01?forfaitPoseTexte(poseH):`Durée de la pose : ${hTxt(poseH)}.`):"";
   const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";
   const reste=paid?0:Math.max(0,r2(tot-av));
   return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
@@ -2772,7 +2780,7 @@ function pFacture(id){
     <div class="iv-right"><div class="iv-lbl">Facture</div><div class="iv-num">${esc(v.numero||"(non numérotée)")}</div><div class="iv-small">Le ${dfr(v.date)}<br>${nature}</div>${paid?`<div class="iv-paid">Payée le ${dfr(v.dateEncaissement||v.date)}</div>${v.paiement?`<div class="iv-mini">${esc(v.paiement.toLowerCase())}</div>`:""}`:""}</div>
    </section>
    <table class="iv-tbl"><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Montant</th></tr></thead>
-    <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
+    <tbody><tr><td><div class="iv-des">${esc(des)}</div>${poseTxt?`<div class="iv-small">${esc(poseTxt)}</div>`:""}${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
     ${(Array.isArray(v.supDetail)&&v.supDetail.length?v.supDetail:(n(v.supplements)?[{nom:"Suppléments",montant:n(v.supplements)}]:[])).map(x=>`<tr><td>${esc(x.nom)}</td><td></td><td></td><td class="r num">${eur(n(x.montant))}</td></tr>`).join("")}
     ${n(v.port)?`<tr><td>${p&&isPrestation(p)?"Frais de déplacement":"Frais de livraison"}</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}
     ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}</tbody></table>
