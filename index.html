@@ -467,7 +467,7 @@ const L={
   typesBundle:["Simple (SD)","Doublé (DD)","Super doublé (SDD)"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.08,"Demi-tête (Half Wig)":-0.2,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -713,7 +713,9 @@ function coefVente(p,couleurSpe,niveau,collection){
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
 function isRemise(p){return !!p&&isPrestation(p)&&/remise/i.test(p.modele||"")}
-function forfaitPose(h){const R=S.reglages;if(h<=n(R.poseH1))return n(R.posePrix1);if(h<=n(R.poseH2))return n(R.posePrix2);return null}
+/* pose : forfait jusqu'à 1 h 30, puis un supplément par demi-heure commencée (Réglages des prix) */
+function forfaitPose(h){const R=S.reglages;const bh=n(R.poseBaseH)||1.5,bp=n(R.poseBasePrix),ph=n(R.posePasH)||0.5,pp=n(R.posePasPrix);h=n(h);
+  if(h<=bh+1e-9)return bp;return r2(bp+Math.ceil((h-bh)/ph-1e-9)*pp)}
 function prixConseille(p,pp,couleurSpe,niveau,collection){
   if(!p||!pp)return null;const c=coefVente(p,couleurSpe,niveau,collection);
   if(isPose(p)){const f=forfaitPose(pp.heures);return {coef:c,prix:f,forfait:true,label:"Forfait pose"}}
@@ -1545,6 +1547,7 @@ function readLines(){
 function avLine(x){x=x||{};return`<div class="line av"><select class="avMoyen" aria-label="Moyen">${L.paiements.map(o=>`<option${o===(x.moyen||"Espèces")?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="avM" inputmode="decimal" placeholder="€" value="${x.montant===""||x.montant==null?"":String(x.montant).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function readAv(){return[...document.querySelectorAll("#avLines .line")].map(l=>({moyen:l.querySelector(".avMoyen").value,montant:n(l.querySelector(".avM").value)})).filter(x=>x.montant>0)}
 function detailAv(v){return Array.isArray(v.avanceDetail)&&v.avanceDetail.length?v.avanceDetail.map(x=>eur(n(x.montant))+" "+String(x.moyen||"").toLowerCase()).join(" + "):""}
+function portHintDep(){const k=rdvCfg().km;return`Chez la cliente : <input id="kmDep" inputmode="decimal" placeholder="km" aria-label="Distance en km" style="width:5em;padding:4px 6px;font-size:14px;display:inline-block"> km → ${eur(n(k.prix))} par tranche de ${esc(k.tranche)} km${k.allerRetour?" (aller-retour)":""}. Vide si c'est à Cesson.`}
 function fVente(d){
   const paid=d.statut||"Payée";
   return`${F("date","Date de la vente",dateI("date",d.date||today()))}
@@ -1559,7 +1562,7 @@ function fVente(d){
   <div class="two">${F("quantite","Quantité",inp("quantite",d.quantite||1,'inputmode="numeric"'))}${F("prixTTC","Prix unitaire (€)",money("prixTTC",d.prixTTC),"Prix de base de la fiche produit. Si tu vends moins cher, tape ton prix : la différence passe toute seule en remise.")}</div>
   <input type="hidden" name="remisePrixU" id="remisePrixU" value="${esc(d.remisePrixU??"")}"><input type="hidden" name="remisePrix" id="remisePrix" value="${esc(d.remisePrix??"")}">
   ${F("supplements","Suppléments (€)",money("supplements",d.supplements),`<span id="supHint">${esc(supTexte(d.supDetail))||"Coloration, coupe, matières… se calculent tout seuls depuis la fiche de création."}</span>`)}
-  <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port","Frais de port (€)",money("port",d.port))}</div>
+  <div class="two">${F("remise","Remise (€)",money("remise",d.remise))}${F("port",isPrestation(prod(d.produitId))?"Frais de déplacement (€)":"Frais de port (€)",money("port",d.port),`<span id="portHint">${isPrestation(prod(d.produitId))?portHintDep():""}</span>`)}</div>
   <div class="preview" id="pvVente"></div>
   <fieldset><legend>Ambassadrice</legend>
     ${F("codePromo","Code d'une ambassadrice",inp("codePromo",d.codePromo,'autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"'),"Une seule fois par cliente, à partir du minimum d'achat. Pas avec une cagnotte.")}
@@ -1717,6 +1720,7 @@ function formData(){
 }
 function livePreview(){
   if(!current)return;const c=current.col;const f=$("#form");if(!f)return;const d=formData();
+  if(c==="ventes"){const pr=isPrestation(prod(d.produitId));const lb=f.querySelector('label[for="port"]');if(lb&&lb.dataset.pr!==String(pr)){lb.dataset.pr=String(pr);lb.textContent=pr?"Frais de déplacement (€)":"Frais de port (€)";const h=$("#portHint");if(h)h.innerHTML=pr?portHintDep():""}}
   if(c==="produits"){
     {const pb=$("#prixBase");if(pb){const pr0={...d,id:current.id,type:n(d.prixAchat)===0?"Prestation":"Marchandise"};const want=isPrestation(pr0)||!d.modele||!n(d.prixAchat)?0:prixBaseConseille(pr0);
       if(want&&(pb.value===""||(current.autoBase!==undefined&&n(pb.value)===current.autoBase))){pb.value=String(want);d.prixBase=want}current.autoBase=want||undefined;
@@ -1742,7 +1746,7 @@ function livePreview(){
     const net=n(d.prixTTC)?(venteBrut(d)-n(d.remise))/qte:0;const sq=stockQty(p);
     const tot=venteTotal(d);
     box.innerHTML=`<span>${esc(designation(p))}${sq===null?"":` · <b>${sq}</b> en stock`}</span>
-      ${pc.forfait===true&&pc.prix===null?`<span>Pose de plus de ${String(n(S.reglages.poseH2)).replace(".",",")} h : pas de forfait prévu, prix à fixer.</span>`:""}${(()=>{const det=prixVenteDetail(p,d);if(!det)return`<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>`;
+      ${(()=>{const det=prixVenteDetail(p,d);if(!det)return`<span${pc.prix===null?" hidden":""}>${pc.label||"Prix conseillé"} <b class="num">${eur(pc.prix||0)}</b> <button type="button" class="linkbtn" data-act="use-price" data-v="${pc.prix}">Utiliser ce prix</button></span>`;
         const parts=[`base ${eur(det.base)}${det.q>1?" × "+det.q:""}`].concat(det.colMontant?[`collection ${d.collection} ${eur(det.colMontant)}`]:[]).concat(det.lignes.map(x=>`${x.nom.toLowerCase()} ${eur(x.montant)}`)).concat(det.mat?[`matières ${eur(det.mat)}`]:[]);
         return`<span>Prix : ${parts.join(" + ")} = <b class="num">${eur(det.total)}</b></span>`})()}
       ${n(d.remisePrix)?`<span>Dont remise sur le prix de base : <b class="num">${eur(d.remisePrix)}</b> (vendu ${eur(r2(n(d.prixTTC)-n(d.remisePrixU)))} au lieu de ${eur(d.prixTTC)}) <button type="button" class="linkbtn" data-act="rp-cancel">Annuler</button></span>`:""}
@@ -1861,9 +1865,9 @@ function openReglages(){
    <div class="two">${row("multPrix","Prix de base = prix d'achat ×","Méthode principale. 2 = le double du prix d'achat (le plus haut entre ton prix et la moyenne de la fourchette), jamais sous le plancher. 0 = ancien calcul (coefficients et grille).")}${row("multMin","Ancien calcul : minimum = prix d'achat ×")}</div>
    <div class="three">${row("margeCible","Marge prix de base : perruques (%)","Prix de base = coût de revient + cette marge + frais de vente. 0 : calcul par coefficients.")}${row("margeCibleDemi","Demi-têtes et ponytails (%)")}${row("margeCibleBundle","Bundles (%)")}</div>
    <fieldset><legend>Forfaits de pose</legend>
-    <div class="two">${row("poseH1","Jusqu'à (heures)")}${row("posePrix1","Prix (€)")}</div>
-    <div class="two">${row("poseH2","Jusqu'à (heures)")}${row("posePrix2","Prix (€)")}</div>
-    <p class="note">Le temps de pose saisi dans la vente choisit le forfait.</p></fieldset>
+    <div class="two">${row("poseBaseH","Forfait jusqu'à (heures)","1,5 = 1 h 30")}${row("poseBasePrix","Prix du forfait (€)")}</div>
+    <div class="two">${row("posePasH","Puis par tranche de (heures)","0,5 = une demi-heure commencée")}${row("posePasPrix","Prix de chaque tranche (€)")}</div>
+    <p class="note">Exemple : 2 h 15 de pose = ${eur(forfaitPose(2.25))}. Le temps de pose saisi dans la vente donne le prix ; tu peux toujours mettre un autre prix.</p></fieldset>
    <fieldset><legend>Boutique en ligne</legend>
     <div class="three">${row("livraisonFR","Livraison métropole (€)")}${row("livraisonDOM","Livraison outre-mer (€)")}${row("acomptePct","Acompte sur commande (%)")}</div>
     <p class="note">Appliqués aux paiements sur eugceo.fr. Pense à garder les CGV cohérentes si tu les changes.</p></fieldset>
@@ -2014,6 +2018,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#visForm")){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
+  if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(Math.ceil((k.allerRetour?km*2:km)/(n(k.tranche)||5))*n(k.prix)).replace(".",","):"";}livePreview();return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
   if(e.target.closest("#tfForm"))tfPreview();
@@ -2026,7 +2031,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&!current.id){const box=$("#trLines");const p=prod(e.target.value);if(box&&p){const base=box.querySelector(".line .trNom");const h=prepBase(p);
     const pk=$("#packaging");if(pk&&isPrestation(p))pk.value="Aucun";else if(pk&&isBundle(p))pk.value="Bundle";else if(pk&&pk.value==="Bundle")pk.value="Standard";
-    if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseH1)}));
+    if(isPose(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Pose",heures:n(S.reglages.poseBaseH)||1.5}));
     else if(isRemise(p)&&!box.children.length)box.insertAdjacentHTML("beforeend",trLine({nom:"Remise en forme",heures:n(S.reglages.remiseH)}));
     else if(!box.children.length&&h)box.insertAdjacentHTML("beforeend",trLine({nom:"Préparation de base",heures:h}));
     else if(base&&base.value==="Préparation de base")base.closest(".line").querySelector(".trH").value=fmtDuree(h)}}
@@ -2770,7 +2775,7 @@ function pFacture(id){
     <tbody><tr><td><div class="iv-des">${esc(des)}</div>${persoTxt.length?`<div class="iv-small">Personnalisation incluse : ${esc(persoTxt.join(", "))}</div>`:""}${p?`<div class="iv-small iv-code">Réf. ${esc(p.code)}</div>`:""}</td><td class="r">${q}</td><td class="r num">${eur(n(v.prixTTC))}</td><td class="r num">${eur(q*n(v.prixTTC))}</td></tr>
     ${(Array.isArray(v.supDetail)&&v.supDetail.length?v.supDetail:(n(v.supplements)?[{nom:"Suppléments",montant:n(v.supplements)}]:[])).map(x=>`<tr><td>${esc(x.nom)}</td><td></td><td></td><td class="r num">${eur(n(x.montant))}</td></tr>`).join("")}
     ${n(v.remise)?`<tr><td>Remise${v.codePromo?" (code "+esc(v.codePromo)+")":v.cagnotteCode?" (cagnotte)":""}</td><td></td><td></td><td class="r num">− ${eur(n(v.remise))}</td></tr>`:""}
-    ${n(v.port)?`<tr><td>Frais de livraison</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
+    ${n(v.port)?`<tr><td>${p&&isPrestation(p)?"Frais de déplacement":"Frais de livraison"}</td><td></td><td></td><td class="r num">${eur(n(v.port))}</td></tr>`:""}</tbody></table>
    <div class="iv-total"><span>Total${s.tva==="Oui"?" TTC":""}</span><b class="num">${eur(tot)}</b></div>
    ${av||!paid?`<div class="iv-sub">${av?`<div><span>${esc(v.avanceType)} versé${v.avanceType==="Arrhes"?"es":""} le ${dfr(v.avanceDate||v.date)}${detailAv(v)?`<span class="iv-mini">${esc(detailAv(v))}</span>`:""}</span><span class="num">− ${eur(av)}</span></div>`:""}<div class="iv-reste"><span>Reste à payer</span><span class="num">${eur(reste)}</span></div></div>`:""}
    <p class="iv-merci">Merci pour votre confiance.</p>
