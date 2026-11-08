@@ -567,7 +567,7 @@ function uniqueCode(base,selfId){
   if(!used.has(base))return base;
   let k=2;while(used.has(base+"-"+k))k++;return base+"-"+k;
 }
-function isPrestation(p){return p.type?p.type==="Prestation":n(p.prixAchat)===0}
+function isPrestation(p){if(!p)return false;return p.type?p.type==="Prestation":n(p.prixAchat)===0}
 function designation(p){
   if(!p)return"";
   let s=p.modele||"";
