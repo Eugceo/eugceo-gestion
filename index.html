@@ -580,7 +580,6 @@ function designation(p){
   let s=p.modele||"";
   if(p.longueur)s+=" "+p.longueur+"″";
   if(p.construction)s+=" · "+p.construction;
-  if(isBundle(p)&&p.typeBundle)s+=" · "+p.typeBundle;
   if(p.laceTaille)s+=" "+p.laceTaille;
   if(p.laceQualite)s+=" "+p.laceQualite;
   if(p.cheveux)s+=" · "+p.cheveux;
@@ -1295,7 +1294,7 @@ function visTextes(p){
   if(!p)return{titre:"",l1:"",l2:"",prix:"",sur:"Nouvelle création"};
   const s=p.site||{};const titre=s.titre||((p.modele||"")+(p.longueur?" "+p.longueur+"″":""));
   const lace=[p.laceTaille,p.laceQualite].filter(Boolean).join(" ");
-  const l1=[isBundle(p)?(p.typeBundle||"Bundle"):(p.construction||"").replace(/\s*\(.*\)/,""),lace].filter(Boolean).join(" · ");
+  const l1=[isBundle(p)?"Bundle":(p.construction||"").replace(/\s*\(.*\)/,""),lace].filter(Boolean).join(" · ");
   const de=n(p.densite);const l2=[p.cheveux,p.couleur,de?Math.round(de<10?de*100:de)+" %":""].filter(Boolean).join(" · ");
   const px=s.prix&&n(s.prix)>0?n(s.prix):prixBaseDe(p);
   return{titre,l1,l2,prix:px>0?String(Math.round(px))+" €":"",sur:stockQty(p)>0?"Disponible":"Sur commande"}}
@@ -1344,7 +1343,7 @@ function pVisuel(){
 /* ---------- fiche de prix : choisir ce qu'on montre ---------- */
 function fpGroupes(){
   const actifs=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));const G=[];
-  const court=p=>[(p.modele||"")+(p.longueur?" "+p.longueur+"″":""),isBundle(p)?(p.typeBundle||"").replace(/\s*\(.*\)/,""):p.laceTaille].filter(Boolean).join(" · ");
+  const court=p=>[(p.modele||"")+(p.longueur?" "+p.longueur+"″":""),isBundle(p)?"":p.laceTaille].filter(Boolean).join(" · ");
   const perr=actifs.filter(p=>!isBundle(p)&&prepBase(p)!==0.5).sort((a,b)=>designation(a).localeCompare(designation(b)));
   if(perr.length)G.push({k:"perr",t:"Perruques",items:perr.map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
   const demi=actifs.filter(p=>!isBundle(p)&&prepBase(p)===0.5);
@@ -2196,7 +2195,7 @@ document.addEventListener("input",e=>{
   if(e.target.closest("#visForm")){if(e.target.id==="visPreset")return;
     if(e.target.id==="fpStock"){const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();if(e.target.checked){fpCompose()}}return}
     if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
-    if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?(pr.typeBundle||"").replace(/\s*\(.*\)/,""):pr.laceTaille].filter(Boolean).join(" · ");
+    if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?"":pr.laceTaille].filter(Boolean).join(" · ");
       ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
     if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
   if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(Math.ceil((k.allerRetour?km*2:km)/(n(k.tranche)||5))*n(k.prix)).replace(".",","):"";}livePreview();return}
