@@ -460,7 +460,7 @@ const L={
   statutsVente:["Payée","En attente de paiement","Annulée","Remboursée"],
   devises:["EUR","USD","CNY"],
   categories:["Frais de douane et d'import","Transport des achats","Expédition des commandes","Packaging et emballages","Produits de travail (colle, teinture…)","Petit matériel et outillage","Fournitures de bureau","Publicité, photos, impressions","Site internet, logiciels, abonnements","Honoraires (comptable, juridique)","Frais d'immatriculation et formalités","Assurances","Frais bancaires et commissions","Téléphone et internet","Déplacements, hébergement, repas","Loyer et charges du local","Formation","Cadeaux et échantillons clientes","Autres charges"],
-  natures:{"Capital social versé":1,"Apport en compte courant d'associé":1,"Emprunt reçu":1,"Subvention reçue":1,"Remboursement de TVA reçu":1,"Autre entrée d'argent":1,"Remboursement de compte courant":-1,"Remboursement d'emprunt":-1,"Paiement de la TVA":-1,"Paiement de l'impôt sur les sociétés":-1,"Autre sortie d'argent":-1},
+  natures:{"Capital social versé":1,"Apport en compte courant d'associé":1,"Emprunt reçu":1,"Subvention reçue":1,"Remboursement de TVA reçu":1,"Autre entrée d'argent":1,"Remboursement de compte courant":-1,"Remboursement d'emprunt":-1,"Paiement de la TVA":-1,"Paiement de l'impôt sur les sociétés":-1,"Autre sortie d'argent":-1,"Dépôt d'espèces à la banque":1,"Retrait d'espèces pour la caisse":-1},
   motifs:{"Retour cliente":1,"Perte ou défaut":-1,"Usage interne / démonstration":-1,"Échantillon offert":-1,"Inventaire : surplus trouvé":1,"Inventaire : manquant":-1,"Transformation (sortie)":-1,"Transformation (entrée)":1},
   destinations:["France métropolitaine","Union européenne","Guyane","Guadeloupe","Martinique","La Réunion","Mayotte","Suriname","Autre pays hors UE"],
   packaging:["Aucun","Bundle","Standard","Premium","Signature"],
@@ -737,15 +737,12 @@ function aboOccurrences(a){
 /* montant d'un abonnement pour un mois donné (un mois peut avoir un montant différent, ex. premier mois au prorata) */
 function aboMontant(a,k){const x=a.montantsMois&&a.montantsMois[k];return x!==undefined&&x!==""&&x!==null?n(x):n(a.montant)}
 function aboPaid(a){return r2((a.mois||[]).reduce((t,k)=>t+aboMontant(a,k),0))}
-function tresorerie(){
-  let t=0;
-  for(const f of S.financement)t+=n(f.montant)*(L.natures[f.nature]||1);
-  for(const v of S.ventes)t+=venteEncaisse(v);
-  for(const d of S.depenses)if(d.datePaiement)t-=n(d.montant);
-  for(const a of S.achats)if(a.datePaiement)t-=achatTotal(a);
-  for(const a of S.abonnements)t-=aboPaid(a);
-  return r2(t);
-}
+/* argent en banque (Qonto) : tout sauf les espèces */
+function tresorerie(){return r2(mouvementsArgent().filter(x=>x.c!=="caisse").reduce((t,x)=>t+x.m,0))}
+/* argent en caisse (espèces) */
+function caisse(){return r2(mouvementsArgent().filter(x=>x.c==="caisse").reduce((t,x)=>t+x.m,0))}
+function estEsp(m){return /esp[eè]ces/i.test(m||"")}
+function estTransfert(x){return x&&(x.nature==="Dépôt d'espèces à la banque"||x.nature==="Retrait d'espèces pour la caisse")}
 function moisStats(k){
   let ca=0,cout=0,nb=0,arrhes=0;
   for(const v of S.ventes){if(ym(v.date)!==k)continue;
@@ -775,8 +772,8 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(S.page==="visuel"&&v.dataset.page==="visuel"){visListe();$("#screenTitle").textContent=pt;return}if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel,caisse:pCaisse}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel",caisse:"Argent"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if(S.page==="visuel"&&v.dataset.page==="visuel"){visListe();$("#screenTitle").textContent=pt;return}if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -827,7 +824,7 @@ function vAccueil(){
   <section class="hero" aria-label="Trésorerie">
     <p class="eyebrow">Argent en banque (estimé)</p>
     <div class="money-big num">${eur(t)}</div>
-    <small>Apports + encaissements − tout ce qui a été payé.</small>
+    <small>Sur Qonto${caisse()?` · + ${eur(caisse())} en caisse (espèces)`:""}.</small>
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
     ${monthBar()}
@@ -1017,12 +1014,12 @@ function vStock(){
 }
 /* ---------- Argent : le mois, entrées, sorties, comptes ---------- */
 function finSigne(x){return L.natures[x.nature]||1}
-function soldeFin(k){return r2(n(soc().banqueDebut)+mouvementsArgent().filter(x=>x.d&&ym(x.d)<=k).reduce((t,x)=>t+x.m,0))}
+function soldeFin(k){return r2(n(soc().banqueDebut)+mouvementsArgent().filter(x=>x.d&&x.c!=="caisse"&&ym(x.d)<=k).reduce((t,x)=>t+x.m,0))}
 function entreesMois(k){
   const out=[];
   for(const v of S.ventes){const p=prod(v.produitId);const es=encaissements(v).filter(e=>e.d&&ym(e.d)===k);
     es.forEach((e,i)=>out.push({d:e.d,m:e.m,k:"ventes",html:`<button class="row" data-act="edit" data-col="ventes" data-id="${esc(v.id)}"><span class="t">${esc(v.client||"Cliente")}</span><span class="v num" style="color:var(--ok)">+ ${eur(e.m)}</span><span class="s">${dfr(e.d)} · ${esc(p?p.code:(v.designation||""))}${encaissements(v).length>1?(i===0&&v.avanceType&&v.avanceType!=="Aucune"?" · "+esc(v.avanceType.toLowerCase()):" · solde"):""}</span></button>`}))}
-  for(const x of S.financement){if(finSigne(x)<0||ym(x.date)!==k)continue;
+  for(const x of S.financement){if(estTransfert(x)||finSigne(x)<0||ym(x.date)!==k)continue;
     out.push({d:x.date,m:n(x.montant),k:"apports",html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num" style="color:var(--ok)">+ ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}${x.personne?" · "+esc(x.personne):""}</span></button>`})}
   return out.sort((a,b)=>(b.d||"").localeCompare(a.d||""))}
 function factChip(path,opt){return path?`<span class="chip ok">facture ✓</span>`:opt?`<span class="chip">justificatif facultatif</span>`:`<span class="chip bad">facture manquante</span>`}
@@ -1037,7 +1034,7 @@ function sortiesMois(k){
   const abos=S.abonnements.filter(a=>aboOccurrences(a).includes(k)).map(a=>{const m=aboMontant(a,k),ok=(a.mois||[]).includes(k);
     return{d:k,m,html:`<div class="row" style="cursor:default"><span class="t">${esc(a.fournisseur)}</span><span class="v num">− ${eur(m)}</span><span class="s">${esc(a.description||"")} · ${ok?`<span class="chip ok">prélevé ✓</span>`:`<span class="chip warn">pas encore pointé</span>`} ${db&&canWrite?`<button type="button" class="sitebtn" data-act="pointer" data-id="${esc(a.id)}" data-k="${k}" aria-pressed="${ok}">${ok?"Dépointer":"Pointer : c'est passé"}</button>`:""}</span></div>`}});
   const deps=S.depenses.filter(d=>ym(d.date)===k).map(d=>({d:d.date,m:n(d.montant),html:`<button class="row" data-act="edit" data-col="depenses" data-id="${esc(d.id)}"><span class="t">${esc(d.fournisseur||"Dépense")}</span><span class="v num">− ${eur(n(d.montant))}</span><span class="s">${dfr(d.date)} · ${esc(d.description||d.categorie||"")} ${factChip(d.justificatif,d.sansJustif)}${d.datePaiement?"":`<span class="chip warn">à payer</span>`}</span></button>`}));
-  const remb=S.financement.filter(x=>finSigne(x)<0&&ym(x.date)===k).map(x=>({d:x.date,m:n(x.montant),html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num">− ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}</span></button>`}));
+  const remb=S.financement.filter(x=>!estTransfert(x)&&finSigne(x)<0&&ym(x.date)===k).map(x=>({d:x.date,m:n(x.montant),html:`<button class="row" data-act="edit" data-col="financement" data-id="${esc(x.id)}"><span class="t">${esc(x.description||x.nature)}</span><span class="v num">− ${eur(n(x.montant))}</span><span class="s">${dfr(x.date)} · ${esc(x.nature)}</span></button>`}));
   const so=L2=>L2.sort((a,b)=>(b.d||"").localeCompare(a.d||""));
   const tot=L2=>r2(L2.reduce((t,x)=>t+x.m,0));
   return{achats:so(achats),abos,deps:so(deps),remb:so(remb),tAchats:tot(achats),tAbos:tot(abos),tDeps:tot(deps),tRemb:tot(remb),total:tot(achats)+tot(abos)+tot(deps)+tot(remb)}}
@@ -1060,6 +1057,7 @@ function vFrais(){
     const ju=S.achats.filter(manqueJustif).length+S.depenses.filter(manqueJustif).length;
     const R=(attrs,t,sub,badge)=>`<button class="row" ${attrs}><span class="t">${t}${badge?` <span class="chip warn">${badge}</span>`:""}</span><span class="v">›</span><span class="s">${sub}</span></button>`;
     body=`<div class="list">
+      ${R('data-act="page" data-p="caisse"',"Caisse (espèces) : "+eur(caisse()),"Ventes et dépenses en liquide, dépôts à la banque")}
       ${R('data-act="page" data-p="tresorerie"',"Banque mois par mois","Entrées, sorties et solde de chaque mois")}
       ${R('data-act="page" data-p="resultat"',"Résultat de l'année","Chiffre d'affaires, charges, bénéfice")}
       ${R('data-act="page" data-p="dettes"',"Ce que la société doit","Avances des associés, à rembourser")}
@@ -1086,6 +1084,7 @@ function vFrais(){
     const X=sortiesMois(k),m=moisStats(k),cur=k===ym(today()),ap=aPayer();
     body=`${monthBar()}
     <section class="hero"><p class="eyebrow">${cur?"Argent en banque aujourd'hui (estimé)":"Argent en banque fin "+esc(monthName(k))}</p><div class="money-big num">${eur(cur?tresorerie():soldeFin(k))}</div><small>Doit correspondre au relevé Qonto. Sinon, il manque un paiement ou une date de paiement.</small></section>
+    ${caisse()||mouvementsArgent().some(x=>x.c==="caisse")?`<button class="card" data-act="page" data-p="caisse"><span class="kline head"><span>En caisse (espèces)</span><span class="num">${eur(caisse())}</span></span><span class="kline"><span>Pas sur Qonto : ventes et dépenses en liquide</span><span>›</span></span></button>`:""}
     <button class="card" data-act="filter" data-name="fraisFilter" data-val="entrees"><span class="kline head"><span class="in">↓ Entrées</span><span class="in num">+ ${eur(tv+ta)}</span></span><span class="kline"><span>Ventes encaissées</span><span class="num">${eur(tv)}</span></span><span class="kline"><span>Apports (capital, associés)</span><span class="num">${eur(ta)}</span></span></button>
     <button class="card" data-act="filter" data-name="fraisFilter" data-val="sorties"><span class="kline head"><span class="out">↑ Sorties</span><span class="out num">− ${eur(X.total)}</span></span><span class="kline"><span>Achats de marchandise</span><span class="num">${eur(X.tAchats)}</span></span><span class="kline"><span>Abonnements</span><span class="num">${eur(X.tAbos)}</span></span><span class="kline"><span>Dépenses</span><span class="num">${eur(X.tDeps)}</span></span>${X.tRemb?`<span class="kline"><span>Remboursements</span><span class="num">${eur(X.tRemb)}</span></span>`:""}</button>
     <div class="card"><span class="kline head"><span>Résultat du mois</span><span class="num" style="color:${m.res<0?"var(--bad)":"var(--ok)"}">${eur(m.res)}</span></span><span class="kline"><span>Ventes</span><span class="num">${eur(m.ca)}</span></span><span class="kline"><span>− coût des pièces vendues</span><span class="num">${eur(m.cout)}</span></span><span class="kline"><span>− frais (dépenses, abonnements)</span><span class="num">${eur(m.dep)}</span></span><span class="note">Les achats de stock ne sont pas une perte : ils restent en stock et comptent quand la pièce est vendue.</span></div>
@@ -1093,6 +1092,18 @@ function vFrais(){
   }
   return`${banner()}${bar}${loadingOr("depenses",body)}`;
 }
+
+/* ---------- caisse : les espèces ---------- */
+function pCaisse(){
+  const L2=mouvementsArgent().filter(x=>x.c==="caisse"&&x.d).sort((a,b)=>(b.d||"").localeCompare(a.d||""));
+  const ro=!(db&&canWrite);
+  const lib=x=>x.col==="ventes"?(x.o.client||"Vente"):x.col?(x.o.fournisseur||"Dépense"):(x.o.description||x.o.nature);
+  const sous=x=>x.col==="ventes"?"Vente payée en espèces":x.col==="depenses"?"Dépense payée en espèces"+(x.o.description?" · "+x.o.description:""):x.col==="achats"?"Achat payé en espèces":x.o.nature;
+  return`${pageHead("Caisse (espèces)","L'argent liquide : ventes payées en espèces, dépenses payées en liquide, dépôts à la banque. Il ne passe pas par Qonto.")}
+  <section class="hero"><p class="eyebrow">En caisse aujourd'hui</p><div class="money-big num">${eur(caisse())}</div><small>Compte l'argent liquide de temps en temps : il doit correspondre à ce chiffre.</small></section>
+  ${ro?"":`<div class="acts small"><button class="act main" data-act="new" data-col="financement" data-pre="depot"><b>Dépôt à la banque</b><span>Les espèces passent sur Qonto</span></button><button class="act" data-act="new" data-col="financement" data-pre="retrait"><b>Retrait pour la caisse</b><span>Retrait au distributeur pour la caisse</span></button></div>`}
+  <div class="list">${L2.map(x=>`<button class="row" data-act="edit" data-col="${x.col||"financement"}" data-id="${esc(x.o.id)}"><span class="t">${esc(lib(x))}</span><span class="v num" style="color:${x.m>0?"var(--ok)":"inherit"}">${x.m>0?"+":"−"} ${eur(Math.abs(x.m))}</span><span class="s">${dfr(x.d)} · ${esc(sous(x))}</span></button>`).join("")||`<div class="empty">Aucun mouvement en espèces. Une vente ou une dépense avec le moyen « Espèces » apparaît ici toute seule.</div>`}</div>
+  <p class="note">Une vente payée en espèces reste une vente normale, avec sa facture. Ne dépose pas les espèces de la société sur un compte personnel.</p>`}
 
 /* ---------- Carnet : clientes et fournisseurs ---------- */
 function vCarnet(){
@@ -1660,6 +1671,7 @@ function fFin(d){
   <datalist id="dlPers">${personnesConnues().map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
   ${F("description","Description",inp("description",d.description,'placeholder="ex. Avance frais de greffe"'))}
   ${F("montant","Montant (€)",money("montant",d.montant))}
+  ${F("compte","Compte",sel("compte",["Banque","Caisse"],d.compte||"Banque"),"Caisse = de la main à la main, en espèces. Pour un dépôt d'espèces à la banque ou un retrait pour la caisse, choisis la nature correspondante : les deux comptes bougent ensemble.")}
   ${F("commentaire","Commentaire",`<textarea id="commentaire" name="commentaire">${esc(d.commentaire||"")}</textarea>`)}`;
 }
 function fMouv(d){
@@ -2000,7 +2012,7 @@ document.addEventListener("click",e=>{
   else if(a==="mnext"){S.month=addMonths(S.month,1);render()}
   else if(a==="filter"){S[b.dataset.name]=b.dataset.val;render()}
   else if(a==="edit"){e.preventDefault();openForm(b.dataset.col,b.dataset.id)}
-  else if(a==="new"){openForm(b.dataset.col)}
+  else if(a==="new"){const pre=b.dataset.pre==="depot"?{nature:"Dépôt d'espèces à la banque",description:"Dépôt d'espèces",date:today()}:b.dataset.pre==="retrait"?{nature:"Retrait d'espèces pour la caisse",description:"Retrait pour la caisse",date:today()}:undefined;openForm(b.dataset.col,null,pre)}
   else if(a==="close"){closeSheet()}
   else if(a==="save"){current&&current.col==="reglages"?saveReglages():save()}
   else if(a==="del"){del(b)}
@@ -2209,16 +2221,20 @@ function nextFacture(date){const y=(date||today()).slice(0,4);return nextRef("ve
 function inExercice(d){const s=soc();return d&&d>=s.debutExercice&&d<=s.finExercice}
 function encaissements(v){
   const out=[];const t=venteTotal(v);const av=v.avanceType&&v.avanceType!=="Aucune"?n(v.avanceMontant):0;
-  if(v.statut==="Payée"){if(av){out.push({d:v.avanceDate||v.date,m:av});out.push({d:v.dateEncaissement||v.date,m:r2(t-av)})}else out.push({d:v.dateEncaissement||v.date,m:t})}
-  else if(v.statut==="En attente de paiement"||(v.statut==="Annulée"&&v.avanceType==="Arrhes")){if(av)out.push({d:v.avanceDate||v.date,m:av})}
+  const avs=d=>{const det=Array.isArray(v.avanceDetail)?v.avanceDetail.filter(x=>n(x.montant)>0):[];if(det.length)det.forEach(x=>out.push({d,m:n(x.montant),moyen:x.moyen}));else out.push({d,m:av,moyen:v.avanceMoyen||v.paiement})};
+  if(v.statut==="Payée"){if(av){avs(v.avanceDate||v.date);out.push({d:v.dateEncaissement||v.date,m:r2(t-av),moyen:v.paiement})}else out.push({d:v.dateEncaissement||v.date,m:t,moyen:v.paiement})}
+  else if(v.statut==="En attente de paiement"||(v.statut==="Annulée"&&v.avanceType==="Arrhes")){if(av)avs(v.avanceDate||v.date)}
   return out;
 }
 function mouvementsArgent(){
   const L2=[];
-  for(const f of S.financement){const s=L.natures[f.nature]||1;L2.push({d:f.date,m:s*n(f.montant),k:s>0?"Apports et emprunts":"Remboursements et impôts"})}
-  for(const v of S.ventes)for(const e of encaissements(v))L2.push({d:e.d,m:e.m,k:"Ventes encaissées"});
-  for(const d of S.depenses)if(d.datePaiement)L2.push({d:d.datePaiement,m:-n(d.montant),k:"Dépenses"});
-  for(const a of S.achats)if(a.datePaiement)L2.push({d:a.datePaiement,m:-achatTotal(a),k:"Achats de marchandises"});
+  for(const f of S.financement){const m=n(f.montant);
+    if(f.nature==="Dépôt d'espèces à la banque"){L2.push({d:f.date,m,k:"Dépôts d'espèces",c:"banque",o:f},{d:f.date,m:-m,k:"Dépôts d'espèces",c:"caisse",o:f});continue}
+    if(f.nature==="Retrait d'espèces pour la caisse"){L2.push({d:f.date,m:-m,k:"Retraits pour la caisse",c:"banque",o:f},{d:f.date,m,k:"Retraits pour la caisse",c:"caisse",o:f});continue}
+    const s=L.natures[f.nature]||1;L2.push({d:f.date,m:s*m,k:s>0?"Apports et emprunts":"Remboursements et impôts",c:f.compte==="Caisse"?"caisse":"banque",o:f})}
+  for(const v of S.ventes)for(const e of encaissements(v))L2.push({d:e.d,m:e.m,k:"Ventes encaissées",c:estEsp(e.moyen)?"caisse":"banque",o:v,col:"ventes"});
+  for(const d of S.depenses)if(d.datePaiement)L2.push({d:d.datePaiement,m:-n(d.montant),k:"Dépenses",c:estEsp(d.moyen)?"caisse":"banque",o:d,col:"depenses"});
+  for(const a of S.achats)if(a.datePaiement)L2.push({d:a.datePaiement,m:-achatTotal(a),k:"Achats de marchandises",c:estEsp(a.moyen)?"caisse":"banque",o:a,col:"achats"});
   for(const a of S.abonnements)for(const k of (a.mois||[])){const j=String(Math.min(28,n(a.jour)||1)).padStart(2,"0");L2.push({d:k+"-"+j,m:-aboMontant(a,k),k:"Abonnements"})}
   return L2;
 }
@@ -2713,7 +2729,7 @@ function pResultat(){
   <p class="note">Estimation de gestion, pas des comptes officiels. Le coût des pièces vendues utilise le coût moyen d'achat. L'impôt est calculé à ${String(n(s.isTauxReduit)*100).replace(".",",")} % jusqu'à ${eur(n(s.isPlafond))}, puis ${String(n(s.isTauxNormal)*100).replace(".",",")} % (taux réduit PME, sous conditions).</p>`;
 }
 function pTresorerie(){
-  const s=soc();const mv=mouvementsArgent().filter(x=>x.d);
+  const s=soc();const mv=mouvementsArgent().filter(x=>x.d&&x.c!=="caisse");
   let start=ym(s.debutExercice);const end=ym(today())>ym(s.finExercice)?ym(s.finExercice):ym(today());
   const months=[];let k=start;while(k<=end&&months.length<60){months.push(k);k=addMonths(k,1)}
   let solde=n(s.banqueDebut);const before=mv.filter(x=>ym(x.d)<start).reduce((a,x)=>a+x.m,0);solde+=before;
