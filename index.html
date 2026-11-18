@@ -474,7 +474,7 @@ const L={
   typesBundle:["Simple (SD)","Doublé (DD)","Super doublé (SDD)"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,lotBundlePct:0,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,lotBundlePct:0,lotPctNom:"",lotPctDebut:"",lotPctFin:"",coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.08,"Demi-tête (Half Wig)":-0.2,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -1371,7 +1371,9 @@ function fpCompose(){
     if(g.bundle){const types=[...new Set(its.map(i=>i.p.typeBundle||""))].sort((a,b)=>(ORD_T[a]??9)-(ORD_T[b]??9));const lgs=[...new Set(its.map(i=>n(i.p.longueur)))].sort((a,b)=>a-b);const lab=t=>t?t.replace(/\s*\(.*\)/,""):"Prix";
       if(types.length>1)sections.push({t:g.t,cols:types.map(lab),rows:lgs.map(lg=>[lg+"″",...types.map(t=>{const i=its.find(x=>n(x.p.longueur)===lg&&(x.p.typeBundle||"")===t);return i?e(i.px):"—"})])});
       else sections.push({t:g.t+(types[0]?" · "+lab(types[0]):""),cols:[],rows:its.map(i=>[n(i.p.longueur)+"″",e(i.px)])});
-      if(lotTexte()&&!notes.includes(lotTexte()))notes.push(lotTexte())}
+      {const R=S.reglages||{};const prochaine=n(R.lotBundlePct)>0&&R.lotPctFin&&R.lotPctFin>=today()&&!lotPctActif();
+       const tx=prochaine?((R.lotPctNom?R.lotPctNom+" : ":"")+"−"+n(R.lotBundlePct)+" % dès "+(n(R.lotBundleTaille)||3)+" bundles"+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):"")):(lotPctActif()&&R.lotPctNom?R.lotPctNom+" : ":"")+lotTexte();
+       if(tx&&!notes.includes(tx))notes.push(tx)}}
     else if(g.opt)sections.push({t:g.t,cols:["Perruque","Bundle"],rows:its.map(i=>[i.l,i.a?e(i.a):"—",i.b?e(i.b):"—"])});
     else if(g.prest){sections.push({t:"Prestations",cols:[],rows:its.map(i=>[i.l,i.txt])});notes.push("À Cesson-Sévigné ou chez vous, sur rendez-vous")}
     else sections.push({t:g.t,cols:[],rows:its.map(i=>[i.l,e(i.px)])})}
@@ -2026,7 +2028,10 @@ function openReglages(){
     ${row("coefMatieres","Matières : coût × ","Les matières utilisées (teinture, oxydant…) s'ajoutent au prix à leur coût multiplié par ce nombre.")}</fieldset>
    <fieldset><legend>Lot de bundles</legend>
     <div class="two">${row("lotBundleTaille","Nombre de bundles par lot")}${row("lotBundleRemise","Remise par lot (€)","Appliquée toute seule sur le site et dans l'app. 0 = pas de remise.")}</div>
-    ${row("lotBundlePct","Ou remise en % sur les bundles","Ex. 10 = −10 % sur tous les bundles dès que la cliente en prend le nombre ci-dessus. Si ce n'est pas 0, il remplace la remise en €.")}</fieldset>
+    <fieldset><legend>Promotion en % sur les bundles</legend>
+     ${row("lotBundlePct","Remise en % (dès le même nombre de bundles)","Ex. 20 = −20 % sur tous les bundles. Pendant les dates ci-dessous, elle remplace la remise en €. 0 = pas de promotion.")}
+     <div class="three">${F("lotPctNom","Nom de la promotion",inp("lotPctNom",R.lotPctNom||"",'placeholder="ex. Black Friday"'))}${F("lotPctDebut","Du",dateI("lotPctDebut",R.lotPctDebut||""))}${F("lotPctFin","Au (inclus)",dateI("lotPctFin",R.lotPctFin||""))}</div>
+     <p class="note">En dehors de ces dates, c'est la remise en € par lot qui s'applique. Dates vides = la remise en % s'applique tout le temps.</p></fieldset>
    <fieldset><legend>Ambassadrices (valeurs par défaut)</legend>
     <div class="two">${row("parrainPct","Remise cliente et gain ambassadrice (%)")}${row("parrainMin","Achat minimum (€)")}</div>
     ${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</fieldset>
@@ -2039,7 +2044,7 @@ function openReglages(){
   if(ro)sh.querySelectorAll("input").forEach(e=>e.disabled=true);
 }
 async function saveReglages(){
-  const o={};$("#form").querySelectorAll("input[name]").forEach(e=>{o[e.name]=n(e.value)});
+  const o={};$("#form").querySelectorAll("input[name]").forEach(e=>{o[e.name]=["lotPctNom","lotPctDebut","lotPctFin"].includes(e.name)?e.value.trim():n(e.value)});
   o.fraisVente=o.fraisVente/100;o.margeMin=o.margeMin/100;["margeMinBundle","margeCible","margeCibleDemi","margeCibleBundle"].forEach(k=>{if(k in o)o[k]=o[k]/100});
   if(o.fraisVente>=1){const eb=$("#formErr");eb.textContent="Les frais de vente doivent être sous 100 %.";eb.hidden=false;return}
   try{await db.doc("reglages/prix").set({...S.reglages,...o,excel:"modifié",modifieLe:new Date().toISOString()});closeSheet();toast("Réglages enregistrés")}
@@ -2272,10 +2277,12 @@ function etatAmb(c,exclId){
   return{...T,gains:r2(gains),utilise,solde:Math.max(0,r2(gains-utilise)),enAttente:att,commandes:list,ca:r2(ca)}
 }
 function dejaParrainee(d,exclId){return S.ventes.some(v=>v.id!==exclId&&v.codePromo&&dansCA(v)&&(d.email||telSimple(d.telephone)||d.client)&&estTitulaire({cliente:v.client,email:v.email,telephone:v.telephone},d.client,d.email,d.telephone))}
-function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise),pc=n(R.lotBundlePct);if(!isBundle(p))return 0;const q=Math.max(1,n(d.quantite)||1);
+/* la promotion en % ne vaut qu'entre ses dates (dates vides = toujours) */
+function lotPctActif(j){const R=S.reglages||{};j=j||today();if(!(n(R.lotBundlePct)>0))return 0;if(R.lotPctDebut&&j<R.lotPctDebut)return 0;if(R.lotPctFin&&j>R.lotPctFin)return 0;return n(R.lotBundlePct)}
+function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise),pc=lotPctActif(d.date);if(!isBundle(p))return 0;const q=Math.max(1,n(d.quantite)||1);
   if(pc>0)return q>=t?Math.min(r2(q*n(d.prixTTC)*pc/100),margeVente(d)):0;if(!(rm>0))return 0;return Math.min(Math.floor(q/t)*rm,margeVente(d))}
 /* texte de la remise par lot, partout pareil */
-function lotTexte(){const R=S.reglages||{};const t=n(R.lotBundleTaille)||3;if(n(R.lotBundlePct)>0)return"−"+n(R.lotBundlePct)+" % dès "+t+" bundles";if(n(R.lotBundleRemise)>0)return"−"+Math.round(n(R.lotBundleRemise))+" € par lot de "+t+" bundles";return""}
+function lotTexte(j){const R=S.reglages||{};const t=n(R.lotBundleTaille)||3;if(lotPctActif(j))return"−"+n(R.lotBundlePct)+" % dès "+t+" bundles";if(n(R.lotBundleRemise)>0)return"−"+Math.round(n(R.lotBundleRemise))+" € par lot de "+t+" bundles";return""}
 function sousTotalVente(d){return venteBrut(d)}
 /* marge disponible avant le prix plancher, pour cette vente */
 function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2(venteBrut(d)-pp.plancher*q)):sousTotalVente(d)}
