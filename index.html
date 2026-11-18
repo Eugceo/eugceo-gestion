@@ -1302,7 +1302,9 @@ function pVisuel(){
   <div class="vis">
    <div class="vis-prev" data-act="vis-play"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
-    ${fp?F("visPreset","Que montrer ?",`<select id="visPreset" name="visPreset">${PR.map((x,i)=>`<option value="${i}">${esc(x.label)}</option>`).join("")}</select>`,"Les prix viennent de l'app (Stock → Tarifs, Réglages). Tu peux ensuite tout modifier plus bas."):""}
+    ${fp?`${F("visPreset","Un groupe de prix",`<select id="visPreset" name="visPreset">${PR.map((x,i)=>`<option value="${i}">${esc(x.label)}</option>`).join("")}</select>`,"Les prix viennent de l'app (Stock → Tarifs, Réglages).")}
+    <div class="acts small"><button type="button" class="act" data-act="fp-seul"><b>Mettre seul</b><span>Remplace la fiche par ce groupe</span></button><button type="button" class="act main" data-act="fp-ajout"><b>+ Ajouter à la fiche</b><span>À la suite de ce qui y est</span></button></div>
+    ${F("visArt","Ajouter un article précis",`<select id="visArt" name="visArt"><option value="">— Choisir un article à ajouter —</option>${ps.map(x=>`<option value="${esc(x.id)}">${esc(designation(x))}${prixBaseDe(x)>0?" · "+eur(prixBaseDe(x)):""}</option>`).join("")}</select>`,"Chaque article choisi s'ajoute en bas de la liste des prix.")}`:""}
     ${fp?"":F("visProd","Article",`<select id="visProd" name="visProd" data-k="${esc(ps.map(x=>x.id+designation(x)).join("|"))}">${visOptions(p?p.id:"")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
     <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
       <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
@@ -1316,7 +1318,7 @@ function pVisuel(){
     ${F("visSur","Petit titre",inp("visSur",P0.sous||"Tarifs"),"Ex. Tarifs, Nouveautés, Prix de lancement.")}
     ${F("visTitre","Titre",inp("visTitre",P0.titre||""))}
     ${F("visCols","Colonnes (facultatif)",inp("visCols",P0.cols||"",'placeholder="ex. Longueur ; Simple ; Doublé"'),"Titres des colonnes, séparés par « ; ». Vide = pas de ligne de titres.")}
-    ${F("visLignes","Les prix",`<textarea id="visLignes" name="visLignes" rows="8" style="font-size:15px">${esc(P0.lignes||"")}</textarea>`,"Une ligne par prix. Sépare le nom et le prix par « ; ». Ex. « Bob 12″ ; 210 € » ou, avec plusieurs colonnes, « 20″ ; 85 € ; 90 € ».")}
+    ${F("visLignes","Les prix",`<textarea id="visLignes" name="visLignes" rows="8" style="font-size:15px">${esc(P0.lignes||"")}</textarea>`,"Une ligne par prix : le nom et le prix séparés par « ; » (ex. « Bob 12″ ; 210 € »). Plusieurs colonnes : « 20″ ; 85 € ; 90 € ». Un titre de partie : une ligne qui commence par # (ex. « # Perruques » ou « # Bundles ; Simple ; Doublé »).")}
     ${F("visNote","Petite note en bas",inp("visNote",P0.note||"",'placeholder="ex. −15 € par lot de 3 bundles"'))}
     ${F("visSite","En bas",inp("visSite","eugceo.fr"))}`:`
     <h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
@@ -1431,9 +1433,14 @@ function visFiche(c,W,H,story,M,lp,lt,top,v){
   /* colonnes de prix à droite */
   const nv=nc-1,cw=nv>0?Math.min(W*0.2,iw*0.58/nv):0;const cx=i=>R0-(nv-1-i)*cw;
   if(cols.length){c.font=`500 ${Math.round(W*0.022)}px Poppins`;c.fillStyle="rgba(255,255,255,.6)";c.textAlign="left";c.fillText((cols[0]||"").toUpperCase(),L0,y+W*0.03);c.textAlign="right";for(let i=1;i<nc;i++)c.fillText((cols[i]||"").toUpperCase(),cx(i-1),y+W*0.03);y+=hHead}
-  const fl=Math.round(rowH*0.42),fp=Math.round(rowH*0.56);
+  const fp=Math.round(rowH*0.56);let fl=Math.round(rowH*0.42);
+  /* une seule taille pour tous les noms : celle du plus long */
+  for(const rw of rows){if(/^#/.test(rw[0]||""))continue;const nvr=rw.length>2?rw.length-1:1;const lm=nvr>1?iw-(nc-1)*Math.min(W*0.2,iw*0.58/Math.max(1,nc-1))-W*0.02:iw*0.62;const sz=visFit(c,rw[0]||"",'400 {s}px Poppins',fl,lm);if(sz<fl)fl=sz}
   rows.forEach((rw,ri)=>{const by=y+rowH*0.68;c.textAlign="left";c.fillStyle="rgba(255,255,255,.92)";
-    const lab=rw[0]||"";const labMax=nv>1?iw-nv*cw-W*0.02:iw*0.62;visFit(c,lab,'400 {s}px Poppins',fl,labMax);c.fillText(lab,L0,by);
+    if(/^#/.test(rw[0]||"")){const t=rw[0].replace(/^#\s*/,"");c.font=`500 ${Math.round(Math.min(W*0.026,rowH*0.34))}px Poppins`;c.fillStyle="#C4A046";visSpaced(c,t.toUpperCase(),L0,by,W*0.006,"left");
+      c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="rgba(255,255,255,.55)";c.textAlign="right";for(let i=1;i<rw.length;i++)c.fillText((rw[i]||"").toUpperCase(),cx(i-1),by);
+      c.fillStyle="rgba(196,160,70,.35)";c.fillRect(L0,y+rowH-2,iw,Math.max(1,W*0.0012));y+=rowH;return}
+    const lab=rw[0]||"";const labMax=nv>1?iw-nv*cw-W*0.02:iw*0.62;c.font=`400 ${fl}px Poppins`;c.fillText(lab,L0,by);
     if(nv===1||rw.length===2){const pr=rw[rw.length-1]||"";if(rw.length>=2){c.font=`500 ${fp}px "Cormorant Garamond"`;const pw=c.measureText(pr).width;c.font=`400 ${fl}px Poppins`;const lw=c.measureText(lab).width;
         c.fillStyle="rgba(196,160,70,.45)";for(let dx=L0+Math.min(lw,labMax)+W*0.02;dx<R0-pw-W*0.02;dx+=W*0.014)c.fillRect(dx,by-W*0.004,Math.max(2,W*0.0025),Math.max(2,W*0.0025));
         c.font=`500 ${fp}px "Cormorant Garamond"`;c.fillStyle="#C4A046";c.textAlign="right";c.fillText(pr,R0,by)}}
@@ -2003,6 +2010,12 @@ document.addEventListener("click",e=>{
   if(a==="vis-open"){closeSheet(true);S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
   if(a==="vis-media"){if(VIS.rec)return;document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u,b.dataset.t);return}
   if(a==="vis-rec"){visRec();return}
+  if(a==="fp-seul"||a==="fp-ajout"){const x=prixPresets()[n(($("#visPreset")||{}).value)]||{};const ta=$("#visLignes");if(!ta)return;
+    if(a==="fp-seul"){[["visTitre","titre"],["visSur","sous"],["visCols","cols"],["visNote","note"]].forEach(([id,k])=>{const el=$("#"+id);if(el)el.value=x[k]||(k==="sous"?"Tarifs":"")});ta.value=x.lignes||""}
+    else{const head="# "+(x.titre||x.label||"")+(x.cols?" ; "+x.cols.split(/\s*;\s*/).slice(1).join(" ; "):"");const cur=ta.value.trim();
+      if(cur&&!/^#/.test(cur)){const t0=($("#visTitre")||{}).value||"";const c0=($("#visCols")||{}).value||"";ta.value="# "+t0+(c0?" ; "+c0.split(/\s*;\s*/).slice(1).join(" ; "):"")+"\n"+cur;const ct=$("#visCols");if(ct)ct.value="";const tt=$("#visTitre");if(tt&&t0)tt.value="Nos tarifs"}
+      ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+head+"\n"+(x.lignes||"");const nt=$("#visNote");if(nt&&x.note&&!nt.value.includes(x.note))nt.value=(nt.value?nt.value+" · ":"")+x.note}
+    ta.closest("form").dataset.dirty="1";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
   if(a==="vis-play"){const vd=VIS.pend||VIS.vid;if(vd)vd.play().catch(()=>{});return}
   if(a==="vis-stop"){if(VIS.rec&&VIS.rec.state==="recording")VIS.rec.stop();return}
   if(a==="vis-dl"){visDl();return}
@@ -2124,7 +2137,9 @@ document.addEventListener("input",e=>{
   if(e.target.id==="code"&&current&&current.col==="codes_promo")current.autoCode=null;
   if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
-  if(e.target.closest("#visForm")){if(e.target.id==="visPreset"){const x=prixPresets()[n(e.target.value)]||{};[["visTitre","titre"],["visSur","sous"],["visCols","cols"],["visLignes","lignes"],["visNote","note"]].forEach(([id,k])=>{const el=$("#"+id);if(el)el.value=x[k]||(k==="sous"?"Tarifs":"")});if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
+  if(e.target.closest("#visForm")){if(e.target.id==="visPreset")return;
+    if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?(pr.typeBundle||"").replace(/\s*\(.*\)/,""):pr.laceTaille].filter(Boolean).join(" · ");
+      ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
     if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
   if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(Math.ceil((k.allerRetour?km*2:km)/(n(k.tranche)||5))*n(k.prix)).replace(".",","):"";}livePreview();return}
   if(e.target.closest("#form"))livePreview();
