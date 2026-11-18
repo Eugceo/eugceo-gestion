@@ -365,6 +365,13 @@ fieldset legend{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;c
 button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.tile:hover{border-color:var(--gold,#C4A046)}
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* ===== fiche de prix : cases à cocher ===== */
+.fp-list{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto;border:1px solid var(--hair);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.fp-g{display:flex;flex-direction:column;gap:2px}
+.fp-gh{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair);font-size:14px;cursor:pointer}
+.fp-i{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 0 6px 6px;font-size:14px;cursor:pointer}
+.fp-i em{font-style:normal;font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.fp-list input{width:18px;height:18px;margin:0;accent-color:#8A6F2C}
 /* ===== visuels réseaux ===== */
 .vis{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 .vis-prev{position:sticky;top:64px;z-index:1;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/20px 20px;border:1px solid var(--hair);border-radius:12px;padding:8px;display:flex;justify-content:center}
@@ -467,7 +474,7 @@ const L={
   typesBundle:["Simple (SD)","Doublé (DD)","Super doublé (SDD)"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,lotBundlePct:0,coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.08,"Demi-tête (Half Wig)":-0.2,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -990,7 +997,7 @@ function vTarifs(){
   ${loadingOr("produits",blocs||`<div class="empty">Aucune référence.</div>`)}
   <h3 class="sec">Options</h3>
   <table class="tbl"><tr><th>Option</th><th class="num">Perruque</th><th class="num">Par bundle</th></tr>${opts}</table>
-  <p class="note">+ collection Premium / Signature / Unique, matières utilisées et livraison (${eur(S.reglages.livraisonFR)} en France, ${eur(S.reglages.livraisonDOM)} DOM). Remise lot : −${eur(S.reglages.lotBundleRemise)} par ${n(S.reglages.lotBundleTaille)||3} bundles.</p>`;
+  <p class="note">+ collection Premium / Signature / Unique, matières utilisées et livraison (${eur(S.reglages.livraisonFR)} en France, ${eur(S.reglages.livraisonDOM)} DOM). ${lotTexte()?"Remise : "+lotTexte()+".":""}</p>`;
 }
 function vStock(){
   if(S.stockFilter==="matieres")return vMatieres();
@@ -1302,10 +1309,11 @@ function pVisuel(){
   <div class="vis">
    <div class="vis-prev" data-act="vis-play"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
-    ${fp?`${F("visPreset","Un groupe de prix",`<select id="visPreset" name="visPreset">${PR.map((x,i)=>`<option value="${i}">${esc(x.label)}</option>`).join("")}</select>`,"Les prix viennent de l'app (Stock → Tarifs, Réglages).")}
-    <div class="acts small"><button type="button" class="act" data-act="fp-seul"><b>Mettre seul</b><span>Remplace la fiche par ce groupe</span></button><button type="button" class="act main" data-act="fp-ajout"><b>+ Ajouter à la fiche</b><span>À la suite de ce qui y est</span></button></div>
-    ${F("visTheme","Couleurs",`<select id="visTheme" name="visTheme"><option value="creme">Crème</option><option value="noir">Noir</option></select>`)}
-    ${F("visArt","Ajouter un article précis",`<select id="visArt" name="visArt"><option value="">— Choisir un article à ajouter —</option>${ps.map(x=>`<option value="${esc(x.id)}">${esc(designation(x))}${prixBaseDe(x)>0?" · "+eur(prixBaseDe(x)):""}</option>`).join("")}</select>`,"Chaque article choisi s'ajoute en bas de la liste des prix.")}`:""}
+    ${fp?`${F("visTheme","Couleurs",`<select id="visTheme" name="visTheme"><option value="creme">Crème</option><option value="noir">Noir</option></select>`)}
+    <div class="field"><span class="lbl">Ce que je mets sur l'affiche</span>
+     <label class="chk"><input type="checkbox" id="fpStock"> Seulement ce qui est en stock</label>
+     <div class="fp-list" id="fpList">${fpListe()}</div>
+     <span class="hint">Coche les articles et les prestations à montrer. Les prix plus bas se remplissent tout seuls à chaque coche ; tu peux les retoucher ensuite (une nouvelle coche les recalcule).</span></div>`:""}
     ${fp?"":F("visProd","Article",`<select id="visProd" name="visProd" data-k="${esc(ps.map(x=>x.id+designation(x)).join("|"))}">${visOptions(p?p.id:"")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
     <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
       <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
@@ -1316,11 +1324,11 @@ function pVisuel(){
     <div class="two">${F("visX","Position (gauche ↔ droite)",`<input type="range" id="visX" name="visX" min="0" max="100" value="50">`)}${F("visY","Position (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}</div>
     <div class="two">${F("visLogo","Logo EC EUGCEO",`<select id="visLogo" name="visLogo"><option value="hc">En haut, au centre</option><option value="hg">En haut, à gauche</option><option value="hd">En haut, à droite</option><option value="bd">En bas, à droite</option><option value="non">Pas de logo</option></select>`)}${F("visLogoT","Taille du logo",`<input type="range" id="visLogoT" name="visLogoT" min="50" max="150" value="100">`)}</div>
     ${fp?`<h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
-    ${F("visSur","Petit titre",inp("visSur",P0.sous||"Tarifs"),"Ex. Tarifs, Nouveautés, Prix de lancement.")}
-    ${F("visTitre","Titre",inp("visTitre",P0.titre||""))}
-    ${F("visCols","Colonnes (facultatif)",inp("visCols",P0.cols||"",'placeholder="ex. Longueur ; Simple ; Doublé"'),"Titres des colonnes, séparés par « ; ». Vide = pas de ligne de titres.")}
-    ${F("visLignes","Les prix",`<textarea id="visLignes" name="visLignes" rows="8" style="font-size:15px">${esc(P0.lignes||"")}</textarea>`,"Une ligne par prix : le nom et le prix séparés par « ; » (ex. « Bob 12″ ; 210 € »). Plusieurs colonnes : « 20″ ; 85 € ; 90 € ». Un titre de partie : une ligne qui commence par # (ex. « # Perruques » ou « # Bundles ; Simple ; Doublé »).")}
-    ${F("visNote","Petite note en bas",inp("visNote",P0.note||"",'placeholder="ex. −15 € par lot de 3 bundles"'))}
+    ${F("visSur","Petit titre",inp("visSur","Tarifs"),"Ex. Tarifs, Nouveautés, Prix de lancement.")}
+    ${F("visTitre","Titre",inp("visTitre","",'placeholder="Se remplit quand tu coches"'))}
+    ${F("visCols","Colonnes (facultatif)",inp("visCols","",'placeholder="ex. Longueur ; Simple ; Doublé"'),"Titres des colonnes, séparés par « ; ». Vide = pas de ligne de titres.")}
+    ${F("visLignes","Les prix",`<textarea id="visLignes" name="visLignes" rows="8" style="font-size:15px" placeholder="Coche des articles plus haut, ou écris : Bob 12″ ; 210 €"></textarea>`,"Une ligne par prix : le nom et le prix séparés par « ; » (ex. « Bob 12″ ; 210 € »). Plusieurs colonnes : « 20″ ; 85 € ; 90 € ». Un titre de partie : une ligne qui commence par # (ex. « # Perruques » ou « # Bundles ; Simple ; Doublé »).")}
+    ${F("visNote","Petite note en bas",inp("visNote","",'placeholder="ex. −15 € par lot de 3 bundles"'))}
     ${F("visSite","En bas",inp("visSite","eugceo.fr"))}`:`
     <h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
     ${F("visSur","Petit titre",inp("visSur",T.sur),"Ex. Disponible, Sur commande, Nouvelle création, Pose réalisée.")}
@@ -1333,6 +1341,44 @@ function pVisuel(){
     <p class="note" id="visNote"></p>
    </form>
   </div>`}
+/* ---------- fiche de prix : choisir ce qu'on montre ---------- */
+function fpGroupes(){
+  const actifs=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));const G=[];
+  const court=p=>[(p.modele||"")+(p.longueur?" "+p.longueur+"″":""),isBundle(p)?(p.typeBundle||"").replace(/\s*\(.*\)/,""):p.laceTaille].filter(Boolean).join(" · ");
+  const perr=actifs.filter(p=>!isBundle(p)&&prepBase(p)!==0.5).sort((a,b)=>designation(a).localeCompare(designation(b)));
+  if(perr.length)G.push({k:"perr",t:"Perruques",items:perr.map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
+  const demi=actifs.filter(p=>!isBundle(p)&&prepBase(p)===0.5);
+  if(demi.length)G.push({k:"demi",t:"Demi-têtes et ponytails",items:demi.map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
+  const B={};for(const p of actifs.filter(isBundle))(B[p.modele||"Bundles"]=B[p.modele||"Bundles"]||[]).push(p);
+  for(const [m,ps] of Object.entries(B).sort())G.push({k:"b:"+m,t:"Bundles "+m,bundle:m,items:ps.sort((a,b)=>n(a.longueur)-n(b.longueur)||(ORD_T[a.typeBundle]??9)-(ORD_T[b.typeBundle]??9)).map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
+  const R=S.reglages,k=rdvCfg().km;const e=v=>v>0?Math.round(v)+" €":"—";
+  G.push({k:"prest",t:"Prestations",prest:true,items:[
+    {k:"s:pose",l:"Pose jusqu'à "+hTxt(n(R.poseBaseH)||1.5),px:n(R.poseBasePrix),txt:e(n(R.poseBasePrix))},
+    {k:"s:demi",l:"Chaque "+(Math.abs((n(R.posePasH)||0.5)-0.5)<1e-9?"demi-heure":"tranche de "+hTxt(n(R.posePasH)))+" en plus",px:n(R.posePasPrix),txt:e(n(R.posePasPrix))},
+    {k:"s:remise",l:"Remise en forme",px:n(R.remisePrix),txt:e(n(R.remisePrix))},
+    {k:"s:dep",l:"Déplacement à domicile",txt:n(k.prix)+" € / "+k.tranche+" km"}]});
+  const op=SUPS.map(([kk,l])=>({k:"o:"+kk,l,a:n(R["sup_"+kk+"_p"]),b:n(R["sup_"+kk+"_b"])})).filter(x=>x.a||x.b);
+  if(op.length)G.push({k:"opt",t:"Options",opt:true,items:op});
+  return G}
+function fpListe(){const seul=!!($("#fpStock")||{}).checked;const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k));
+  return fpGroupes().map(g=>{const its=g.items.filter(i=>!seul||!i.p||i.q>0);if(!its.length)return"";
+    return`<div class="fp-g"><label class="fp-gh"><input type="checkbox" data-g="${esc(g.k)}"> <b>${esc(g.t)}</b></label>${its.map(i=>`<label class="fp-i"><input type="checkbox" data-k="${esc(i.k)}" data-g="${esc(g.k)}"${coch.has(i.k)?" checked":""}> <span>${esc(i.l)}</span><em>${i.p?(i.px>0?eur(i.px):"—")+(i.q!=null?" · "+(i.q>0?i.q+" en stock":"pas en stock"):""):i.txt||((i.a?eur(i.a):"—")+" / "+(i.b?eur(i.b):"—"))}</em></label>`).join("")}</div>`}).join("")||`<div class="empty">Rien en stock.</div>`}
+/* compose la liste des prix à partir des cases cochées */
+function fpCompose(){
+  const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k));const e=v=>v>0?Math.round(v)+" €":"—";
+  const sections=[];const notes=[];
+  for(const g of fpGroupes()){const its=g.items.filter(i=>coch.has(i.k));if(!its.length)continue;
+    if(g.bundle){const types=[...new Set(its.map(i=>i.p.typeBundle||""))].sort((a,b)=>(ORD_T[a]??9)-(ORD_T[b]??9));const lgs=[...new Set(its.map(i=>n(i.p.longueur)))].sort((a,b)=>a-b);const lab=t=>t?t.replace(/\s*\(.*\)/,""):"Prix";
+      if(types.length>1)sections.push({t:g.t,cols:types.map(lab),rows:lgs.map(lg=>[lg+"″",...types.map(t=>{const i=its.find(x=>n(x.p.longueur)===lg&&(x.p.typeBundle||"")===t);return i?e(i.px):"—"})])});
+      else sections.push({t:g.t+(types[0]?" · "+lab(types[0]):""),cols:[],rows:its.map(i=>[n(i.p.longueur)+"″",e(i.px)])});
+      if(lotTexte()&&!notes.includes(lotTexte()))notes.push(lotTexte())}
+    else if(g.opt)sections.push({t:g.t,cols:["Perruque","Bundle"],rows:its.map(i=>[i.l,i.a?e(i.a):"—",i.b?e(i.b):"—"])});
+    else if(g.prest){sections.push({t:"Prestations",cols:[],rows:its.map(i=>[i.l,i.txt])});notes.push("À Cesson-Sévigné ou chez vous, sur rendez-vous")}
+    else sections.push({t:g.t,cols:[],rows:its.map(i=>[i.l,e(i.px)])})}
+  const ta=$("#visLignes");if(!ta)return;const set=(id,v)=>{const el=$("#"+id);if(el)el.value=v};
+  if(sections.length===1){const x=sections[0];set("visTitre",x.t);set("visCols",x.cols.length?["Longueur",...x.cols].join(" ; "):"");ta.value=x.rows.map(r=>r.join(" ; ")).join("\n")}
+  else{set("visTitre",sections.length?"Nos tarifs":"");set("visCols","");ta.value=sections.map(x=>["# "+[x.t,...x.cols].join(" ; "),...x.rows.map(r=>r.join(" ; "))].join("\n")).join("\n")}
+  set("visNote",notes.join(" · "));if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}
 /* ---------- fiche de prix : contenus prêts à l'emploi ---------- */
 function prixPresets(){
   const L=[];const actifs=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));const e=v=>v>0?Math.round(v)+" €":"—";
@@ -1340,7 +1386,7 @@ function prixPresets(){
   for(const [m,ps] of Object.entries(G).sort()){const types=[...new Set(ps.map(p=>p.typeBundle||""))].sort((a,b)=>(ORD_T[a]??9)-(ORD_T[b]??9));const lgs=[...new Set(ps.map(p=>n(p.longueur)))].sort((a,b)=>a-b);
     const lab=t=>t?t.replace(/\s*\(.*\)/,""):"Prix";
     const lignes=lgs.map(lg=>[lg?lg+"″":"?",...types.map(t=>{const c=ps.find(p=>n(p.longueur)===lg&&(p.typeBundle||"")===t);return c?e(prixBaseDe(c)):"—"})].join(" ; ")).join("\n");
-    const R=S.reglages;L.push({label:"Bundles "+m,titre:"Bundles "+m,sous:"Tarifs",cols:types.length>1?["Longueur",...types.map(lab)].join(" ; "):"",lignes,note:n(R.lotBundleRemise)?"−"+Math.round(n(R.lotBundleRemise))+" € par lot de "+(n(R.lotBundleTaille)||3)+" bundles":""})}
+    const R=S.reglages;L.push({label:"Bundles "+m,titre:"Bundles "+m,sous:"Tarifs",cols:types.length>1?["Longueur",...types.map(lab)].join(" ; "):"",lignes,note:lotTexte()})}
   const court=p=>[(p.modele||"")+(p.longueur?" "+p.longueur+"″":""),p.laceTaille].filter(Boolean).join(" · ");
   const perr=actifs.filter(p=>!isBundle(p)&&prepBase(p)!==0.5).sort((a,b)=>prixBaseDe(b)-prixBaseDe(a));
   if(perr.length)L.push({label:"Perruques",titre:"Perruques",sous:"Tarifs",cols:"",lignes:perr.map(p=>court(p)+" ; "+e(prixBaseDe(p))).join("\n"),note:"Pose et options en supplément"});
@@ -1444,7 +1490,7 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
     if(/^#/.test(rw[0]||"")){const t=rw[0].replace(/^#\s*/,"");c.font=`500 ${Math.round(Math.min(W*0.026,rowH*0.34))}px Poppins`;c.fillStyle=K.or;visSpaced(c,t.toUpperCase(),L0,by,W*0.006,"left");
       c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle=K.doux;c.textAlign="right";for(let i=1;i<rw.length;i++)c.fillText((rw[i]||"").toUpperCase(),cx(i-1),by);
       c.fillStyle=K.bord;c.fillRect(L0,y+rowH-2,iw,Math.max(1,W*0.0012));y+=rowH;return}
-    const lab=rw[0]||"";const labMax=nv>1?iw-nv*cw-W*0.02:iw*0.62;c.font=`400 ${fl}px Poppins`;c.fillStyle=K.txt;c.fillText(lab,L0,by);
+    const lab=rw[0]||"";const labMax=rw.length>2?iw-nv*cw-W*0.02:iw*0.62;c.font=`400 ${fl}px Poppins`;c.fillStyle=K.txt;c.fillText(lab,L0,by);
     if(nv===1||rw.length===2){const pr=rw[rw.length-1]||"";if(rw.length>=2){c.font=`500 ${fp}px "Cormorant Garamond"`;const pw=c.measureText(pr).width;c.font=`400 ${fl}px Poppins`;const lw=c.measureText(lab).width;
         c.fillStyle=K.pts;for(let dx=L0+Math.min(lw,labMax)+W*0.02;dx<R0-pw-W*0.02;dx+=W*0.014)c.fillRect(dx,by-W*0.004,Math.max(2,W*0.0025),Math.max(2,W*0.0025));
         c.font=`500 ${fp}px "Cormorant Garamond"`;c.fillStyle=K.or;c.textAlign="right";c.fillText(pr,R0,by)}}
@@ -1979,7 +2025,8 @@ function openReglages(){
     ${SUPS.map(([k,l])=>`<div class="two">${row("sup_"+k+"_p",l+" · perruque (€)")}${row("sup_"+k+"_b",l+" · par bundle (€)")}</div>`).join("")}
     ${row("coefMatieres","Matières : coût × ","Les matières utilisées (teinture, oxydant…) s'ajoutent au prix à leur coût multiplié par ce nombre.")}</fieldset>
    <fieldset><legend>Lot de bundles</legend>
-    <div class="two">${row("lotBundleTaille","Nombre de bundles par lot")}${row("lotBundleRemise","Remise par lot (€)","Appliquée toute seule sur le site et dans l'app. 0 = pas de remise.")}</div></fieldset>
+    <div class="two">${row("lotBundleTaille","Nombre de bundles par lot")}${row("lotBundleRemise","Remise par lot (€)","Appliquée toute seule sur le site et dans l'app. 0 = pas de remise.")}</div>
+    ${row("lotBundlePct","Ou remise en % sur les bundles","Ex. 10 = −10 % sur tous les bundles dès que la cliente en prend le nombre ci-dessus. Si ce n'est pas 0, il remplace la remise en €.")}</fieldset>
    <fieldset><legend>Ambassadrices (valeurs par défaut)</legend>
     <div class="two">${row("parrainPct","Remise cliente et gain ambassadrice (%)")}${row("parrainMin","Achat minimum (€)")}</div>
     ${row("parrainDelai","Délai avant gain (jours)","Délai de rétractation.")}</fieldset>
@@ -2142,6 +2189,8 @@ document.addEventListener("input",e=>{
   if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#visForm")){if(e.target.id==="visPreset")return;
+    if(e.target.id==="fpStock"){const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();if(e.target.checked){fpCompose()}}return}
+    if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
     if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?(pr.typeBundle||"").replace(/\s*\(.*\)/,""):pr.laceTaille].filter(Boolean).join(" · ");
       ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
     if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
@@ -2223,7 +2272,10 @@ function etatAmb(c,exclId){
   return{...T,gains:r2(gains),utilise,solde:Math.max(0,r2(gains-utilise)),enAttente:att,commandes:list,ca:r2(ca)}
 }
 function dejaParrainee(d,exclId){return S.ventes.some(v=>v.id!==exclId&&v.codePromo&&dansCA(v)&&(d.email||telSimple(d.telephone)||d.client)&&estTitulaire({cliente:v.client,email:v.email,telephone:v.telephone},d.client,d.email,d.telephone))}
-function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise);if(!isBundle(p)||!(rm>0))return 0;return Math.min(Math.floor(Math.max(1,n(d.quantite)||1)/t)*rm,margeVente(d))}
+function lotVente(d){const p=prod(d.produitId);const R=S.reglages||{};const t=n(R.lotBundleTaille)||3,rm=n(R.lotBundleRemise),pc=n(R.lotBundlePct);if(!isBundle(p))return 0;const q=Math.max(1,n(d.quantite)||1);
+  if(pc>0)return q>=t?Math.min(r2(q*n(d.prixTTC)*pc/100),margeVente(d)):0;if(!(rm>0))return 0;return Math.min(Math.floor(q/t)*rm,margeVente(d))}
+/* texte de la remise par lot, partout pareil */
+function lotTexte(){const R=S.reglages||{};const t=n(R.lotBundleTaille)||3;if(n(R.lotBundlePct)>0)return"−"+n(R.lotBundlePct)+" % dès "+t+" bundles";if(n(R.lotBundleRemise)>0)return"−"+Math.round(n(R.lotBundleRemise))+" € par lot de "+t+" bundles";return""}
 function sousTotalVente(d){return venteBrut(d)}
 /* marge disponible avant le prix plancher, pour cette vente */
 function margeVente(d){const p=prod(d.produitId);const pp=p?coutVente(p,d):null;const q=Math.max(1,n(d.quantite)||1);return pp?Math.max(0,r2(venteBrut(d)-pp.plancher*q)):sousTotalVente(d)}
@@ -2258,7 +2310,7 @@ function pvCode(d){
   if(ck.err)out.push(`<span class="err">${esc(ck.err)}</span>`);
   else if(ck.ok){setRemise(d,ck.remise);out.push(`<span>Code ${esc(ck.c.id)} (${esc(ck.c.cliente||"")}) : −${ck.T.pf} % → remise <b class="num">${eur(ck.remise)}</b>. L'ambassadrice gagnera ${ck.T.pg} % de ce que paie la cliente, ${RP().delai} jours après le paiement.</span>`)}
   const lot=!d.cagnotteCode&&!ck.ok&&!ck.err?lotVente(d):0;
-  if(lot>0){setRemise(d,lot);const R=S.reglages||{};out.push(`<span>Lot de ${n(R.lotBundleTaille)||3} bundles : remise <b class="num">${eur(lot)}</b> appliquée.</span>`)}
+  if(lot>0){setRemise(d,lot);out.push(`<span>${esc(lotTexte())} : remise <b class="num">${eur(lot)}</b> appliquée.</span>`)}
   else if(!d.cagnotteCode&&!ck.ok&&current.autoRemise!==undefined){const el=$("#remise");if(el&&n(el.value)===current.autoRemise){el.value="";d.remise=""}current.autoRemise=undefined}
   box.innerHTML=out.join("")||`<span>Si la cliente vient de la part d'une ambassadrice, écris son code ici.</span>`;
 }
