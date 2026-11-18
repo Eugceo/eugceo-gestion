@@ -1309,6 +1309,7 @@ function pVisuel(){
    <div class="vis-prev" data-act="vis-play"><canvas id="visCv" width="1080" height="1350" aria-label="Aperçu"></canvas></div>
    <form class="f vis-ctl" id="visForm" novalidate>
     ${fp?`${F("visTheme","Couleurs",`<select id="visTheme" name="visTheme"><option value="creme">Crème</option><option value="noir">Noir</option></select>`)}
+    ${F("fpFond","Cadre du tableau",`<select id="fpFond" name="fpFond"><option value="plein">Plein</option><option value="leger">Léger (on devine la photo)</option><option value="aucun">Aucun (la photo ou la vidéo reste entière)</option></select>`,"Sans cadre, les textes passent en blanc avec une ombre pour rester lisibles sur la photo.")}
     <div class="field"><span class="lbl">Ce que je mets sur l'affiche</span>
      <label class="chk"><input type="checkbox" id="fpStock"> Seulement ce qui est en stock</label>
      <div class="fp-list" id="fpList">${fpListe()}</div>
@@ -1369,7 +1370,7 @@ function fpCompose(){
   for(const g of fpGroupes()){const its=g.items.filter(i=>coch.has(i.k));if(!its.length)continue;
     if(g.bundle){const types=[...new Set(its.map(i=>i.p.typeBundle||""))].sort((a,b)=>(ORD_T[a]??9)-(ORD_T[b]??9));const lgs=[...new Set(its.map(i=>n(i.p.longueur)))].sort((a,b)=>a-b);const lab=t=>t?t.replace(/\s*\(.*\)/,""):"Prix";
       if(types.length>1)sections.push({t:g.t,cols:types.map(lab),rows:lgs.map(lg=>[lg+"″",...types.map(t=>{const i=its.find(x=>n(x.p.longueur)===lg&&(x.p.typeBundle||"")===t);return i?e(i.px):"—"})])});
-      else sections.push({t:g.t+(types[0]?" · "+lab(types[0]):""),cols:[],rows:its.map(i=>[n(i.p.longueur)+"″",e(i.px)])});
+      else sections.push({t:g.t,cols:[],rows:its.map(i=>[n(i.p.longueur)+"″",e(i.px)])});
       {const R=S.reglages||{};const prochaine=n(R.lotBundlePct)>0&&R.lotPctFin&&R.lotPctFin>=today()&&!lotPctActif();
        const tx=prochaine?((R.lotPctNom?R.lotPctNom+" : ":"")+"−"+n(R.lotBundlePct)+" % dès "+(n(R.lotBundleTaille)||3)+" bundles"+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):"")):(lotPctActif()&&R.lotPctNom?R.lotPctNom+" : ":"")+lotTexte();
        if(tx&&!notes.includes(tx))notes.push(tx)}}
@@ -1463,7 +1464,8 @@ function visDraw(sync){
   if(sur){c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="#C4A046";visSpaced(c,sur.toUpperCase(),M,y,W*0.008,"left")}
 }
 function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
-  const cr=v("visTheme")!=="noir";const K=cr?{fond:"rgba(250,247,242,.95)",bord:"rgba(138,111,44,.55)",txt:"#1a1714",titre:"#111",or:"#8A6F2C",trait:"#B8954A",doux:"rgba(26,23,20,.55)",ligne:"rgba(26,23,20,.09)",pts:"rgba(138,111,44,.45)",vide:"rgba(26,23,20,.3)",note:"rgba(26,23,20,.7)",site:clair?"rgba(26,23,20,.75)":"rgba(255,255,255,.85)"}
+  const fd=v("fpFond")||"plein",media=!!(VIS.vid||VIS.img)&&!!VIS.src&&v("visMode")!=="calque",sans=fd==="aucun";
+  const cr=v("visTheme")!=="noir"&&!(sans&&(media||v("visMode")==="calque"));const K=cr?{fond:"rgba(250,247,242,.95)",bord:"rgba(138,111,44,.55)",txt:"#1a1714",titre:"#111",or:"#8A6F2C",trait:"#B8954A",doux:"rgba(26,23,20,.55)",ligne:"rgba(26,23,20,.09)",pts:"rgba(138,111,44,.45)",vide:"rgba(26,23,20,.3)",note:"rgba(26,23,20,.7)",site:clair?"rgba(26,23,20,.75)":"rgba(255,255,255,.85)"}
     :{fond:"rgba(17,17,17,.72)",bord:"rgba(196,160,70,.55)",txt:"rgba(255,255,255,.92)",titre:"#fff",or:"#C4A046",trait:"#C4A046",doux:"rgba(255,255,255,.6)",ligne:"rgba(255,255,255,.08)",pts:"rgba(196,160,70,.45)",vide:"rgba(255,255,255,.35)",note:"rgba(255,255,255,.75)",site:"rgba(255,255,255,.8)"};
   const rows=v("visLignes").split("\n").map(l=>l.trim()).filter(Boolean).map(l=>l.split(/\s*;\s*/));
   const cols=v("visCols").trim()?v("visCols").split(/\s*;\s*/):[];const nc=Math.max(cols.length,...rows.map(r=>r.length),1);
@@ -1476,7 +1478,8 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
   const hTot=2*P+hSous+hTit+W*0.05+hHead+rows.length*rowH+hNote;const yT=Math.max(yMin,yMin+(yMax-yMin-hTot)/2),yB=yT+hTot;
   /* panneau */
   const r=W*0.025;c.save();c.beginPath();c.moveTo(x0+r,yT);c.arcTo(x1,yT,x1,yB,r);c.arcTo(x1,yB,x0,yB,r);c.arcTo(x0,yB,x0,yT,r);c.arcTo(x0,yT,x1,yT,r);c.closePath();
-  c.fillStyle=K.fond;c.fill();c.strokeStyle=K.bord;c.lineWidth=Math.max(1.5,W*0.0018);c.stroke();c.restore();
+  if(!sans){c.fillStyle=fd==="leger"?(cr?"rgba(250,247,242,.6)":"rgba(17,17,17,.42)"):K.fond;c.fill();c.strokeStyle=K.bord;c.lineWidth=Math.max(1.5,W*0.0018);c.stroke()}c.restore();
+  c.save();if(sans&&!cr){Object.assign(K,{txt:"#fff",or:"#F2D98E",trait:"#F2D98E",pts:"rgba(255,255,255,.55)",ligne:"rgba(255,255,255,.18)",bord:"rgba(242,217,142,.6)",note:"#fff",doux:"rgba(255,255,255,.85)"});c.shadowColor="rgba(0,0,0,.8)";c.shadowBlur=W*0.016;c.shadowOffsetY=W*0.002}
   let y=yT+P;const L0=x0+P,R0=x1-P;c.textAlign="center";
   if(sous){c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle=K.or;visSpaced(c,sous.toUpperCase(),W/2,y+W*0.018,W*0.008,"center");y+=hSous}
   if(titre){const fs=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.08:0.072)),iw);c.fillStyle=K.titre;c.textAlign="center";c.fillText(titre,W/2,y+fs*0.85);y+=hTit}
@@ -1500,7 +1503,7 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
     y+=rowH});
   if(note){c.font=`italic 400 ${Math.round(W*0.022)}px Poppins`;c.fillStyle=K.note;c.textAlign="center";visFit(c,note,'italic 400 {s}px Poppins',Math.round(W*0.022),iw);c.fillText(note,W/2,y+W*0.04)}
   if(site){c.textAlign="left";c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle=K.site;visSpaced(c,site.toUpperCase(),W/2,H-(story?H*0.05:H*0.035),W*0.006,"center")}
-  c.textAlign="left"}
+  c.restore();c.textAlign="left"}
 function visMime(){const L=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"];for(const m of L)if(MediaRecorder.isTypeSupported(m))return m;return""}
 async function visRec(){
   const vd=VIS.vid,cv=$("#visCv");if(!vd||!cv)return;const mime=visMime();
@@ -2205,7 +2208,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
