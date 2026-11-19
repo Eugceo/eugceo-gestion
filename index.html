@@ -366,6 +366,7 @@ button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.til
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* ===== fiche de prix : cases à cocher ===== */
+.lotrow{display:grid;grid-template-columns:repeat(var(--n,3),1fr) auto;gap:8px;align-items:center;margin-bottom:10px;padding:10px;border:1px solid var(--hair);border-radius:12px}.lotrow select{min-width:0;width:100%}.lotrow .lotM{grid-column:1/-1}
 .fp-list{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto;border:1px solid var(--hair);border-radius:12px;padding:10px 12px;background:var(--bg)}
 .fp-g{display:flex;flex-direction:column;gap:2px}
 .fp-gh{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair);font-size:14px;cursor:pointer}
@@ -1300,8 +1301,8 @@ function visTextes(p){
   return{titre,l1,l2,prix:px>0?String(Math.round(px))+" €":"",sur:stockQty(p)>0?"Disponible":"Sur commande"}}
 function visMedias(p){const s=(p&&p.site)||{};const L=(Array.isArray(s.photos)?s.photos:[]).filter(x=>!/^videos\//.test(x)).map(x=>({u:pubUrl(x),t:"image"}));if(s.video)L.push({u:pubUrl(s.video),t:"video"});return L}
 function pVisuel(){
-  const fp=S.page==="fichePrix";const ps=visProduits();
-  const p=fp?null:(prod(S.pageId)||null);const T=visTextes(p);const md=visMedias(p);const PR=fp?prixPresets():[];const P0=PR[0]||{};
+  const fp=S.page==="fichePrix";VIS.promo=false;const ps=visProduits();
+  const lotV=fp?null:lotParId(S.pageId);const p=fp||lotV?null:(prod(S.pageId)||null);const T=lotV?visTextesLot(lotV):visTextes(p);const md=visMedias(lotV?lotV.ps.find(Boolean):p);const PR=fp?prixPresets():[];const P0=PR[0]||{};
   setTimeout(()=>{visCharger(md[0]?md[0].u:"",md[0]?md[0].t:"image")},0);
   const vidOk=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
   return`${fp?pageHead("Fiche de prix","Une grille de prix aux couleurs d'EUGCEO, sur une photo ou une vidéo, prête à poster. Choisis ce que tu veux montrer : les prix se remplissent depuis l'app, et tout reste modifiable."):pageHead("Visuel pour les réseaux","Choisis un article, une photo ou une vidéo, et un format. Tu obtiens une image ou une vidéo prête à poster, avec EUGCEO et les détails de l'article.")}
@@ -1311,10 +1312,12 @@ function pVisuel(){
     ${fp?`${F("visTheme","Couleurs",`<select id="visTheme" name="visTheme"><option value="creme">Crème</option><option value="noir">Noir</option></select>`)}
     ${F("fpFond","Cadre du tableau",`<select id="fpFond" name="fpFond"><option value="plein">Plein</option><option value="leger">Léger (on devine la photo)</option><option value="aucun">Aucun (la photo ou la vidéo reste entière)</option></select>`,"Sans cadre, les textes passent en blanc avec une ombre pour rester lisibles sur la photo.")}
     <div class="field"><span class="lbl">Ce que je mets sur l'affiche</span>
-     <label class="chk"><input type="checkbox" id="fpStock"> Seulement ce qui est en stock</label>
+     <label class="chk"><input type="checkbox" id="fpStock"> Seulement ce qui est en stock</label>${promoCase()}
      <div class="fp-list" id="fpList">${fpListe()}</div>
+     <button type="button" class="sitebtn" data-act="lots-edit">Modifier les lots de bundles</button>
      <span class="hint">Coche les articles et les prestations à montrer. Les prix plus bas se remplissent tout seuls à chaque coche ; tu peux les retoucher ensuite (une nouvelle coche les recalcule).</span></div>`:""}
-    ${fp?"":F("visProd","Article",`<select id="visProd" name="visProd" data-k="${esc(ps.map(x=>x.id+designation(x)).join("|"))}">${visOptions(p?p.id:"")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
+    ${fp?"":F("visProd","Article",`<select id="visProd" name="visProd" data-k="${esc(visKey())}">${visOptions(lotV?S.pageId:p?p.id:"")}</select>`,"Choisis un article pour remplir les textes tout seuls, ou « Autre » pour tout écrire toi-même. Dans les deux cas, chaque texte plus bas se modifie librement.")}
+    ${fp?"":`<button type="button" class="sitebtn" data-act="lots-edit" style="margin:-6px 0 12px">Modifier les lots de bundles</button>${lotV?promoCase():""}`}
     <div class="field"><span class="lbl">Photo ou vidéo</span><div class="vis-ph">${md.map((x,i)=>`<button type="button" class="vis-th${i===0?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join("")}
       <label class="vis-th vis-up"><input type="file" id="visFile" accept="image/*,video/*" hidden>+ Photo<br>ou vidéo</label></div>
       <span class="hint">${md.length?"Celles de la fiche « Sur le site », ou une du téléphone.":"Rien sur la fiche : prends une photo ou une vidéo du téléphone avec « + »."}</span></div>
@@ -1342,6 +1345,37 @@ function pVisuel(){
     <p class="note" id="visNote"></p>
    </form>
   </div>`}
+/* ---------- lots de bundles composés (modifiables dans « Modifier les lots ») ---------- */
+function lotsDef(){const R=S.reglages||{};return Array.isArray(R.lotsCompo)?R.lotsCompo.filter(L=>L&&L.m&&Array.isArray(L.lg)&&L.lg.length):[]}
+function eurLot(v){return v>0?(Math.abs(v-Math.round(v))<0.005?String(Math.round(v)):v.toFixed(2).replace(".",","))+" €":"—"}
+function lotInfo(L,i){const R=S.reglages||{};const lg=[...L.lg].map(n).filter(x=>x>0).sort((a,b)=>a-b);
+  const ps=lg.map(x=>S.produits.find(p=>isBundle(p)&&p.statut!=="Archivé"&&(p.modele||"")===L.m&&n(p.longueur)===x)||null);const ok=ps.every(Boolean);
+  const tot=ps.reduce((a,p)=>a+(p?prixBaseDe(p):0),0);const t=n(R.lotBundleTaille)||3;const pc=promoForcee()?n(R.lotBundlePct):lotPctActif();let px=tot;
+  if(lg.length>=t)px=pc?tot*(1-pc/100):tot-Math.floor(lg.length/t)*n(R.lotBundleRemise);px=Math.round(px*100)/100;
+  const need={};ps.forEach(p=>{if(p)need[p.id]=(need[p.id]||0)+1});const poss=ok&&lg.length?Math.min(...Object.entries(need).map(([id,k])=>Math.floor(Math.max(0,stockQty(prod(id)))/k))):0;
+  return{i,m:L.m,lg,ps,ok,tot,px,poss,lab:lg.map(x=>x+"″").join(" + ")}}
+function promoProchaine(){const R=S.reglages||{};return n(R.lotBundlePct)>0&&(!R.lotPctFin||R.lotPctFin>=today())}
+function promoForcee(){return!!(VIS.promo&&promoProchaine())}
+function promoCase(){const R=S.reglages||{};if(!promoProchaine()||(lotPctActif()&&true))return"";return`<label class="chk"><input type="checkbox" id="fpPromo"> Afficher les prix ${esc(R.lotPctNom||"de la promotion")} (−${n(R.lotBundlePct)} %${R.lotPctDebut?", du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):""})</label>`}
+function lotsInfos(){return lotsDef().map(lotInfo)}
+function lotParId(id){const m=/^lot:(\d+)$/.exec(id||"");if(!m)return null;const L=lotsDef()[+m[1]];return L?lotInfo(L,+m[1]):null}
+function visTextesLot(x){const p=x.ps.find(Boolean)||{};return{titre:"Lot "+x.m,l1:[x.lab,p.cheveux].filter(Boolean).join(" · "),l2:[x.px<x.tot?"Au lieu de "+eurLot(x.tot):"",p.couleur].filter(Boolean).join(" · "),prix:eurLot(x.px),sur:x.poss>0?"Disponible":"Sur commande"}}
+function lotsBundleOpts(){const b=S.produits.filter(p=>isBundle(p)&&p.statut!=="Archivé");return{ms:[...new Set(b.map(p=>p.modele||"").filter(Boolean))].sort(),lgs:[...new Set(b.map(p=>n(p.longueur)).filter(Boolean))].sort((a,c)=>a-c)}}
+function lotRow(L){const{ms,lgs}=lotsBundleOpts();const t=Math.max(n((S.reglages||{}).lotBundleTaille)||3,(L.lg||[]).length);const m=L.m||ms[0]||"";
+  return`<div class="lotrow" style="--n:${t}"><select class="lotM" aria-label="Modèle">${[...new Set([...ms,m].filter(Boolean))].map(x=>`<option${x===m?" selected":""}>${esc(x)}</option>`).join("")}</select>${Array.from({length:t},(_,j)=>{const v=n((L.lg||[])[j]);return`<select class="lotL" aria-label="Longueur ${j+1}"><option value="">—</option>${[...new Set([...lgs,v].filter(Boolean))].sort((a,c)=>a-c).map(x=>`<option value="${x}"${x===v?" selected":""}>${x}″</option>`).join("")}</select>`}).join("")}<button type="button" class="iconbtn" data-act="lot-del" aria-label="Retirer ce lot">✕</button></div>`}
+function openLots(){const ro=!(db&&canWrite);current={col:"lots"};const sh=$("#sheet");const L=lotsDef();
+  sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Lots de bundles</h2></div></div>
+  <div class="wrap"><form class="f" id="form" novalidate>
+   <p class="note">Pour chaque lot : le modèle, puis la longueur de chaque bundle. Le prix du lot se calcule tout seul (somme des prix, moins la remise lot en cours : ${esc(lotTexte()||"aucune")}). Les lots servent dans la fiche de prix et le visuel pour les réseaux.</p>
+   <div id="lotRows">${L.map(lotRow).join("")}</div>
+   ${ro?"":`<button type="button" class="btn ghost small" data-act="lot-add">+ Ajouter un lot</button>`}
+   <p class="err" id="formErr" hidden></p>
+   ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
+  </form></div>`;
+  sh.hidden=false;document.body.style.overflow="hidden";if(ro)sh.querySelectorAll("select,button[data-act^=lot]").forEach(e=>e.disabled=true)}
+async function saveLots(){const arr=[...document.querySelectorAll("#lotRows .lotrow")].map(r=>({m:r.querySelector(".lotM").value,lg:[...r.querySelectorAll(".lotL")].map(x=>n(x.value)).filter(x=>x>0).sort((a,b)=>a-b)})).filter(L=>L.m&&L.lg.length);
+  try{await db.doc("reglages/prix").set({...S.reglages,lotsCompo:arr,modifieLe:new Date().toISOString()});S.reglages={...S.reglages,lotsCompo:arr};closeSheet();toast("Lots enregistrés");visListe()}
+  catch(e){const eb=$("#formErr");eb.textContent=dbErr(e);eb.hidden=false}}
 /* ---------- fiche de prix : choisir ce qu'on montre ---------- */
 function fpGroupes(){
   const actifs=S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p));const G=[];
@@ -1352,6 +1386,7 @@ function fpGroupes(){
   if(demi.length)G.push({k:"demi",t:"Demi-têtes et ponytails",items:demi.map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
   const B={};for(const p of actifs.filter(isBundle))(B[p.modele||"Bundles"]=B[p.modele||"Bundles"]||[]).push(p);
   for(const [m,ps] of Object.entries(B).sort())G.push({k:"b:"+m,t:"Bundles "+m,bundle:m,items:ps.sort((a,b)=>n(a.longueur)-n(b.longueur)||(ORD_T[a.typeBundle]??9)-(ORD_T[b.typeBundle]??9)).map(p=>({k:"p:"+p.id,l:court(p),px:prixBaseDe(p),q:stockQty(p),p}))});
+  const LT=lotsInfos();if(LT.length)G.push({k:"lots",t:"Lots de bundles",lots:true,items:LT.map(x=>({k:"l:"+x.i,l:x.m+" "+x.lab+(x.ok?"":" ⚠"),px:x.px,q:x.poss,p:x.ps.find(Boolean)||{id:""},lot:x}))});
   const R=S.reglages,k=rdvCfg().km;const e=v=>v>0?Math.round(v)+" €":"—";
   G.push({k:"prest",t:"Prestations",prest:true,items:[
     {k:"s:pose",l:"Pose jusqu'à "+hTxt(n(R.poseBaseH)||1.5),px:n(R.poseBasePrix),txt:e(n(R.poseBasePrix))},
@@ -1363,7 +1398,8 @@ function fpGroupes(){
   return G}
 function fpListe(){const seul=!!($("#fpStock")||{}).checked;const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k));
   return fpGroupes().map(g=>{const its=g.items.filter(i=>!seul||!i.p||i.q>0);if(!its.length)return"";
-    return`<div class="fp-g"><label class="fp-gh"><input type="checkbox" data-g="${esc(g.k)}"> <b>${esc(g.t)}</b></label>${its.map(i=>`<label class="fp-i"><input type="checkbox" data-k="${esc(i.k)}" data-g="${esc(g.k)}"${coch.has(i.k)?" checked":""}> <span>${esc(i.l)}</span><em>${i.p?(i.px>0?eur(i.px):"—")+(i.q!=null?" · "+(i.q>0?i.q+" en stock":"pas en stock"):""):i.txt||((i.a?eur(i.a):"—")+" / "+(i.b?eur(i.b):"—"))}</em></label>`).join("")}</div>`}).join("")||`<div class="empty">Rien en stock.</div>`}
+    return`<div class="fp-g"><label class="fp-gh"><input type="checkbox" data-g="${esc(g.k)}"> <b>${esc(g.t)}</b></label>${its.map(i=>`<label class="fp-i"><input type="checkbox" data-k="${esc(i.k)}" data-g="${esc(g.k)}"${coch.has(i.k)?" checked":""}> <span>${esc(i.l)}</span><em>${i.lot?eurLot(i.px)+(i.lot.px<i.lot.tot?" au lieu de "+eurLot(i.lot.tot):"")+" · "+(!i.lot.ok?"longueur introuvable":i.q>0?i.q+" possible"+(i.q>1?"s":""):"pas en stock"):i.p?(i.px>0?eur(i.px):"—")+(i.q!=null?" · "+(i.q>0?i.q+" en stock":"pas en stock"):""):i.txt||((i.a?eur(i.a):"—")+" / "+(i.b?eur(i.b):"—"))}</em></label>`).join("")}</div>`}).join("")||`<div class="empty">Rien en stock.</div>`}
+function fpKey(){return JSON.stringify(lotsInfos().map(x=>[x.m,x.lab,x.px,x.poss]))+S.produits.map(p=>p.id+stockQty(p)+prixBaseDe(p)).join("|")}
 /* compose la liste des prix à partir des cases cochées */
 function fpCompose(){
   const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k));const e=v=>v>0?Math.round(v)+" €":"—";
@@ -1375,11 +1411,13 @@ function fpCompose(){
       {const R=S.reglages||{};const prochaine=n(R.lotBundlePct)>0&&R.lotPctFin&&R.lotPctFin>=today()&&!lotPctActif();
        const tx=prochaine?((R.lotPctNom?R.lotPctNom+" : ":"")+"−"+n(R.lotBundlePct)+" % dès "+(n(R.lotBundleTaille)||3)+" bundles"+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):"")):(lotPctActif()&&R.lotPctNom?R.lotPctNom+" : ":"")+lotTexte();
        if(tx&&!notes.includes(tx))notes.push(tx)}}
+    else if(g.lots){const M={};its.forEach(i=>(M[i.lot.m]=M[i.lot.m]||[]).push(i.lot));for(const [m,xs] of Object.entries(M))sections.push({t:"Lots "+m,c0:"Lot",cols:["Au lieu de","Prix du lot"],rows:xs.map(x=>[x.lab,x.px<x.tot?"~"+eurLot(x.tot):"",eurLot(x.px)])});
+      {const R=S.reglages||{};const tx=(lotPctActif()||promoForcee())&&R.lotPctNom?R.lotPctNom+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):""):"";if(tx&&!notes.includes(tx))notes.push(tx)}}
     else if(g.opt)sections.push({t:g.t,cols:["Perruque","Bundle"],rows:its.map(i=>[i.l,i.a?e(i.a):"—",i.b?e(i.b):"—"])});
     else if(g.prest){sections.push({t:"Prestations",cols:[],rows:its.map(i=>[i.l,i.txt])});notes.push("À Cesson-Sévigné ou chez vous, sur rendez-vous")}
     else sections.push({t:g.t,cols:[],rows:its.map(i=>[i.l,e(i.px)])})}
   const ta=$("#visLignes");if(!ta)return;const set=(id,v)=>{const el=$("#"+id);if(el)el.value=v};
-  if(sections.length===1){const x=sections[0];set("visTitre",x.t);set("visCols",x.cols.length?["Longueur",...x.cols].join(" ; "):"");ta.value=x.rows.map(r=>r.join(" ; ")).join("\n")}
+  if(sections.length===1){const x=sections[0];set("visTitre",x.t);set("visCols",x.cols.length?[x.c0||"Longueur",...x.cols].join(" ; "):"");ta.value=x.rows.map(r=>r.join(" ; ")).join("\n")}
   else{set("visTitre",sections.length?"Nos tarifs":"");set("visCols","");ta.value=sections.map(x=>["# "+[x.t,...x.cols].join(" ; "),...x.rows.map(r=>r.join(" ; "))].join("\n")).join("\n")}
   set("visNote",notes.join(" · "));if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}
 /* ---------- fiche de prix : contenus prêts à l'emploi ---------- */
@@ -1402,9 +1440,10 @@ function prixPresets(){
   L.push({label:"Texte libre",titre:"",sous:"Tarifs",cols:"",lignes:"",note:""});
   return L}
 function visProduits(){return S.produits.filter(p=>p.statut!=="Archivé"&&!isPrestation(p)).sort((a,b)=>designation(a).localeCompare(designation(b)))}
-function visOptions(cur){return`<option value="">Autre (pas dans la liste) : texte libre</option>${visProduits().map(x=>`<option value="${esc(x.id)}"${x.id===cur?" selected":""}>${esc(designation(x))}</option>`).join("")}`}
+function visKey(){return visProduits().map(p=>p.id+designation(p)).join("|")+JSON.stringify(lotsDef())}
+function visOptions(cur){const LT=lotsInfos();return`<option value="">Autre (pas dans la liste) : texte libre</option>${LT.length?`<optgroup label="Lots de bundles">${LT.map(x=>`<option value="lot:${x.i}"${"lot:"+x.i===cur?" selected":""}>Lot ${esc(x.m)} ${esc(x.lab)}</option>`).join("")}</optgroup><optgroup label="Articles">`:""}${visProduits().map(x=>`<option value="${esc(x.id)}"${x.id===cur?" selected":""}>${esc(designation(x))}</option>`).join("")}${LT.length?"</optgroup>":""}`}
 /* la liste des articles se complète dès qu'ils sont chargés, sans toucher au reste de la page */
-function visListe(){const sel=$("#visProd");if(!sel)return;const k=visProduits().map(p=>p.id+designation(p)).join("|");if(sel.dataset.k===k)return;const cur=sel.value;sel.innerHTML=visOptions(cur);sel.value=cur;sel.dataset.k=k}
+function visListe(){const fl=$("#fpList");if(fl){const k2=fpKey();if(fl.dataset.k!==k2){fl.dataset.k=k2;fl.innerHTML=fpListe()}}const sel=$("#visProd");if(!sel)return;const k=visKey();if(sel.dataset.k===k)return;const cur=sel.value;sel.innerHTML=visOptions(cur);sel.value=cur;sel.dataset.k=k}
 function visActs(){const box=$("#visActs");if(!box)return;const vid=VIS.type==="video"&&$("#visMode").value!=="calque";
   const share=!!navigator.canShare;
   if(VIS.rec){box.innerHTML=`<div class="vis-rec"><b>Création de la vidéo… <span id="visPct">0 %</span></b><span>Laisse cette page ouverte jusqu'à la fin.</span><button type="button" class="btn ghost small" data-act="vis-stop">Arrêter</button></div>`;return}
@@ -1520,7 +1559,7 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
     if(nv===1||rw.length===2){const pr=rw[rw.length-1]||"";if(rw.length>=2){c.font=`500 ${fp}px "Cormorant Garamond"`;const pw=c.measureText(pr).width;c.font=`400 ${fl}px Poppins`;const lw=c.measureText(lab).width;
         c.fillStyle=K.pts;for(let dx=L0+Math.min(lw,labMax)+W*0.02;dx<R0-pw-W*0.02;dx+=W*0.014)c.fillRect(dx,by-W*0.004,Math.max(2,W*0.0025),Math.max(2,W*0.0025));
         c.font=`500 ${fp}px "Cormorant Garamond"`;c.fillStyle=K.or;c.textAlign="right";c.fillText(pr,R0,by)}}
-    else{c.font=`500 ${fp}px "Cormorant Garamond"`;c.textAlign="right";for(let i=1;i<nc;i++){const t=rw[i]||"";c.fillStyle=t==="—"||!t?K.vide:K.or;c.fillText(t||"—",cx(i-1),by)}}
+    else{c.font=`500 ${fp}px "Cormorant Garamond"`;c.textAlign="right";for(let i=1;i<nc;i++){let t=rw[i]||"";const barre=/^~/.test(t);if(barre){t=t.slice(1).trim();c.save();c.font=`400 ${Math.round(fp*0.72)}px "Cormorant Garamond"`;c.fillStyle=K.doux;c.fillText(t,cx(i-1),by);const w=c.measureText(t).width;c.fillRect(cx(i-1)-w,by-fp*0.2,w,Math.max(1.5,W*0.0018));c.restore();continue}c.fillStyle=t==="—"||!t?K.vide:K.or;c.fillText(t||"—",cx(i-1),by)}}
     if(ri<rows.length-1){c.fillStyle=K.ligne;c.fillRect(L0,y+rowH-1,iw,1)}
     y+=rowH});
   if(note){c.font=`italic 400 ${Math.round(W*0.022)}px Poppins`;c.fillStyle=K.note;c.textAlign="center";visFit(c,note,'italic 400 {s}px Poppins',Math.round(W*0.022),iw);c.fillText(note,W/2,y+W*0.04)}
@@ -2088,6 +2127,9 @@ document.addEventListener("click",e=>{
   const a=b.dataset.act;
   if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
   if(a==="vis-open"){closeSheet(true);S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
+  if(a==="lots-edit"){openLots();return}
+  if(a==="lot-add"){const box=$("#lotRows");if(box){box.insertAdjacentHTML("beforeend",lotRow({}));const f=$("#form");if(f)f.dataset.dirty="1"}return}
+  if(a==="lot-del"){const r=b.closest(".lotrow");if(r){r.remove();const f=$("#form");if(f)f.dataset.dirty="1"}return}
   if(a==="vis-media"){if(VIS.rec)return;document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u,b.dataset.t);return}
   if(a==="vis-rec"){visRec();return}
   if(a==="fp-seul"||a==="fp-ajout"){const x=prixPresets()[n(($("#visPreset")||{}).value)]||{};const ta=$("#visLignes");if(!ta)return;
@@ -2170,7 +2212,7 @@ document.addEventListener("click",e=>{
   else if(a==="edit"){e.preventDefault();openForm(b.dataset.col,b.dataset.id)}
   else if(a==="new"){const pre=b.dataset.pre==="depot"?{nature:"Dépôt d'espèces à la banque",description:"Dépôt d'espèces",date:today()}:b.dataset.pre==="retrait"?{nature:"Retrait d'espèces pour la caisse",description:"Retrait pour la caisse",date:today()}:undefined;openForm(b.dataset.col,null,pre)}
   else if(a==="close"){closeSheet()}
-  else if(a==="save"){current&&current.col==="reglages"?saveReglages():save()}
+  else if(a==="save"){current&&current.col==="reglages"?saveReglages():current&&current.col==="lots"?saveLots():save()}
   else if(a==="del"){del(b)}
   else if(a==="pointer"){pointer(b)}
   else if(a==="reglages"){openReglages()}
@@ -2210,7 +2252,7 @@ window.addEventListener("popstate",e=>{const st=e.state;if(!st)return;
   NAV_ST.forEach(k=>{if(k in st)S[k]=st[k]});$("#view").dataset.page="";doRender();setTimeout(()=>window.scrollTo(0,st.y||0),30)});
 try{if(!history.state)history.replaceState({...navSnap(),d:0,y:0},"")}catch(_){}
 document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest("#sheet form"))$("#sheet").dataset.dirty="1"},true);$("#plusTop").addEventListener("click",openChooser);
-document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else save()});
+document.addEventListener("submit",e=>{e.preventDefault();if(current&&["annonce","ouverture"].includes(current.col))return;if(current&&current.col==="reglages")saveReglages();else if(current&&current.col==="lots")saveLots();else save()});
 document.addEventListener("input",e=>{
   if(e.target.matches&&e.target.matches('input[name="ville"],input[name="cpVille"],#dv_ville'))villeAuto(e.target);
   if(e.target.id==="cliente"&&current&&current.col==="codes_promo"&&!current.id){const c=$("#code");if(c&&(!c.value||c.value===current.autoCode)){current.autoCode=e.target.value.trim()?codeAuto(e.target.value):"";c.value=current.autoCode}}
@@ -2218,6 +2260,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="gq"||e.target.id==="cq"||e.target.id==="fq"){const id=e.target.id;S[id]=e.target.value;const pos=e.target.selectionStart;if(id==="cq")document.getElementById("view").dataset.page="";doRender();const q=$("#"+id);if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;doRender();const q=$("#q");if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}return}
   if(e.target.closest("#visForm")){if(e.target.id==="visPreset")return;
+    if(e.target.id==="fpPromo"){VIS.promo=e.target.checked;const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();fpCompose()}else{const x=lotParId(S.pageId);if(x){const T=visTextesLot(x);for(const [k,v] of Object.entries({visTitre:T.titre,visL1:T.l1,visL2:T.l2,visPrix:T.prix,visSur:T.sur})){const el=$("#"+k);if(el)el.value=v}visDraw()}}return}
     if(e.target.id==="fpStock"){const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();if(e.target.checked){fpCompose()}}return}
     if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
     if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?"":pr.laceTaille].filter(Boolean).join(" · ");
