@@ -1196,6 +1196,9 @@ async function lotUpdate(b,champ){const ids=(b.dataset.ids||"").split(",").filte
 /* ---------- rendez-vous pris sur le site ---------- */
 const RDV_DEF={actif:true,ville:"Cesson-Sévigné",prestations:[{nom:"Pose de perruque",duree:120},{nom:"Pose de tissage",duree:180}],jours:{},fermes:[],pas:30,delaiH:24,horizonJ:45,marge:30,domicile:true,km:{tranche:5,prix:3,allerRetour:false,max:0}};
 const JOURS_SEM=[[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[7,"Dimanche"]];
+/* frais de déplacement : forfait s'il est rempli, sinon prix par tranche de km */
+function fraisDep(km){const k=rdvCfg().km;km=n(km);if(!(km>0))return 0;if(n(k.forfait)>0)return n(k.forfait);return Math.ceil((k.allerRetour?km*2:km)/(n(k.tranche)||5))*n(k.prix)}
+function depTexte(){const k=rdvCfg().km;return n(k.forfait)>0?eurLot(n(k.forfait)):n(k.prix)+" € / "+k.tranche+" km"}
 function rdvCfg(){const c={...RDV_DEF,...((S.siteContenu||{}).rdv||{})};c.km={...RDV_DEF.km,...(((S.siteContenu||{}).rdv||{}).km||{})};return c}
 function rdvListe(){return(S.demandes||[]).filter(d=>d.type==="rdv"&&d.date)}
 function rdvSt(d){return d.rdvStatut||"À confirmer"}
@@ -1266,9 +1269,10 @@ function pRdvReglages(){
     ${F("ville","Ville affichée sur le site",inp("ville",c.ville))}
     ${F("adresse","Adresse exacte (jamais affichée sur le site)",inp("adresse",P.adresse),"Envoyée à la cliente seulement dans le message de confirmation.")}
     <label class="chk"><input type="checkbox" name="domicile" ${c.domicile!==false?"checked":""}> Proposer le rendez-vous chez la cliente</label>
-    <div class="two">${F("kmPrix","Prix par tranche (€)",money("kmPrix",c.km.prix))}${F("kmTranche","Tranche (km)",inp("kmTranche",c.km.tranche,'inputmode="numeric"'))}</div>
+    ${F("kmForfait","Forfait déplacement (€)",money("kmForfait",c.km.forfait||""),"Rempli = ce prix, quelle que soit la distance. Vide = prix par tranche de km ci-dessous.")}
+     <div class="two">${F("kmPrix","Prix par tranche (€)",money("kmPrix",c.km.prix))}${F("kmTranche","Tranche (km)",inp("kmTranche",c.km.tranche,'inputmode="numeric"'))}</div>
     <div class="two">${F("kmMax","Distance maximum (km)",inp("kmMax",c.km.max||"",'inputmode="numeric"'),"Vide = pas de limite.")}<label class="chk" style="align-self:end"><input type="checkbox" name="allerRetour" ${c.km.allerRetour?"checked":""}> Compter l'aller-retour</label></div>
-    <p class="note">Exemple avec ces réglages : 12 km ${c.km.allerRetour?"(24 km aller-retour) ":""}→ ${eur(Math.ceil((c.km.allerRetour?24:12)/(n(c.km.tranche)||5))*n(c.km.prix))}. La distance est estimée par le site à partir de l'adresse de la cliente : tu peux ajuster avant de confirmer.</p>
+    <p class="note">Exemple avec ces réglages : 12 km ${c.km.allerRetour?"(24 km aller-retour) ":""}→ ${n(c.km.forfait)>0?eur(n(c.km.forfait))+" (forfait)":eur(Math.ceil((c.km.allerRetour?24:12)/(n(c.km.tranche)||5))*n(c.km.prix))}. La distance est estimée par le site à partir de l'adresse de la cliente : tu peux ajuster avant de confirmer.</p>
    </fieldset>
    <fieldset><legend>Être prévenu</legend>
     ${F("notifEmail","E-mail qui reçoit les demandes",inp("notifEmail",P.notifEmail||"",'type="email" placeholder="'+esc(soc().email||"contact@eugceo.fr")+'"'),"Vide = l'e-mail de la société.")}
@@ -1287,7 +1291,7 @@ async function saveRdvReglages(form){
   const prestations=[...form.querySelectorAll(".rdvp")].map(l=>({nom:l.querySelector(".rpNom").value.trim(),duree:Math.round(n(l.querySelector(".rpDur").value))})).filter(p=>p.nom&&p.duree>0);
   if(!prestations.length){m.textContent="Indique au moins une prestation avec sa durée.";m.hidden=false;return}
   const cfg={...rdvCfg(),actif:!!E.actif.checked,ville:v("ville")||"Cesson-Sévigné",prestations,jours,fermes:[...new Set(fermes)].sort(),pas:Math.max(15,Math.round(n(v("pas")))||30),marge:Math.max(0,Math.round(n(v("marge")))),delaiH:Math.max(0,Math.round(n(v("delaiH")))),horizonJ:Math.min(180,Math.max(7,Math.round(n(v("horizonJ")))||45)),domicile:!!E.domicile.checked,
-    km:{prix:n(v("kmPrix")),tranche:Math.max(1,Math.round(n(v("kmTranche")))||5),allerRetour:!!E.allerRetour.checked,max:Math.max(0,Math.round(n(v("kmMax"))))}};
+    km:{forfait:n(v("kmForfait")),prix:n(v("kmPrix")),tranche:Math.max(1,Math.round(n(v("kmTranche")))||5),allerRetour:!!E.allerRetour.checked,max:Math.max(0,Math.round(n(v("kmMax"))))}};
   const em=v("notifEmail");if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){m.textContent="L'e-mail de notification semble incomplet.";m.hidden=false;return}
   try{await db.collection("site_contenu").doc("rdv").set(cfg);await db.doc("reglages/rdv").set({...(S.rdvPrive||{}),adresse:v("adresse"),notifEmail:em,whatsappTel:v("whatsappTel"),callmebotKey:v("callmebotKey"),modifieLe:new Date().toISOString()});
     delete form.dataset.dirty;m.hidden=true;toast("Rendez-vous : réglages enregistrés, en ligne")}catch(e){m.textContent=dbErr(e);m.hidden=false}}
@@ -1404,7 +1408,7 @@ function fpGroupes(){
   G.push({k:"prest",t:"Prestations",prest:true,items:[
     ...POSES.map(([t,l])=>({k:"s:pose_"+t,l,px:posePrix(t),txt:e(posePrix(t))})),
     {k:"s:remise",l:"Remise en forme",px:n(R.remisePrix),txt:e(n(R.remisePrix))},
-    {k:"s:dep",l:"Déplacement à domicile",txt:n(k.prix)+" € / "+k.tranche+" km"}]});
+    {k:"s:dep",l:"Déplacement à domicile",txt:depTexte()}]});
   const op=SUPS.map(([kk,l])=>({k:"o:"+kk,l,a:n(R["sup_"+kk+"_p"]),b:n(R["sup_"+kk+"_b"])})).filter(x=>x.a||x.b);
   if(op.length)G.push({k:"opt",t:"Options",opt:true,items:op});
   return G}
@@ -1446,7 +1450,7 @@ function prixPresets(){
   const demi=actifs.filter(p=>!isBundle(p)&&prepBase(p)===0.5);
   if(demi.length)L.push({label:"Demi-têtes et ponytails",titre:"Demi-têtes",sous:"Tarifs",cols:"",lignes:demi.map(p=>court(p)+" ; "+e(prixBaseDe(p))).join("\n"),note:""});
   const R=S.reglages;const k=rdvCfg().km;
-  L.push({label:"Pose",titre:"La pose",sous:"Prestations",cols:"",lignes:[...POSES.map(([t,l])=>`${l} ; ${e(posePrix(t))}`),`Remise en forme ; ${e(n(R.remisePrix))}`,`Déplacement à domicile ; ${n(k.prix)} € / ${k.tranche} km`].join("\n"),note:"À Cesson-Sévigné ou chez vous, sur rendez-vous"});
+  L.push({label:"Pose",titre:"La pose",sous:"Prestations",cols:"",lignes:[...POSES.map(([t,l])=>`${l} ; ${e(posePrix(t))}`),`Remise en forme ; ${e(n(R.remisePrix))}`,`Déplacement à domicile ; ${depTexte()}`].join("\n"),note:"À Cesson-Sévigné ou chez vous, sur rendez-vous"});
   const op=SUPS.map(([kk,l])=>{const a=n(R["sup_"+kk+"_p"]),b=n(R["sup_"+kk+"_b"]);return a||b?[l,a?e(a):"—",b?e(b):"—"].join(" ; "):""}).filter(Boolean);
   if(op.length)L.push({label:"Options (coloration, coupe…)",titre:"Les options",sous:"Personnalisation",cols:"Option ; Perruque ; Bundle",lignes:op.join("\n"),note:""});
   L.push({label:"Texte libre",titre:"",sous:"Tarifs",cols:"",lignes:"",note:""});
@@ -1764,7 +1768,7 @@ function readLines(){
 function avLine(x){x=x||{};return`<div class="line av"><select class="avMoyen" aria-label="Moyen">${L.paiements.map(o=>`<option${o===(x.moyen||"Espèces")?" selected":""}>${esc(o)}</option>`).join("")}</select><input class="avM" inputmode="decimal" placeholder="€" value="${x.montant===""||x.montant==null?"":String(x.montant).replace(".",",")}" aria-label="Montant"><button type="button" class="linkbtn rm" data-act="line-rm" aria-label="Retirer">✕</button></div>`}
 function readAv(){return[...document.querySelectorAll("#avLines .line")].map(l=>({moyen:l.querySelector(".avMoyen").value,montant:n(l.querySelector(".avM").value)})).filter(x=>x.montant>0)}
 function detailAv(v){return Array.isArray(v.avanceDetail)&&v.avanceDetail.length?v.avanceDetail.map(x=>eur(n(x.montant))+" "+String(x.moyen||"").toLowerCase()).join(" + "):""}
-function portHintDep(){const k=rdvCfg().km;return`Chez la cliente : <input id="kmDep" inputmode="decimal" placeholder="km" aria-label="Distance en km" style="width:5em;padding:4px 6px;font-size:14px;display:inline-block"> km → ${eur(n(k.prix))} par tranche de ${esc(k.tranche)} km${k.allerRetour?" (aller-retour)":""}. Vide si c'est à Cesson.`}
+function portHintDep(){const k=rdvCfg().km;return`Chez la cliente : <input id="kmDep" inputmode="decimal" placeholder="km" aria-label="Distance en km" style="width:5em;padding:4px 6px;font-size:14px;display:inline-block"> km → ${n(k.forfait)>0?"forfait "+eur(n(k.forfait)):eur(n(k.prix))+" par tranche de "+esc(k.tranche)+" km"+(k.allerRetour?" (aller-retour)":"")}. Vide si c'est à Cesson.`}
 function fVente(d){
   const paid=d.statut||"Payée";
   return`${F("date","Date de la vente",dateI("date",d.date||today()))}
@@ -2277,7 +2281,7 @@ document.addEventListener("input",e=>{
     if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?"":pr.laceTaille].filter(Boolean).join(" · ");
       ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
     if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
-  if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(Math.ceil((k.allerRetour?km*2:km)/(n(k.tranche)||5))*n(k.prix)).replace(".",","):"";}livePreview();return}
+  if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(fraisDep(km)).replace(".",","):"";}livePreview();return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
   if(e.target.closest("#tfForm"))tfPreview();
