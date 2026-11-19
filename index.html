@@ -366,6 +366,7 @@ button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.til
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* ===== fiche de prix : cases à cocher ===== */
+.vis-fx{border:1px solid var(--hair);border-radius:12px;padding:10px 12px;margin:4px 0 14px}.vis-fx summary{cursor:pointer;font-weight:600;padding:4px 0}.vis-fx[open] summary{margin-bottom:10px}
 .lotrow{display:grid;grid-template-columns:repeat(var(--n,3),1fr) auto;gap:8px;align-items:center;margin-bottom:10px;padding:10px;border:1px solid var(--hair);border-radius:12px}.lotrow select{min-width:0;width:100%}.lotrow .lotM{grid-column:1/-1}
 .fp-list{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto;border:1px solid var(--hair);border-radius:12px;padding:10px 12px;background:var(--bg)}
 .fp-g{display:flex;flex-direction:column;gap:2px}
@@ -1335,6 +1336,12 @@ function pVisuel(){
     ${F("visZoom","Taille de la photo ou vidéo (plus petite ↔ plus grande)",`<input type="range" id="visZoom" name="visZoom" min="40" max="200" value="100">`,"Au milieu = elle remplit tout le cadre. Plus petite : un fond flouté complète les bords.")}
     <div class="two">${F("visX","Position (gauche ↔ droite)",`<input type="range" id="visX" name="visX" min="0" max="100" value="50">`)}${F("visY","Position (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}</div>
     <div class="two">${F("visLogo","Logo EC EUGCEO",`<select id="visLogo" name="visLogo"><option value="hc">En haut, au centre</option><option value="hg">En haut, à gauche</option><option value="hd">En haut, à droite</option><option value="bd">En bas, à droite</option><option value="non">Pas de logo</option></select>`)}${F("visLogoT","Taille du logo",`<input type="range" id="visLogoT" name="visLogoT" min="50" max="150" value="100">`)}</div>
+    <details class="vis-fx"><summary>Annonce et effets</summary>
+     ${F("visAnn","Annonce (facultatif)",inp("visAnn","",'placeholder="ex. BLACK FRIDAY · −15 € SUR LES LOTS"'),"Un texte mis en avant pour une offre ou une nouvelle. Vide = pas d'annonce.")}
+     <div class="two">${F("visAnnStyle","Forme",`<select id="visAnnStyle" name="visAnnStyle"><option value="bandeau">Bandeau</option><option value="pastille">Pastille ronde</option><option value="etiquette">Étiquette en coin</option></select>`)}${F("visAnnPos","Position",`<select id="visAnnPos" name="visAnnPos"><option value="haut">En haut</option><option value="milieu">Au milieu</option><option value="bas">En bas</option><option value="coin-d">Coin droit</option><option value="coin-g">Coin gauche</option></select>`)}</div>
+     <div class="two">${F("visAnnColSel","Couleur de l'annonce",`<select id="visAnnColSel"><option value="#B3261E">Rouge</option><option value="#6E1423">Bordeaux</option><option value="#C4A046">Or</option><option value="#111111">Noir</option><option value="#FFFFFF">Blanc</option><option value="#E8A0B4">Rose</option><option value="#2E6B4F">Vert</option><option value="">Autre (à choisir à droite)</option></select>`)}${F("visAnnCol","Couleur exacte",`<input type="color" id="visAnnCol" name="visAnnCol" value="#B3261E" style="height:44px;padding:4px">`)}</div>
+     <div class="two">${F("visFx","Effet sur le titre et l'annonce",`<select id="visFx" name="visFx"><option value="">Aucun</option><option value="ombre">Ombre</option><option value="lueur">Lueur dorée</option><option value="dore">Doré brillant</option><option value="contour">Contour doré</option></select>`)}${F("visAnim","Animation (vidéo)",`<select id="visAnim" name="visAnim"><option value="">Aucune</option><option value="fondu">Les textes apparaissent en fondu</option><option value="glisse">Les textes glissent vers le haut</option><option value="pulse">L'annonce bat doucement</option></select>`,"Visible dans les vidéos seulement.")}</div>
+    </details>
     ${fp?`<h3 class="sec" style="margin:4px 0 0">Textes (écris ce que tu veux)</h3>
     ${F("visSur","Petit titre",inp("visSur","Tarifs"),"Ex. Tarifs, Nouveautés, Prix de lancement.")}
     ${F("visTitre","Titre",inp("visTitre","",'placeholder="Se remplit quand tu coches"'))}
@@ -1478,6 +1485,38 @@ function visCharger(u,t){visStopLoop();if(VIS.vid){try{VIS.vid.pause()}catch(_){
     setTimeout(()=>{if(VIS.src===u&&!VIS.vid&&!VIS.err){VIS.err="Touche l'aperçu pour lancer la vidéo.";visDraw()}},4000);visDraw();visActs();return}
   const im=new Image();if(!/^blob:/.test(u))im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;VIS.err="";visDraw()}};im.onerror=()=>{if(VIS.src!==u)return;VIS.err="Cette photo ne peut pas être lue ici.";visDraw()};im.src=u;visDraw();visActs()}
 function visLoop(){visStopLoop();const tick=()=>{if(!$("#visCv")||!VIS.vid){visStopLoop();if(VIS.vid&&!$("#visCv")){try{VIS.vid.pause()}catch(_){}}return}visDraw(true);VIS.raf=requestAnimationFrame(tick)};VIS.raf=requestAnimationFrame(tick)}
+/* ---------- annonce, effets et animation ---------- */
+function visAnimEtat(v){const a=v("visAnim");const vd=VIS.vid;if(!a||!vd||!(VIS.type==="video")||(vd.paused&&!VIS.rec))return{a:1,dy:0,t:0,anim:a};const t=vd.currentTime||0;const k=Math.min(1,Math.max(0,(t-0.2)/0.9));const e=1-Math.pow(1-k,3);
+  if(a==="fondu")return{a:e,dy:0,t,anim:a};if(a==="glisse")return{a:e,dy:(1-e)*0.04,t,anim:a};return{a:1,dy:0,t,anim:a}}
+function visFxTexte(c,t,x,y,W,v,col,fx){fx=fx===undefined?v("visFx"):fx;c.save();
+  if(fx==="ombre"){c.shadowColor="rgba(0,0,0,.6)";c.shadowBlur=W*0.014;c.shadowOffsetY=W*0.004}
+  else if(fx==="lueur"){c.shadowColor="rgba(242,210,120,.95)";c.shadowBlur=W*0.035}
+  if(fx==="dore"){const fs=n((c.font.match(/(\d+)px/)||[])[1])||W*0.05;const g=c.createLinearGradient(0,y-fs*0.85,0,y+fs*0.1);g.addColorStop(0,"#FBEBB5");g.addColorStop(0.45,"#D9B45A");g.addColorStop(0.55,"#B8913A");g.addColorStop(1,"#8A6F2C");c.fillStyle=g;c.shadowColor="rgba(0,0,0,.35)";c.shadowBlur=W*0.006;c.shadowOffsetY=W*0.002}
+  else c.fillStyle=col;
+  c.fillText(t,x,y);
+  if(fx==="contour"){c.shadowColor="transparent";c.lineWidth=Math.max(1.5,W*0.0025);c.strokeStyle="#D9B45A";c.strokeText(t,x,y)}
+  c.restore()}
+function visClair(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||"");if(!m)return false;const v=parseInt(m[1],16);const r=v>>16&255,g=v>>8&255,b=v&255;return(0.299*r+0.587*g+0.114*b)>165}
+function visFin(c,W,H,v,AN){c.restore();const txt=v("visAnn").trim();if(!txt)return;
+  const st=v("visAnnStyle")||"bandeau",pos=v("visAnnPos")||"haut",col=v("visAnnCol")||"#B3261E",tc=visClair(col)?"#141210":"#fff";const story=H/W>1.6;const fx0=v("visFx");const fxA=visClair(col)&&(fx0==="contour"||fx0==="dore"||fx0==="lueur")?"":fx0;
+  c.save();c.globalAlpha=AN.anim==="fondu"||AN.anim==="glisse"?AN.a:1;
+  const pulse=AN.anim==="pulse"&&AN.t?1+0.045*Math.sin(AN.t*5):1;
+  c.textBaseline="middle";c.textAlign="center";
+  if(st==="bandeau"){const bh=W*0.095;const yc=pos==="milieu"?H/2:pos==="bas"?H*(story?0.8:0.78):(story?H*0.07:H*0.05)+W*0.2;
+    c.translate(W/2,yc);c.scale(pulse,pulse);c.fillStyle=col;c.fillRect(-W/2-10,-bh/2,W+20,bh);c.fillStyle=visClair(col)?"rgba(0,0,0,.25)":"rgba(255,255,255,.35)";c.fillRect(-W/2-10,-bh/2,W+20,Math.max(1,W*0.002));c.fillRect(-W/2-10,bh/2-Math.max(1,W*0.002),W+20,Math.max(1,W*0.002));
+    const T=txt.toUpperCase();visFit(c,T,'600 {s}px Poppins',Math.round(W*0.042),W*0.88);const fs=n((c.font.match(/(\d+)px/)||[])[1]);c.font=`600 ${fs}px Poppins`;
+    c.save();c.textBaseline="alphabetic";const sp=fs*0.12;const tw=[...T].reduce((a,ch)=>a+c.measureText(ch).width,0)+sp*(T.length-1);let x=-tw/2;const fx=v("visFx");
+    c.textAlign="left";for(const ch of T){visFxTexte(c,ch,x,fs*0.36,W,v,tc,fxA);x+=c.measureText(ch).width+sp}c.restore()}
+  else if(st==="pastille"){const r=W*0.14;const gch=pos==="coin-g";const bas=pos==="bas";const cx=gch?W*0.07+r:W-W*0.07-r;const cy=bas?H-(story?H*0.12:H*0.1)-r:(story?H*0.07:H*0.05)+W*0.17+r;
+    c.translate(cx,cy);c.rotate(gch?-0.12:0.12);c.scale(pulse,pulse);c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle=col;c.shadowColor="rgba(0,0,0,.3)";c.shadowBlur=W*0.02;c.fill();c.shadowColor="transparent";
+    c.beginPath();c.arc(0,0,r*0.9,0,Math.PI*2);c.strokeStyle=visClair(col)?"rgba(0,0,0,.35)":"rgba(255,255,255,.6)";c.lineWidth=Math.max(1.5,W*0.002);c.stroke();
+    const mots=txt.toUpperCase().split(/\s+/);const L=[];let cur="";c.font=`600 ${Math.round(W*0.034)}px Poppins`;for(const m of mots){const t2=cur?cur+" "+m:m;if(c.measureText(t2).width>r*1.45&&cur){L.push(cur);cur=m}else cur=t2}if(cur)L.push(cur);
+    let fs=Math.round(W*0.034);while(fs>10&&(L.length*fs*1.15>r*1.4||L.some(l=>{c.font=`600 ${fs}px Poppins`;return c.measureText(l).width>r*1.55}))){fs--}c.font=`600 ${fs}px Poppins`;
+    L.forEach((l,i)=>visFxTexte(c,l,0,(i-(L.length-1)/2)*fs*1.15,W,v,tc,fxA))}
+  else{const gch=pos==="coin-g";const bh=W*0.075,len=W*0.9;c.translate(gch?0:W,0);c.rotate(gch?-Math.PI/4:Math.PI/4);c.scale(pulse,pulse);const yo=W*0.24;
+    c.fillStyle=col;c.shadowColor="rgba(0,0,0,.3)";c.shadowBlur=W*0.015;c.fillRect(-len/2,yo-bh/2,len,bh);c.shadowColor="transparent";
+    const T=txt.toUpperCase();visFit(c,T,'600 {s}px Poppins',Math.round(W*0.034),yo*1.45);visFxTexte(c,T,0,yo,W,v,tc,fxA)}
+  c.restore()}
 function visSpaced(c,t,x,y,sp,align){const chars=[...t];const w=chars.reduce((s,ch)=>s+c.measureText(ch).width,0)+sp*(chars.length-1);let cx=align==="center"?x-w/2:align==="right"?x-w:x;
   for(const ch of chars){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}return w}
 function visFit(c,t,font,size,maxW){let s=size;c.font=font.replace("{s}",s);while(s>12&&c.measureText(t).width>maxW){s-=2;c.font=font.replace("{s}",s)}return s}
@@ -1496,8 +1535,9 @@ function visDraw(sync){
       const x0=iw>W?(W-iw)*fx:(W-iw)*fx,y0=(Hm-ih)*fy;c.drawImage(src,x0,y0,iw,ih)}
     else if($("#visLignes")&&!VIS.src){const cr=v("visTheme")!=="noir";const g0=c.createRadialGradient(W/2,H*0.35,W*0.1,W/2,H/2,H*0.8);g0.addColorStop(0,cr?"#FBF8F3":"#2a2420");g0.addColorStop(1,cr?"#EDE6DB":"#0d0c0b");c.fillStyle=g0;c.fillRect(0,0,W,H)}
     else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.err||(VIS.src?"Chargement…":"Choisis une photo ou une vidéo"),W/2,Hm/2)}c.restore()}
+  const AN=visAnimEtat(v);c.save();c.globalAlpha=AN.a;c.translate(0,AN.dy*H);
   if(bH)visBande(c,W,H,Hm,v);
-  if(bH)return;
+  if(bH){visFin(c,W,H,v,AN);return}
   const lp=v("visLogo")||"hc",lt=(n(v("visLogoT"))||100)/100;
   const clair=!!$("#visLignes")&&!VIS.src&&v("visTheme")!=="noir"&&!calque;
   let g;if(lp[0]==="h"&&!clair){g=c.createLinearGradient(0,0,0,H*0.22);g.addColorStop(0,"rgba(0,0,0,.45)");g.addColorStop(1,"rgba(0,0,0,0)");c.fillStyle=g;c.fillRect(0,0,W,H*0.22)}
@@ -1511,7 +1551,7 @@ function visDraw(sync){
     const cx=lp==="hg"?M+bw/2:(lp==="hd"||lp==="bd")?W-M-bw/2:W/2;
     const ecPath=document.querySelector("#ec path");if(ecPath){if(!VIS.P)VIS.P=new Path2D(ecPath.getAttribute("d"));c.save();c.translate(cx-ew/2,ly);c.scale(s,s);c.translate(-29,-39);c.fillStyle="#C4A046";c.fill(VIS.P);c.restore()}
     c.fillStyle=clair?"#111":"#fff";c.font=`500 ${fs}px "Cormorant Garamond"`;visSpaced(c,"EUGCEO",cx,ly+eh+W*0.045*lt,sp,"center")}
-  if(fiche){visFiche(c,W,H,story,M,lp,lt,top,v,clair);return}
+  if(fiche){visFiche(c,W,H,story,M,lp,lt,top,v,clair);visFin(c,W,H,v,AN);return}
   let y=H-(story?H*0.09:H*0.065);
   const site=v("visSite").trim(),prix=v("visPrix").trim(),l2=v("visL2").trim(),l1=v("visL1").trim(),titre=v("visTitre").trim(),sur=v("visSur").trim();
   if(site){c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="rgba(255,255,255,.72)";visSpaced(c,site.toUpperCase(),M,y,W*0.006,"left")}
@@ -1519,9 +1559,9 @@ function visDraw(sync){
   y-=W*0.06;c.fillStyle="#C4A046";c.fillRect(M,y,W*0.12,Math.max(2,W*0.0022));y-=W*0.04;
   c.fillStyle="rgba(255,255,255,.88)";
   for(const l of[l2,l1].filter(Boolean)){visFit(c,l,'400 {s}px Poppins',Math.round(W*0.03),W-2*M);c.fillText(l,M,y);y-=W*0.05}
-  if(titre){const s=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.1:0.09)),W-2*M);c.fillStyle="#fff";c.fillText(titre,M,y-W*0.005);y-=s*1.05}
+  if(titre){const s=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.1:0.09)),W-2*M);visFxTexte(c,titre,M,y-W*0.005,W,v,"#fff");y-=s*1.05}
   if(sur){c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle="#C4A046";visSpaced(c,sur.toUpperCase(),M,y,W*0.008,"left")}
-}
+  visFin(c,W,H,v,AN)}
 function visBande(c,W,H,Hm,v){
   const noir=v("visMise")==="dessousNoir";const K=noir?{f:"#111",t:"#fff",d:"rgba(255,255,255,.7)",o:"#C4A046",s:"rgba(255,255,255,.55)"}:{f:"#F7F2EA",t:"#141210",d:"rgba(20,18,16,.65)",o:"#8A6F2C",s:"rgba(20,18,16,.5)"};
   c.fillStyle=K.f;c.fillRect(0,Hm,W,H-Hm);c.fillStyle=K.o;c.fillRect(0,Hm,W,Math.max(2,W*0.003));
@@ -1536,7 +1576,7 @@ function visBande(c,W,H,Hm,v){
   /* à gauche : textes */
   const lw=W-2*M-rw-W*0.05;let y=Hm+bh*0.2;
   if(sur){c.font=`500 ${Math.round(W*0.019)}px Poppins`;c.fillStyle=K.o;visSpaced(c,sur.toUpperCase(),M,y,W*0.007,"left");y+=W*0.075}else y+=W*0.04;
-  if(titre){const fs=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*0.075),lw);c.fillStyle=K.t;c.fillText(titre,M,y);y+=W*0.055}
+  if(titre){const fs=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*0.075),lw);visFxTexte(c,titre,M,y,W,v,K.t);y+=W*0.055}
   c.fillStyle=K.d;for(const l of[l1,l2].filter(Boolean)){visFit(c,l,'400 {s}px Poppins',Math.round(W*0.026),lw);c.fillText(l,M,y);y+=W*0.042}
   if(site){c.font=`400 ${Math.round(W*0.018)}px Poppins`;c.fillStyle=K.s;visSpaced(c,site.toUpperCase(),M,H-bh*0.09,W*0.006,"left")}
 }
@@ -1559,7 +1599,7 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
   c.save();if(sans&&!cr){Object.assign(K,{txt:"#fff",or:"#F2D98E",trait:"#F2D98E",pts:"rgba(255,255,255,.55)",ligne:"rgba(255,255,255,.18)",bord:"rgba(242,217,142,.6)",note:"#fff",doux:"rgba(255,255,255,.85)"});c.shadowColor="rgba(0,0,0,.8)";c.shadowBlur=W*0.016;c.shadowOffsetY=W*0.002}
   let y=yT+P;const L0=x0+P,R0=x1-P;c.textAlign="center";
   if(sous){c.font=`500 ${Math.round(W*0.02)}px Poppins`;c.fillStyle=K.or;visSpaced(c,sous.toUpperCase(),W/2,y+W*0.018,W*0.008,"center");y+=hSous}
-  if(titre){const fs=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.08:0.072)),iw);c.fillStyle=K.titre;c.textAlign="center";c.fillText(titre,W/2,y+fs*0.85);y+=hTit}
+  if(titre){const fs=visFit(c,titre,'500 {s}px "Cormorant Garamond"',Math.round(W*(story?0.08:0.072)),iw);c.textAlign="center";visFxTexte(c,titre,W/2,y+fs*0.85,W,v,K.titre);y+=hTit}
   c.fillStyle=K.trait;c.fillRect(W/2-W*0.06,y+W*0.012,W*0.12,Math.max(2,W*0.0022));y+=W*0.05;
   /* colonnes de prix à droite */
   const nv=nc-1,cw=nv>0?Math.min(W*0.2,iw*0.58/nv):0;const cx=i=>R0-(nv-1-i)*cw;
@@ -2288,7 +2328,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"){if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
