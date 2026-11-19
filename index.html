@@ -475,7 +475,7 @@ const L={
   typesBundle:["Simple (SD)","Doublé (DD)","Super doublé (SDD)"],
   frequences:{"Mensuel":1,"Trimestriel":3,"Annuel":12}
 };
-const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,lotBundlePct:0,lotPctNom:"",lotPctDebut:"",lotPctFin:"",coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
+const DEF_REGLAGES={tauxH:25,transport:8,packStandard:3,packPremium:7,packSignature:15,expedition:6,tempsDefaut:0.5,tauxPrest:15,fraisVente:0.12,margeMin:0.3,coefBase:1.45,poseH1:2,posePrix1:35,poseH2:4,posePrix2:70,poseBaseH:1.5,poseBasePrix:35,posePasH:0.5,posePasPrix:10,pose_simple:35,pose_layers:65,pose_tissage:70,remisePrix:35,remiseH:1,livraisonFR:12.99,livraisonDOM:16.99,acomptePct:40,coefBaseBundle:1.5,packBundle:1,transportBundle:2,arrondi:5,parrainPct:10,parrainMin:150,lotBundleTaille:3,lotBundleRemise:15,lotBundlePct:0,lotPctNom:"",lotPctDebut:"",lotPctFin:"",coefMatieres:2,sup_coloration_p:40,sup_coloration_b:15,sup_decoloration_p:60,sup_decoloration_b:20,sup_lissage_p:20,sup_lissage_b:8,sup_layers_p:25,sup_layers_b:0,sup_customisation_p:25,sup_customisation_b:0,sup_bouclage_p:25,sup_bouclage_b:10,sup_coupe_p:15,sup_coupe_b:5,sup_plucking_p:15,sup_plucking_b:0,parrainPlafond:250,parrainDelai:14};
 /* Bonus du coefficient (onglet RÉFÉRENTIEL du classeur) */
 const BONUS={
   "Construction":{"Lace Wig":0.1,"Frontal Wig":0.15,"Closure Wig":0.08,"Full Lace Wig":0.25,"360 Lace Wig":0.2,"Glueless Wig":0.08,"Demi-tête (Half Wig)":-0.2,"U-Part Wig":0.05,"V-Part Wig":0.05,"Ponytail (Queue de cheval)":0,"Bundle (Tissage)":0,"Closure":0.04,"Frontal":0.07},
@@ -719,6 +719,10 @@ function coefVente(p,couleurSpe,niveau,collection){
     +bonusCouleur(couleurSpe)+b("Niveau de travail",niveau)+b("Collection",collection));
 }
 function isPose(p){return !!p&&isPrestation(p)&&/pose/i.test(p.modele||"")}
+/* poses : prix fixe selon le type (Réglages des prix) */
+const POSES=[["simple","Pose simple"],["layers","Pose avec Layers"],["tissage","Pose de tissage"]];
+function poseType(p){const m=(p&&p.modele)||"";return/tissage/i.test(m)?"tissage":/layers/i.test(m)?"layers":"simple"}
+function posePrix(t){return n((S.reglages||{})["pose_"+t])}
 function isRemise(p){return !!p&&isPrestation(p)&&/remise/i.test(p.modele||"")}
 /* pose : forfait jusqu'à 1 h 30, puis un supplément par demi-heure commencée (Réglages des prix) */
 function hTxt(h){h=n(h);const H=Math.floor(h+1e-9),m=Math.round((h-H)*60);return H?(H+" h"+(m?" "+String(m).padStart(2,"0"):"")):m+" min"}
@@ -731,7 +735,7 @@ function forfaitPose(h){const R=S.reglages;const bh=n(R.poseBaseH)||1.5,bp=n(R.p
   if(h<=bh+1e-9)return bp;return r2(bp+Math.ceil((h-bh)/ph-1e-9)*pp)}
 function prixConseille(p,pp,couleurSpe,niveau,collection){
   if(!p||!pp)return null;const c=coefVente(p,couleurSpe,niveau,collection);
-  if(isPose(p)){const f=forfaitPose(pp.heures);return {coef:c,prix:f,forfait:true,label:"Forfait pose"}}
+  if(isPose(p)){const t=poseType(p);return {coef:c,prix:posePrix(t),forfait:true,label:(POSES.find(x=>x[0]===t)||[,"Pose"])[1]+" :"}}
   if(isRemise(p)){const R=S.reglages;const exRev=r2(Math.max(0,pp.heures-(pp.fh||0))*n(R.tauxPrest)+pp.mat+pp.pack);const extra=exRev>0?Math.round(exRev*c/(1-n(R.fraisVente))):0;
     return {coef:c,prix:n(R.remisePrix)+extra,forfait:"remise",extra,label:"Forfait remise en forme "+eur(n(R.remisePrix))+(extra?" + suppléments "+eur(extra)+" =":"")}}
   return {coef:c,prix:arrondiPrix(pp.revient*c/(1-n(S.reglages.fraisVente)))};
@@ -1398,8 +1402,7 @@ function fpGroupes(){
   const LT=lotsInfos();if(LT.length)G.push({k:"lots",t:"Lots de bundles",lots:true,items:LT.map(x=>({k:"l:"+x.i,l:x.m+" "+x.lab+(x.ok?"":" ⚠"),px:x.px,q:x.poss,p:x.ps.find(Boolean)||{id:""},lot:x}))});
   const R=S.reglages,k=rdvCfg().km;const e=v=>v>0?Math.round(v)+" €":"—";
   G.push({k:"prest",t:"Prestations",prest:true,items:[
-    {k:"s:pose",l:"Pose jusqu'à "+hTxt(n(R.poseBaseH)||1.5),px:n(R.poseBasePrix),txt:e(n(R.poseBasePrix))},
-    {k:"s:demi",l:"Chaque "+(Math.abs((n(R.posePasH)||0.5)-0.5)<1e-9?"demi-heure":"tranche de "+hTxt(n(R.posePasH)))+" en plus",px:n(R.posePasPrix),txt:e(n(R.posePasPrix))},
+    ...POSES.map(([t,l])=>({k:"s:pose_"+t,l,px:posePrix(t),txt:e(posePrix(t))})),
     {k:"s:remise",l:"Remise en forme",px:n(R.remisePrix),txt:e(n(R.remisePrix))},
     {k:"s:dep",l:"Déplacement à domicile",txt:n(k.prix)+" € / "+k.tranche+" km"}]});
   const op=SUPS.map(([kk,l])=>({k:"o:"+kk,l,a:n(R["sup_"+kk+"_p"]),b:n(R["sup_"+kk+"_b"])})).filter(x=>x.a||x.b);
@@ -1443,7 +1446,7 @@ function prixPresets(){
   const demi=actifs.filter(p=>!isBundle(p)&&prepBase(p)===0.5);
   if(demi.length)L.push({label:"Demi-têtes et ponytails",titre:"Demi-têtes",sous:"Tarifs",cols:"",lignes:demi.map(p=>court(p)+" ; "+e(prixBaseDe(p))).join("\n"),note:""});
   const R=S.reglages;const k=rdvCfg().km;
-  L.push({label:"Pose",titre:"La pose",sous:"Prestations",cols:"",lignes:[`Pose jusqu'à ${hTxt(n(R.poseBaseH)||1.5)} ; ${e(n(R.poseBasePrix))}`,`Chaque ${Math.abs((n(R.posePasH)||0.5)-0.5)<1e-9?"demi-heure":"tranche de "+hTxt(n(R.posePasH))} en plus ; ${e(n(R.posePasPrix))}`,`Remise en forme ; ${e(n(R.remisePrix))}`,`Déplacement à domicile ; ${n(k.prix)} € / ${k.tranche} km`].join("\n"),note:"À Cesson-Sévigné ou chez vous, sur rendez-vous"});
+  L.push({label:"Pose",titre:"La pose",sous:"Prestations",cols:"",lignes:[...POSES.map(([t,l])=>`${l} ; ${e(posePrix(t))}`),`Remise en forme ; ${e(n(R.remisePrix))}`,`Déplacement à domicile ; ${n(k.prix)} € / ${k.tranche} km`].join("\n"),note:"À Cesson-Sévigné ou chez vous, sur rendez-vous"});
   const op=SUPS.map(([kk,l])=>{const a=n(R["sup_"+kk+"_p"]),b=n(R["sup_"+kk+"_b"]);return a||b?[l,a?e(a):"—",b?e(b):"—"].join(" ; "):""}).filter(Boolean);
   if(op.length)L.push({label:"Options (coloration, coupe…)",titre:"Les options",sous:"Personnalisation",cols:"Option ; Perruque ; Bundle",lignes:op.join("\n"),note:""});
   L.push({label:"Texte libre",titre:"",sous:"Tarifs",cols:"",lignes:"",note:""});
@@ -2082,10 +2085,9 @@ function openReglages(){
    <div class="two">${row("fraisVente","Frais de vente (% du prix)")}${row("margeMin","Marge minimale perruques (%)","Prix plancher : sous ce prix, l'app te prévient.")}</div>
    <div class="two">${row("multPrix","Prix de base = prix d'achat ×","Méthode principale. 2 = le double du prix d'achat (le plus haut entre ton prix et la moyenne de la fourchette), jamais sous le plancher. 0 = ancien calcul (coefficients et grille).")}${row("multMin","Ancien calcul : minimum = prix d'achat ×")}</div>
    <div class="three">${row("margeCible","Marge prix de base : perruques (%)","Prix de base = coût de revient + cette marge + frais de vente. 0 : calcul par coefficients.")}${row("margeCibleDemi","Demi-têtes et ponytails (%)")}${row("margeCibleBundle","Bundles (%)")}</div>
-   <fieldset><legend>Forfaits de pose</legend>
-    <div class="two">${row("poseBaseH","Forfait jusqu'à (heures)","1,5 = 1 h 30")}${row("poseBasePrix","Prix du forfait (€)")}</div>
-    <div class="two">${row("posePasH","Puis par tranche de (heures)","0,5 = une demi-heure commencée")}${row("posePasPrix","Prix de chaque tranche (€)")}</div>
-    <p class="note">Exemple : 2 h 15 de pose = ${eur(forfaitPose(2.25))}. Le temps de pose saisi dans la vente donne le prix ; tu peux toujours mettre un autre prix.</p></fieldset>
+   <fieldset><legend>Tarifs de pose</legend>
+     <div class="three">${row("pose_simple","Pose simple (€)")}${row("pose_layers","Pose avec Layers (€)")}${row("pose_tissage","Pose de tissage (€)")}</div>
+     <p class="note">Prix fixes. Dans une vente, choisis la prestation (pose simple, avec Layers ou tissage) : le prix se met tout seul, et tu peux toujours en mettre un autre.</p></fieldset>
    <fieldset><legend>Boutique en ligne</legend>
     <div class="three">${row("livraisonFR","Livraison métropole (€)")}${row("livraisonDOM","Livraison outre-mer (€)")}${row("acomptePct","Acompte sur commande (%)")}</div>
     <p class="note">Appliqués aux paiements sur eugceo.fr. Pense à garder les CGV cohérentes si tu les changes.</p></fieldset>
@@ -3025,7 +3027,7 @@ function pFacture(id){
   const persoTxt=[v.couleurSpe&&v.couleurSpe!=="Naturelle"?"couleur "+v.couleurSpe:"",...perso.map(x=>x.toLowerCase())].filter(Boolean);
   const nature=p&&isPrestation(p)?"Prestation de services":"Vente de biens";
   const poseH=isPose(p)?((Array.isArray(v.travaux)?v.travaux:[]).filter(t=>/pose/i.test(t.nom||"")).reduce((a,t)=>a+n(t.heures),0)||n(v.heures)):0;
-  const poseTxt=poseH?(Math.abs(forfaitPose(poseH)-n(v.prixTTC))<0.01?forfaitPoseTexte(poseH):`Durée de la pose : ${hTxt(poseH)}.`):"";
+  const poseTxt=poseH?`Durée de la pose : ${hTxt(poseH)}.`:"";
   const tvaLine=s.tva==="Oui"?"":"TVA non applicable, article 293 B du CGI";
   const reste=paid?0:Math.max(0,r2(tot-av));
   return`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
