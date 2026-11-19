@@ -1504,7 +1504,7 @@ function visGarder(){if(VIS.noSave||!$("#visForm"))return;try{const st=visEtat()
 function visRestaurer(){if(VIS.gal&&VIS.gal.page!==S.page)VIS.gal=null;
   if(VIS.galOuvrir){const g=VIS.galOuvrir;VIS.galOuvrir=null;visAppliquer(g.etat);return}
   let st=null;try{st=JSON.parse(localStorage.getItem(visCle())||"null")}catch(_){}
-  if(st&&st.page===S.page&&(S.page==="fichePrix"||st.pageId===(S.pageId||"")))visAppliquer(st)}
+  if(st&&st.page===S.page&&(S.page==="fichePrix"||!S.pageId||st.pageId===(S.pageId||""))){if(S.page==="visuel"&&!S.pageId&&st.pageId){S.pageId=st.pageId;const sel=$("#visProd");if(sel)sel.value=st.pageId}visAppliquer(st)}}
 async function visSourceEnvoyer(f){if(!(db&&canWrite)||f.size>100*1024*1024)return;const t=/^video\//.test(f.type)?"video":"image";
   const ext=((f.name||"").split(".").pop()||f.type.split("/")[1]||"bin").toLowerCase().replace(/[^a-z0-9]/g,"");const path="sources/"+crypto.randomUUID()+"."+ext;
   const src=VIS.src;try{const{error}=await sb.storage.from("visuels").upload(path,f,{contentType:f.type,upsert:false});if(!error&&VIS.src===src){VIS.srcSave={p:path,t};visGarder()}}catch(_){}}
@@ -1543,6 +1543,14 @@ async function galAction(a,b){const d=(S.visuels||[]).find(x=>x.id===b.dataset.i
   if(a==="gal-del"){if(b.dataset.ok!=="1"){b.dataset.ok="1";b.textContent="Confirmer la suppression";setTimeout(()=>{if(b.isConnected){b.dataset.ok="";b.textContent="Supprimer"}},5000);return}
     b.disabled=true;try{await db.collection("visuels").doc(d.id).delete();const src=d.etat&&d.etat.media&&d.etat.media.p;const autre=src&&(S.visuels||[]).some(x=>x.id!==d.id&&x.etat&&x.etat.media&&x.etat.media.p===src);
       const rm=[d.sortie&&d.sortie.p,d.vignette,!autre&&src].filter(Boolean);if(rm.length)sb.storage.from("visuels").remove(rm).catch(()=>{});if(VIS.gal&&VIS.gal.id===d.id)VIS.gal=null;toast("Supprimé")}catch(e){b.disabled=false;toast(dbErr(e))}}}
+/* changer d'article sans perdre la photo ou la vidéo ni les réglages : seuls les textes se remplissent */
+function visChangerArticle(id){S.pageId=id||null;const lotV=lotParId(id);const p=lotV?null:(prod(id)||null);const T=lotV?visTextesLot(lotV):visTextes(p);
+  for(const[k,v] of Object.entries({visTitre:T.titre,visL1:T.l1,visL2:T.l2,visPrix:T.prix,visSur:T.sur})){const e=$("#"+k);if(e)e.value=v||""}
+  const md=visMedias(lotV?lotV.ps.find(Boolean):p);const box=document.querySelector(".vis-ph");
+  if(box){box.querySelectorAll("button.vis-th").forEach(x=>x.remove());const up=box.querySelector(".vis-up");
+    up.insertAdjacentHTML("beforebegin",md.map(x=>`<button type="button" class="vis-th${x.u===VIS.src?" on":""}" data-act="vis-media" data-u="${esc(x.u)}" data-t="${x.t}">${x.t==="video"?`<video src="${esc(x.u)}#t=0.5" muted playsinline preload="metadata"></video><i>▶</i>`:`<img src="${esc(x.u)}" alt="">`}</button>`).join(""))}
+  if(!VIS.src&&md[0]){visCharger(md[0].u,md[0].t);const b0=box&&box.querySelector("button.vis-th");if(b0)b0.classList.add("on")}
+  if(VIS.out&&!VIS.rec){VIS.out=null}visDraw();visActs();visGarder()}
 function visStopLoop(){cancelAnimationFrame(VIS.raf);VIS.raf=0}
 function visCharger(u,t){visStopLoop();VIS.srcSave=null;if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.pend=null;VIS.err="";VIS.out=null;VIS.audio=null;
   if(!u){visDraw();visActs();return}
@@ -2401,7 +2409,7 @@ document.addEventListener("input",e=>{
     if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){VIS.cochAttente=null;if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
     if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?"":pr.laceTaille].filter(Boolean).join(" · ");
       ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
-    if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
+    if(e.target.id==="visProd"){visChangerArticle(e.target.value);return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
   if(e.target.id==="kmDep"){const k=rdvCfg().km;const km=n(e.target.value);const pt=$("#port");if(pt){pt.value=km>0?String(fraisDep(km)).replace(".",","):"";}livePreview();return}
   if(e.target.closest("#form"))livePreview();
   if(e.target.closest("#dvForm"))dvPreview();
@@ -2411,7 +2419,7 @@ document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest("#vi
 document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest("#visForm"))setTimeout(visGarder,0)});
 document.addEventListener("change",e=>{
   if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image");visSourceEnvoyer(f)}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel","visWm","visWmC"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel","visWm","visWmC"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){if(S.pageId!==(e.target.value||null))visChangerArticle(e.target.value)}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
