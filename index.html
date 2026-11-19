@@ -366,6 +366,7 @@ button.tile{font:inherit;color:inherit;text-align:left;cursor:pointer}button.til
 @media (min-width:640px){.acts{grid-template-columns:repeat(4,minmax(0,1fr))}.hub{grid-template-columns:repeat(2,minmax(0,1fr))}.acts.small{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (min-width:1024px){body[data-tab="accueil"] #view>.full{grid-column:1/-1}.hub{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* ===== fiche de prix : cases à cocher ===== */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}.gal-i{display:flex;flex-direction:column;gap:4px}.gal-th{aspect-ratio:4/5;border-radius:10px;background:#1a1714 center/cover no-repeat;position:relative;border:1px solid var(--hair)}.gal-th i{position:absolute;inset:auto auto 8px 8px;color:#fff;font-style:normal;background:rgba(0,0,0,.5);border-radius:99px;padding:2px 8px;font-size:12px}.gal-a{display:flex;flex-wrap:wrap;gap:4px}.gal-a .sitebtn{font-size:12px;padding:4px 8px}.act.off{opacity:.45}
 .vis-fx{border:1px solid var(--hair);border-radius:12px;padding:10px 12px;margin:4px 0 14px}.vis-fx summary{cursor:pointer;font-weight:600;padding:4px 0}.vis-fx[open] summary{margin-bottom:10px}
 .lotrow{display:grid;grid-template-columns:repeat(var(--n,3),1fr) auto;gap:8px;align-items:center;margin-bottom:10px;padding:10px;border:1px solid var(--hair);border-radius:12px}.lotrow select{min-width:0;width:100%}.lotrow .lotM{grid-column:1/-1}
 .fp-list{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow:auto;border:1px solid var(--hair);border-radius:12px;padding:10px 12px;background:var(--bg)}
@@ -784,8 +785,8 @@ function doRender(){
   const st=$("#status");
   st.textContent=dbState==="ok"?"":dbState==="wait"?"Connexion…":dbState==="none"?"Hors ligne":"";if(!navigator.onLine)st.textContent="Hors ligne";
   const v=$("#view");
-  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel,fichePrix:pVisuel,caisse:pCaisse}[S.page];
-    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel",fichePrix:"Fiche de prix",caisse:"Argent"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if((S.page==="visuel"||S.page==="fichePrix")&&v.dataset.page===S.page){visListe();$("#screenTitle").textContent=pt;return}if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
+  if(S.page){const P={resultat:pResultat,tresorerie:pTresorerie,tva:pTva,inventaire:pInventaire,controles:pControles,factures:pFactures,facture:()=>pFacture(S.pageId),societe:pSociete,referentiel:pReferentiel,justificatifs:pJustificatifs,dettes:pDettes,site:pSite,liste:pListe,demandes:pDemandes,devis:pDevisListe,devisv:()=>pDevis(S.pageId),ambassadrices:pAmbassadrices,clientes:pClientes,client:()=>pClient(S.pageId),prix:pPrix,fournisseur:()=>pFournisseur(S.pageId),reglages:pReglages,rdv:pRdv,rdvreglages:pRdvReglages,visuel:pVisuel,fichePrix:pVisuel,visuels:pVisuels,caisse:pCaisse}[S.page];
+    if(P){const keep=S.page==="inventaire"||S.page==="societe"||S.page==="referentiel"||S.page==="clientes";const pt={client:"Carnet",fournisseur:"Carnet",reglages:"Réglages",rdv:"Rendez-vous",rdvreglages:"Réglages",societe:"Réglages",referentiel:"Réglages",controles:"Réglages",site:"Le site",prix:"Les prix",visuel:"Visuel",fichePrix:"Fiche de prix",visuels:"Mes visuels",caisse:"Argent"}[S.page]||"Gestion";$("#screenTitle").textContent=pt;if((S.page==="visuel"||S.page==="fichePrix")&&v.dataset.page===S.page){visListe();$("#screenTitle").textContent=pt;return}if(v.dataset.page===S.page&&(v.querySelector("form[data-dirty]")||(keep&&v.querySelector("input:focus"))))return;v.dataset.page=S.page;v.innerHTML=P();$("#screenTitle").textContent=pt;return}}
   v.dataset.page="";
   const fn={accueil:vAccueil,ventes:vVentes,carnet:vCarnet,stock:()=>vStock()+stockMore(),frais:vFrais}[S.tab]||vAccueil;
   v.innerHTML=fn();
@@ -973,7 +974,7 @@ async function marquerRecu(b){
 }
 function stockBar(f){return filterBar("stockFilter",f,[["tarifs","Tarifs"],["dispo","En stock"],["attente","En route"],["alerte","Ruptures"]])}
 function stockMore(){const f=S.stockFilter;const pa=prixAlertes().length;
-  return`<div class="morel">${[["tout","Tout le stock"],["archives","Archivés"],["matieres","Matières"]].map(([k,l])=>`<button type="button" class="sitebtn${f===k?" on":""}" data-act="filter" data-name="stockFilter" data-val="${k}">${l}</button>`).join("")}<button type="button" class="sitebtn" data-act="page" data-p="visuel">Visuel réseaux</button><button type="button" class="sitebtn" data-act="page" data-p="fichePrix">Fiche de prix</button><button type="button" class="sitebtn" data-act="page" data-p="inventaire">Inventaire</button><button type="button" class="sitebtn" data-act="page" data-p="prix">Contrôle des prix${pa?` <span class="chip warn">${pa}</span>`:""}</button></div>`}
+  return`<div class="morel">${[["tout","Tout le stock"],["archives","Archivés"],["matieres","Matières"]].map(([k,l])=>`<button type="button" class="sitebtn${f===k?" on":""}" data-act="filter" data-name="stockFilter" data-val="${k}">${l}</button>`).join("")}<button type="button" class="sitebtn" data-act="page" data-p="visuel">Visuel réseaux</button><button type="button" class="sitebtn" data-act="page" data-p="fichePrix">Fiche de prix</button><button type="button" class="sitebtn" data-act="page" data-p="visuels">Mes visuels</button><button type="button" class="sitebtn" data-act="page" data-p="inventaire">Inventaire</button><button type="button" class="sitebtn" data-act="page" data-p="prix">Contrôle des prix${pa?` <span class="chip warn">${pa}</span>`:""}</button></div>`}
 const STOCK_FILTERS=[["tarifs","Tarifs"],["dispo","Disponibles"],["attente","En attente"],["tout","Tout"],["alerte","Ruptures"],["archives","Archivés"],["matieres","Matières"]];
 /* ---------- Tarifs : prix fixes de chaque référence, sans passer par une vente ---------- */
 function tarifGroupe(p){if(isPrestation(p))return"";if(isBundle(p))return"Bundles "+(p.modele||"");return prepBase(p)===0.5?"Demi-têtes et ponytails":"Perruques"}
@@ -1312,7 +1313,7 @@ function visMedias(p){const s=(p&&p.site)||{};const L=(Array.isArray(s.photos)?s
 function pVisuel(){
   const fp=S.page==="fichePrix";VIS.promo=false;const ps=visProduits();
   const lotV=fp?null:lotParId(S.pageId);const p=fp||lotV?null:(prod(S.pageId)||null);const T=lotV?visTextesLot(lotV):visTextes(p);const md=visMedias(lotV?lotV.ps.find(Boolean):p);const PR=fp?prixPresets():[];const P0=PR[0]||{};
-  setTimeout(()=>{visCharger(md[0]?md[0].u:"",md[0]?md[0].t:"image")},0);
+  setTimeout(()=>{visCharger(md[0]?md[0].u:"",md[0]?md[0].t:"image");visRestaurer()},0);
   const vidOk=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
   return`${fp?pageHead("Fiche de prix","Une grille de prix aux couleurs d'EUGCEO, sur une photo ou une vidéo, prête à poster. Choisis ce que tu veux montrer : les prix se remplissent depuis l'app, et tout reste modifiable."):pageHead("Visuel pour les réseaux","Choisis un article, une photo ou une vidéo, et un format. Tu obtiens une image ou une vidéo prête à poster, avec EUGCEO et les détails de l'article.")}
   <div class="vis">
@@ -1425,7 +1426,7 @@ function fpGroupes(){
   const op=SUPS.map(([kk,l])=>({k:"o:"+kk,l,a:n(R["sup_"+kk+"_p"]),b:n(R["sup_"+kk+"_b"])})).filter(x=>x.a||x.b);
   if(op.length)G.push({k:"opt",t:"Options",opt:true,items:op});
   return G}
-function fpListe(){const seul=!!($("#fpStock")||{}).checked;const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k));
+function fpListe(){const seul=!!($("#fpStock")||{}).checked;const coch=new Set([...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k).concat([...(VIS.cochAttente||[])]));
   return fpGroupes().map(g=>{const its=g.items.filter(i=>!seul||!i.p||i.q>0);if(!its.length)return"";
     return`<div class="fp-g"><label class="fp-gh"><input type="checkbox" data-g="${esc(g.k)}"> <b>${esc(g.t)}</b></label>${its.map(i=>`<label class="fp-i"><input type="checkbox" data-k="${esc(i.k)}" data-g="${esc(g.k)}"${coch.has(i.k)?" checked":""}> <span>${esc(i.l)}</span><em>${i.lot?eurLot(i.px)+(i.lot.px<i.lot.tot?" au lieu de "+eurLot(i.lot.tot):"")+" · "+(!i.lot.ok?"longueur introuvable":i.q>0?i.q+" possible"+(i.q>1?"s":""):"pas en stock"):i.p?(i.px>0?eur(i.px):"—")+(i.q!=null?" · "+(i.q>0?i.q+" en stock":"pas en stock"):""):i.txt||((i.a?eur(i.a):"—")+" / "+(i.b?eur(i.b):"—"))}</em></label>`).join("")}</div>`}).join("")||`<div class="empty">Rien en stock.</div>`}
 function fpKey(){return JSON.stringify(lotsInfos().map(x=>[x.m,x.lab,x.px,x.poss]))+S.produits.map(p=>p.id+stockQty(p)+prixBaseDe(p)).join("|")}
@@ -1477,11 +1478,73 @@ function visActs(){const box=$("#visActs");if(!box)return;const vid=VIS.type==="
   const share=!!navigator.canShare;
   if(VIS.rec){box.innerHTML=`<div class="vis-rec"><b>Création de la vidéo… <span id="visPct">0 %</span></b><span>Laisse cette page ouverte jusqu'à la fin.</span><button type="button" class="btn ghost small" data-act="vis-stop">Arrêter</button></div>`;return}
   if(vid){box.innerHTML=`<div class="acts small"><button type="button" class="act main" data-act="vis-rec"><b>Créer la vidéo</b><span>Avec le son, durée de la vidéo</span></button>${VIS.out?`<button type="button" class="act" data-act="vis-dl"><b>Télécharger</b><span>${esc(VIS.out.ext.toUpperCase())} · ${Math.round(VIS.out.blob.size/1e5)/10} Mo</span></button>${share?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, TikTok…</span></button>`:""}`:""}</div>`;
-    $("#visNote").textContent=VIS.out?"Vidéo prête. Si tu changes un texte, recrée-la.":"La vidéo est lue une fois en entier pendant la création (jusqu'à 90 secondes).";return}
+    box.insertAdjacentHTML("beforeend",galBoutons(!!VIS.out));
+    $("#visNote").textContent=VIS.out?"Vidéo prête. Si tu changes un texte, recrée-la avant de l'enregistrer.":"La vidéo est lue une fois en entier pendant la création (jusqu'à 90 secondes). Une fois créée, tu peux l'enregistrer dans « Mes visuels ».";return}
   box.innerHTML=`<div class="acts small"><button type="button" class="act main" data-act="vis-dl"><b>Télécharger</b><span>Image PNG</span></button>${share?`<button type="button" class="act" data-act="vis-share"><b>Partager</b><span>Instagram, WhatsApp…</span></button>`:""}</div>`;
-  $("#visNote").textContent=$("#visMode").value==="calque"?"Calque transparent : à poser au-dessus de ta vidéo dans ton appli de montage.":"L'image n'est pas enregistrée dans l'app : télécharge-la ou partage-la directement."}
+  box.insertAdjacentHTML("beforeend",galBoutons(true));
+  $("#visNote").textContent=$("#visMode").value==="calque"?"Calque transparent : à poser au-dessus de ta vidéo dans ton appli de montage.":"Ton travail en cours est gardé sur ce téléphone, même si l'app se met à jour. « Enregistrer » le range dans « Mes visuels », où tu peux le rouvrir et le modifier."}
+/* ---------- travail en cours gardé + « Mes visuels » ---------- */
+const VIS_SKIP=new Set(["visFile","visPreset","visProd","visArt","fpPromo"]);
+function galBoutons(ok){if(!(db&&canWrite))return"";const g=VIS.gal;
+  return`<div class="acts small" style="margin-top:8px"><button type="button" class="act${ok?"":" off"}" data-act="gal-save"${ok?"":" disabled"}><b>${g?"Mettre à jour":"Enregistrer"}</b><span>${g?"« "+esc(g.titre||"Sans titre")+" » dans Mes visuels":"Dans « Mes visuels »"}</span></button>${g?`<button type="button" class="act${ok?"":" off"}" data-act="gal-save" data-neuf="1"${ok?"":" disabled"}><b>Enregistrer une copie</b><span>Garde aussi l'ancienne</span></button>`:""}<button type="button" class="act" data-act="page" data-p="visuels"><b>Mes visuels</b><span>${(S.visuels||[]).length} enregistré${(S.visuels||[]).length>1?"s":""}</span></button></div>
+  <button type="button" class="linkbtn" data-act="vis-raz" style="margin-top:6px">Repartir de zéro</button>`}
+function visEtat(){const f=$("#visForm");if(!f)return null;const o={};f.querySelectorAll("input[id],select[id],textarea[id]").forEach(e=>{if(VIS_SKIP.has(e.id)||e.type==="file")return;o[e.id]=e.type==="checkbox"?e.checked:e.value});
+  const coch=[...document.querySelectorAll("#fpList input[data-k]:checked")].map(x=>x.dataset.k);
+  const media=VIS.srcSave?{p:VIS.srcSave.p,t:VIS.srcSave.t}:VIS.src&&!/^blob:/.test(VIS.src)?{u:VIS.src,t:VIS.type}:null;
+  return{page:S.page,pageId:S.pageId||"",champs:o,coch,media}}
+async function visMediaUrl(m){if(!m)return"";if(m.u)return m.u;if(m.p){const{data}=await sb.storage.from("visuels").createSignedUrl(m.p,3600*6);return data?data.signedUrl:""}return""}
+async function visAppliquer(st){if(!st)return;VIS.noSave=true;try{
+  if(st.coch&&$("#fpList")){const set=new Set(st.coch);VIS.cochAttente=set;document.querySelectorAll("#fpList input[data-k]").forEach(x=>x.checked=set.has(x.dataset.k))}
+  for(const[k,v] of Object.entries(st.champs||{})){const e=$("#"+k);if(!e)continue;if(e.type==="checkbox")e.checked=!!v;else e.value=v}
+  const det=document.querySelectorAll("#visForm details.vis-fx");if((st.champs||{}).visWm)det[0]&&(det[0].open=true);if((st.champs||{}).visAnn)det[1]&&(det[1].open=true);
+  if(st.media){const u=await visMediaUrl(st.media);if(u&&$("#visCv")){document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x.dataset.u===u));visCharger(u,st.media.t||"image");if(st.media.p)VIS.srcSave={p:st.media.p,t:st.media.t||"image"}}}
+  visDraw();visActs()}finally{VIS.noSave=false}}
+function visCle(){return"eug_vis_"+S.page}
+function visGarder(){if(VIS.noSave||!$("#visForm"))return;try{const st=visEtat();if(st)localStorage.setItem(visCle(),JSON.stringify(st))}catch(_){}}
+function visRestaurer(){if(VIS.gal&&VIS.gal.page!==S.page)VIS.gal=null;
+  if(VIS.galOuvrir){const g=VIS.galOuvrir;VIS.galOuvrir=null;visAppliquer(g.etat);return}
+  let st=null;try{st=JSON.parse(localStorage.getItem(visCle())||"null")}catch(_){}
+  if(st&&st.page===S.page&&(S.page==="fichePrix"||st.pageId===(S.pageId||"")))visAppliquer(st)}
+async function visSourceEnvoyer(f){if(!(db&&canWrite)||f.size>100*1024*1024)return;const t=/^video\//.test(f.type)?"video":"image";
+  const ext=((f.name||"").split(".").pop()||f.type.split("/")[1]||"bin").toLowerCase().replace(/[^a-z0-9]/g,"");const path="sources/"+crypto.randomUUID()+"."+ext;
+  const src=VIS.src;try{const{error}=await sb.storage.from("visuels").upload(path,f,{contentType:f.type,upsert:false});if(!error&&VIS.src===src){VIS.srcSave={p:path,t};visGarder()}}catch(_){}}
+function visVignette(){return new Promise(r=>{const cv=$("#visCv");const w=360,h=Math.round(cv.height*360/cv.width);const c2=document.createElement("canvas");c2.width=w;c2.height=h;const x=c2.getContext("2d");x.fillStyle="#111";x.fillRect(0,0,w,h);x.drawImage(cv,0,0,w,h);c2.toBlob(b=>r(b),"image/jpeg",0.8)})}
+async function galEnregistrer(b){if(!(db&&canWrite))return;const neuf=b.dataset.neuf==="1";let f;try{f=await visFichier()}catch(_){f=null}
+  if(!f){toast(VIS.type==="video"?"Crée d'abord la vidéo, puis enregistre-la.":"Export impossible : prends la photo ou la vidéo depuis ton téléphone avec « + ».");return}
+  b.disabled=true;const lab=b.querySelector("b");if(lab)lab.textContent="Enregistrement…";
+  const old=!neuf&&VIS.gal?VIS.gal:null;const id=old?old.id:crypto.randomUUID();const now=new Date().toISOString();const B=sb.storage.from("visuels");
+  try{const ext=(f.name.split(".").pop()||"png").toLowerCase();const pOut="sorties/"+id+"-"+Date.now()+"."+ext;
+    let{error}=await B.upload(pOut,f,{contentType:f.type,upsert:false});if(error)throw error;
+    const th=await visVignette();const pTh="vignettes/"+id+"-"+Date.now()+".jpg";if(th){const r2_=await B.upload(pTh,th,{contentType:"image/jpeg",upsert:false});if(r2_.error)throw r2_.error}
+    const v=k=>($("#"+k)||{}).value||"";const titre=(v("visTitre")||v("visAnn")||(S.page==="fichePrix"?"Fiche de prix":"Visuel")).trim();
+    const data={titre,page:S.page,pageId:S.pageId||"",etat:visEtat(),sortie:{p:pOut,type:f.type,nom:f.name,taille:f.size},vignette:th?pTh:"",video:/^video\//.test(f.type),format:v("visFmt"),creeLe:old?old.creeLe||now:now,modifieLe:now,par:myId||""};
+    await db.collection("visuels").doc(id).set(data);
+    if(old){const rm=[old.sortie&&old.sortie.p,old.vignette].filter(Boolean);if(rm.length)B.remove(rm).catch(()=>{})}
+    VIS.gal={id,...data};toast(old?"Mis à jour dans « Mes visuels »":"Enregistré dans « Mes visuels »")}
+  catch(e){toast("Enregistrement impossible : "+((e&&e.message)||"réessaie"))}
+  visActs()}
+/* ---------- page « Mes visuels » ---------- */
+const GAL_URL={};
+function pVisuels(){const L=[...(S.visuels||[])].sort((a,b)=>(b.modifieLe||"").localeCompare(a.modifieLe||""));const share=!!navigator.canShare;const ro=!(db&&canWrite);
+  setTimeout(galVignettes,0);
+  return`${pageHead("Mes visuels","Les affiches et vidéos enregistrées depuis le visuel réseaux et la fiche de prix. « Modifier » la rouvre avec tous ses réglages : en enregistrant, la nouvelle version remplace l'ancienne.")}
+  <div class="morel"><button type="button" class="sitebtn" data-act="page" data-p="visuel">Nouveau visuel</button><button type="button" class="sitebtn" data-act="page" data-p="fichePrix">Nouvelle fiche de prix</button></div>
+  <div class="gal">${L.map(d=>`<div class="gal-i"><div class="gal-th" data-gth="${esc(d.vignette||"")}">${d.video?"<i>▶</i>":""}</div>
+    <b>${esc(d.titre||"Sans titre")}</b><span class="hint">${d.page==="fichePrix"?"Fiche de prix":"Visuel"} · ${d.video?"vidéo":"image"} · ${esc(dfr((d.modifieLe||"").slice(0,10)))}</span>
+    <div class="gal-a">${ro?"":`<button type="button" class="sitebtn" data-act="gal-open" data-id="${esc(d.id)}">Modifier</button>`}<button type="button" class="sitebtn" data-act="gal-dl" data-id="${esc(d.id)}">Télécharger</button>${share?`<button type="button" class="sitebtn" data-act="gal-share" data-id="${esc(d.id)}">Partager</button>`:""}${ro?"":`<button type="button" class="sitebtn" data-act="gal-del" data-id="${esc(d.id)}">Supprimer</button>`}</div></div>`).join("")||`<div class="empty">Rien d'enregistré pour l'instant. Dans le visuel réseaux ou la fiche de prix, appuie sur « Enregistrer ».</div>`}</div>`}
+async function galVignettes(){const els=[...document.querySelectorAll("[data-gth]")].filter(e=>e.dataset.gth);const need=[...new Set(els.map(e=>e.dataset.gth).filter(p=>!GAL_URL[p]))];
+  if(need.length){const{data}=await sb.storage.from("visuels").createSignedUrls(need,3600*12);(data||[]).forEach(x=>{if(x.signedUrl)GAL_URL[x.path]=x.signedUrl})}
+  document.querySelectorAll("[data-gth]").forEach(e=>{const u=GAL_URL[e.dataset.gth];if(u)e.style.backgroundImage=`url("${u}")`})}
+async function galFichier(d){const{data,error}=await sb.storage.from("visuels").createSignedUrl(d.sortie.p,600);if(error||!data)throw error||new Error("introuvable");const r=await fetch(data.signedUrl);const bl=await r.blob();return new File([bl],d.sortie.nom||("EUGCEO-visuel."+(d.sortie.p.split(".").pop())),{type:d.sortie.type||bl.type})}
+async function galAction(a,b){const d=(S.visuels||[]).find(x=>x.id===b.dataset.id);if(!d)return;
+  if(a==="gal-open"){VIS.gal=d;VIS.galOuvrir=d;S.page=d.page;S.pageId=d.pageId||null;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
+  if(a==="gal-dl"||a==="gal-share"){try{const f=await galFichier(d);if(a==="gal-share"&&navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}
+      const el=document.createElement("a");el.href=URL.createObjectURL(f);el.download=f.name;document.body.appendChild(el);el.click();setTimeout(()=>{URL.revokeObjectURL(el.href);el.remove()},4000)}catch(e){if(!e||e.name!=="AbortError")toast("Fichier introuvable.")}return}
+  if(a==="gal-del"){if(b.dataset.ok!=="1"){b.dataset.ok="1";b.textContent="Confirmer la suppression";setTimeout(()=>{if(b.isConnected){b.dataset.ok="";b.textContent="Supprimer"}},5000);return}
+    b.disabled=true;try{await db.collection("visuels").doc(d.id).delete();const src=d.etat&&d.etat.media&&d.etat.media.p;const autre=src&&(S.visuels||[]).some(x=>x.id!==d.id&&x.etat&&x.etat.media&&x.etat.media.p===src);
+      const rm=[d.sortie&&d.sortie.p,d.vignette,!autre&&src].filter(Boolean);if(rm.length)sb.storage.from("visuels").remove(rm).catch(()=>{});if(VIS.gal&&VIS.gal.id===d.id)VIS.gal=null;toast("Supprimé")}catch(e){b.disabled=false;toast(dbErr(e))}}}
 function visStopLoop(){cancelAnimationFrame(VIS.raf);VIS.raf=0}
-function visCharger(u,t){visStopLoop();if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.pend=null;VIS.err="";VIS.out=null;VIS.audio=null;
+function visCharger(u,t){visStopLoop();VIS.srcSave=null;if(VIS.vid){try{VIS.vid.pause()}catch(_){}}VIS.src=u;VIS.type=t||"image";VIS.img=null;VIS.vid=null;VIS.pend=null;VIS.err="";VIS.out=null;VIS.audio=null;
   if(!u){visDraw();visActs();return}
   if(VIS.type==="video"){const vd=document.createElement("video");if(!/^blob:/.test(u))vd.crossOrigin="anonymous";vd.muted=true;vd.defaultMuted=true;vd.loop=true;vd.autoplay=true;vd.playsInline=true;vd.setAttribute("playsinline","");vd.setAttribute("muted","");vd.preload="auto";
     VIS.pend=vd;const pret=()=>{if(VIS.src!==u||VIS.vid===vd||!vd.videoWidth)return;VIS.vid=vd;VIS.pend=null;VIS.err="";vd.play().catch(()=>{});visLoop();visActs()};
@@ -2196,8 +2259,11 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act],button[data-tab]");if(!b)return;
   const a=b.dataset.act;
   if(!a&&b.dataset.tab){S.tab=b.dataset.tab;S.page=null;S.q="";window.scrollTo(0,0);render();return}
-  if(a==="vis-open"){closeSheet(true);S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
+  if(a==="vis-open"){closeSheet(true);VIS.gal=null;S.page="visuel";S.pageId=b.dataset.id;$("#view").dataset.page="";window.scrollTo(0,0);render();return}
   if(a==="lots-edit"){openLots();return}
+  if(a==="gal-save"){galEnregistrer(b);return}
+  if(a==="gal-open"||a==="gal-dl"||a==="gal-share"||a==="gal-del"){galAction(a,b);return}
+  if(a==="vis-raz"){try{localStorage.removeItem(visCle())}catch(_){}VIS.gal=null;VIS.galOuvrir=null;$("#view").dataset.page="";render();return}
   if(a==="lot-add"){const box=$("#lotRows");if(box){box.insertAdjacentHTML("beforeend",lotRow({}));const f=$("#form");if(f)f.dataset.dirty="1"}return}
   if(a==="lot-del"){const r=b.closest(".lotrow");if(r){r.remove();const f=$("#form");if(f)f.dataset.dirty="1"}return}
   if(a==="vis-media"){if(VIS.rec)return;document.querySelectorAll(".vis-th").forEach(x=>x.classList.toggle("on",x===b));visCharger(b.dataset.u,b.dataset.t);return}
@@ -2216,7 +2282,7 @@ document.addEventListener("click",e=>{
   if(a==="rdv-mail"){rdvMail(b);return}
   if(a==="rdvp-add"){const bx=$("#rdvPrest");if(bx){bx.insertAdjacentHTML("beforeend",rdvPrestLigne({}));const fm=bx.closest("form");if(fm)fm.dataset.dirty="1"}return}
   if(a==="rdv-vente"){const d=rdvListe().find(x=>x.id===b.dataset.id);if(d)openForm("ventes",null,{client:d.nom,email:d.email||"",telephone:d.telephone||"",date:d.date,port:d.lieu==="domicile"?d.fraisDeplacement||"":"",commentaire:"Rendez-vous du "+dfr(d.date)+" à "+d.heure+" · "+(d.prestation||"")});return}
-  if(a==="page"){if(b.dataset.f)S.rdvFilter=b.dataset.f;S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
+  if(a==="page"){if(b.dataset.p==="visuel"||b.dataset.p==="fichePrix")VIS.gal=null;if(b.dataset.f)S.rdvFilter=b.dataset.f;S.page=b.dataset.p||null;if(b.dataset.id)S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="facture"){if(current)closeSheet();S.page="facture";S.pageId=b.dataset.id;window.scrollTo(0,0);render();return}
   if(a==="print"){window.print();return}
   if(a==="fact-pdf"){factPdfDl(b);return}
@@ -2332,7 +2398,7 @@ document.addEventListener("input",e=>{
   if(e.target.closest("#visForm")){if(e.target.id==="visPreset")return;
     if(e.target.id==="fpPromo"){VIS.promo=e.target.checked;const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();fpCompose()}else{const x=lotParId(S.pageId);if(x){const T=visTextesLot(x);for(const [k,v] of Object.entries({visTitre:T.titre,visL1:T.l1,visL2:T.l2,visPrix:T.prix,visSur:T.sur})){const el=$("#"+k);if(el)el.value=v}visDraw()}}return}
     if(e.target.id==="fpStock"){const L0=$("#fpList");if(L0){L0.innerHTML=fpListe();if(e.target.checked){fpCompose()}}return}
-    if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
+    if(e.target.dataset&&e.target.dataset.g!==undefined&&e.target.type==="checkbox"){VIS.cochAttente=null;if(!e.target.dataset.k){document.querySelectorAll(`#fpList input[data-k][data-g="${CSS.escape(e.target.dataset.g)}"]`).forEach(x=>x.checked=e.target.checked)}fpCompose();return}
     if(e.target.id==="visArt"){const pr=prod(e.target.value);if(pr){const ta=$("#visLignes");const px=prixBaseDe(pr);const lab=[(pr.modele||"")+(pr.longueur?" "+pr.longueur+"″":""),isBundle(pr)?"":pr.laceTaille].filter(Boolean).join(" · ");
       ta.value=(ta.value.trim()?ta.value.trim()+"\n":"")+lab+" ; "+(px>0?Math.round(px)+" €":"");e.target.value="";if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw()}return}
     if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender();return}if(VIS.out&&!VIS.rec){VIS.out=null;visActs()}visDraw();return}
@@ -2341,8 +2407,10 @@ document.addEventListener("input",e=>{
   if(e.target.closest("#dvForm"))dvPreview();
   if(e.target.closest("#tfForm"))tfPreview();
 });
+document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest("#visForm"))setTimeout(visGarder,0)});
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest("#visForm"))setTimeout(visGarder,0)});
 document.addEventListener("change",e=>{
-  if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
+  if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image");visSourceEnvoyer(f)}return}
   if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel","visWm","visWmC"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
@@ -3390,6 +3458,7 @@ async function startData(session){
   }
   db.collection("site_contenu").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.siteContenu=o;render()},()=>{});
   db.collection("devis").onSnapshot(snap=>{S.devis=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
+  db.collection("visuels").onSnapshot(snap=>{S.visuels=snap.docs.map(d=>({id:d.id,...d.data()}));render();if(S.page==="visuel"||S.page==="fichePrix")visActs()},()=>{});
   db.collection("demandes").onSnapshot(snap=>{S.demandes=snap.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("codes_promo").onSnapshot(snap=>{S.codes=S.codes_promo=snap.docs.map(d=>({id:d.id,...d.data()}));S.codesOk=true;render()},()=>{});
   db.doc("reglages/rdv").onSnapshot(x=>{S.rdvPrive=x.exists?x.data():null;render()},()=>{});
