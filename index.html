@@ -1561,7 +1561,17 @@ function visCharger(u,t){visStopLoop();VIS.srcSave=null;if(VIS.vid){try{VIS.vid.
     vd.src=u;try{vd.load()}catch(_){}vd.play().catch(()=>{});
     setTimeout(()=>{if(VIS.src===u&&!VIS.vid&&!VIS.err){VIS.err="Touche l'aperçu pour lancer la vidéo.";visDraw()}},4000);visDraw();visActs();return}
   const im=new Image();if(!/^blob:/.test(u))im.crossOrigin="anonymous";im.onload=()=>{if(VIS.src===u){VIS.img=im;VIS.err="";visDraw()}};im.onerror=()=>{if(VIS.src!==u)return;VIS.err="Cette photo ne peut pas être lue ici.";visDraw()};im.src=u;visDraw();visActs()}
-function visLoop(){visStopLoop();const tick=()=>{if(!$("#visCv")||!VIS.vid){visStopLoop();if(VIS.vid&&!$("#visCv")){try{VIS.vid.pause()}catch(_){}}return}visDraw(true);VIS.raf=requestAnimationFrame(tick)};VIS.raf=requestAnimationFrame(tick)}
+/* pendant l'enregistrement : les textes sont dessinés une seule fois, seule l'image de la vidéo change */
+function visImageRapide(cv){const v=k=>{const e=$("#"+k);return e?e.value:""};const W=cv.width,H=cv.height;const c=cv.getContext("2d");
+  const mise=$("#visLignes")?"dessus":(v("visMise")||"dessus");const bH=mise==="dessus"?0:Math.round(H*(H/W>1.6?0.25:0.29));
+  c.clearRect(0,0,W,H);visDrawMedia(c,W,H,H-bH,v);c.drawImage(VIS.ov,0,0)}
+function visTick(){const cv=$("#visCv");if(!cv)return;
+  if(VIS.rec&&VIS.vid&&$("#visMode").value!=="calque"){const a=($("#visAnim")||{}).value||"";const t=VIS.vid.currentTime||0;const fixe=!a||((a==="fondu"||a==="glisse")&&t>1.25);
+    if(fixe){if(!VIS.ovOk){VIS.ovOnly=true;try{visDraw(true)}finally{VIS.ovOnly=false}const ov=VIS.ov||(VIS.ov=document.createElement("canvas"));ov.width=cv.width;ov.height=cv.height;const o=ov.getContext("2d");o.clearRect(0,0,ov.width,ov.height);o.drawImage(cv,0,0);VIS.ovOk=true}visImageRapide(cv)}
+    else visDraw(true);
+    if(VIS.track)try{VIS.track.requestFrame()}catch(_){}}
+  else visDraw(true)}
+function visLoop(){visStopLoop();const tick=()=>{if(!$("#visCv")||!VIS.vid){visStopLoop();if(VIS.vid&&!$("#visCv")){try{VIS.vid.pause()}catch(_){}}return}if(VIS.rvfc)return;visTick();VIS.raf=requestAnimationFrame(tick)};VIS.raf=requestAnimationFrame(tick)}
 /* ---------- annonce, effets et animation ---------- */
 function visAnimEtat(v){const a=v("visAnim");const vd=VIS.vid;if(!a||!vd||!(VIS.type==="video")||(vd.paused&&!VIS.rec))return{a:1,dy:0,t:0,anim:a};const t=vd.currentTime||0;const k=Math.min(1,Math.max(0,(t-0.2)/0.9));const e=1-Math.pow(1-k,3);
   if(a==="fondu")return{a:e,dy:0,t,anim:a};if(a==="glisse")return{a:e,dy:(1-e)*0.04,t,anim:a};return{a:1,dy:0,t,anim:a}}
@@ -1607,6 +1617,13 @@ function visSpaced(c,t,x,y,sp,align){const chars=[...t];const w=chars.reduce((s,
   for(const ch of chars){c.fillText(ch,cx,y);cx+=c.measureText(ch).width+sp}return w}
 function visFit(c,t,font,size,maxW){let s=size;c.font=font.replace("{s}",s);while(s>12&&c.measureText(t).width>maxW){s-=2;c.font=font.replace("{s}",s)}return s}
 let visFontsOk=false;
+function visDrawMedia(c,W,H,Hm,v){c.fillStyle="#111";c.fillRect(0,0,W,H);const src=VIS.vid||VIS.img;c.save();c.beginPath();c.rect(0,0,W,Hm);c.clip();
+    if(src&&(src.videoWidth||src.width)){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const cov=Math.max(W/sw,Hm/sh);const sc=cov*z;const iw=sw*sc,ih=sh*sc;
+      const fx=(v("visX")===""?50:n(v("visX")))/100,fy=(v("visY")===""?50:n(v("visY")))/100;
+      if(iw<W-1||ih<Hm-1){const bw=sw*cov*1.1,bh=sh*cov*1.1;const tc=VIS.tiny||(VIS.tiny=document.createElement("canvas"));const k=48/W;tc.width=48;tc.height=Math.max(2,Math.round(Hm*k));const tx=tc.getContext("2d");tx.drawImage(src,(W-bw)/2*k,(Hm-bh)/2*k,bw*k,bh*k);c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality="high";c.drawImage(tc,0,0,W,Hm);c.restore();c.fillStyle="rgba(0,0,0,.45)";c.fillRect(0,0,W,Hm)}
+      const x0=iw>W?(W-iw)*fx:(W-iw)*fx,y0=(Hm-ih)*fy;c.drawImage(src,x0,y0,iw,ih)}
+    else if($("#visLignes")&&!VIS.src){const cr=v("visTheme")!=="noir";const g0=c.createRadialGradient(W/2,H*0.35,W*0.1,W/2,H/2,H*0.8);g0.addColorStop(0,cr?"#FBF8F3":"#2a2420");g0.addColorStop(1,cr?"#EDE6DB":"#0d0c0b");c.fillStyle=g0;c.fillRect(0,0,W,H)}
+    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.err||(VIS.src?"Chargement…":"Choisis une photo ou une vidéo"),W/2,Hm/2)}c.restore()}
 function visDraw(sync){
   const cv=$("#visCv");if(!cv)return;
   if(!visFontsOk&&!sync){Promise.all(['500 80px "Cormorant Garamond"','400 30px Poppins','500 30px Poppins'].map(f=>document.fonts.load(f))).then(()=>{visFontsOk=true;visDraw()}).catch(()=>{visFontsOk=true;visDraw()});}
@@ -1614,13 +1631,7 @@ function visDraw(sync){
   const[W,H]=VIS_FORMATS[v("visFmt")||"post"];if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}const c=cv.getContext("2d");
   const calque=v("visMode")==="calque";c.clearRect(0,0,W,H);
   const mise=(!$("#visLignes")&&!calque)?(v("visMise")||"dessus"):"dessus";const bH=mise==="dessus"?0:Math.round(H*(H/W>1.6?0.25:0.29));const Hm=H-bH;
-  if(!calque){c.fillStyle="#111";c.fillRect(0,0,W,H);const src=VIS.vid||VIS.img;c.save();c.beginPath();c.rect(0,0,W,Hm);c.clip();
-    if(src&&(src.videoWidth||src.width)){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;const z=(n(v("visZoom"))||100)/100;const cov=Math.max(W/sw,Hm/sh);const sc=cov*z;const iw=sw*sc,ih=sh*sc;
-      const fx=(v("visX")===""?50:n(v("visX")))/100,fy=(v("visY")===""?50:n(v("visY")))/100;
-      if(iw<W-1||ih<Hm-1){const bw=sw*cov*1.1,bh=sh*cov*1.1;if("filter" in c){c.filter="blur(28px) brightness(.55)";c.drawImage(src,(W-bw)/2,(Hm-bh)/2,bw,bh);c.filter="none"}else{c.drawImage(src,(W-bw)/2,(Hm-bh)/2,bw,bh);c.fillStyle="rgba(0,0,0,.62)";c.fillRect(0,0,W,Hm)}}
-      const x0=iw>W?(W-iw)*fx:(W-iw)*fx,y0=(Hm-ih)*fy;c.drawImage(src,x0,y0,iw,ih)}
-    else if($("#visLignes")&&!VIS.src){const cr=v("visTheme")!=="noir";const g0=c.createRadialGradient(W/2,H*0.35,W*0.1,W/2,H/2,H*0.8);g0.addColorStop(0,cr?"#FBF8F3":"#2a2420");g0.addColorStop(1,cr?"#EDE6DB":"#0d0c0b");c.fillStyle=g0;c.fillRect(0,0,W,H)}
-    else{c.fillStyle="#F4F0EA";c.fillRect(0,0,W,H);c.fillStyle="#8A6F2C";c.font='400 30px Poppins';c.textAlign="center";c.fillText(VIS.err||(VIS.src?"Chargement…":"Choisis une photo ou une vidéo"),W/2,Hm/2)}c.restore()}
+  if(!calque&&!VIS.ovOnly)visDrawMedia(c,W,H,Hm,v);
   const AN=visAnimEtat(v);c.save();c.globalAlpha=AN.a;c.translate(0,AN.dy*H);
   if(bH)visBande(c,W,H,Hm,v);
   if(bH){visFin(c,W,H,v,AN);return}
@@ -1707,19 +1718,20 @@ function visFiche(c,W,H,story,M,lp,lt,top,v,clair){
   if(note){c.font=`italic 400 ${Math.round(W*0.022)}px Poppins`;c.fillStyle=K.note;c.textAlign="center";visFit(c,note,'italic 400 {s}px Poppins',Math.round(W*0.022),iw);c.fillText(note,W/2,y+W*0.04)}
   if(site){c.textAlign="left";c.font=`400 ${Math.round(W*0.02)}px Poppins`;c.fillStyle=K.site;visSpaced(c,site.toUpperCase(),W/2,H-(story?H*0.05:H*0.035),W*0.006,"center")}
   c.restore();c.textAlign="left"}
-function visMime(){const L=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"];for(const m of L)if(MediaRecorder.isTypeSupported(m))return m;return""}
+function visMime(){const L=["video/mp4;codecs=avc1.640028,mp4a.40.2","video/mp4;codecs=avc1.4D0028,mp4a.40.2","video/mp4;codecs=avc1.42E028,mp4a.40.2","video/mp4;codecs=avc1","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"];for(const m of L)if(MediaRecorder.isTypeSupported(m))return m;return""}
 async function visRec(){
   const vd=VIS.vid,cv=$("#visCv");if(!vd||!cv)return;const mime=visMime();
-  let stream=cv.captureStream(30);
+  let stream;VIS.track=null;VIS.ovOk=false;try{const s0=cv.captureStream(0);const tr=s0.getVideoTracks()[0];if(tr&&typeof tr.requestFrame==="function"){stream=s0;VIS.track=tr}else{s0.getTracks().forEach(x=>x.stop());stream=cv.captureStream(30)}}catch(_){stream=cv.captureStream(30)}
   try{if(!VIS.audio){const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const src=ac.createMediaElementSource(vd);const dest=ac.createMediaStreamDestination();src.connect(dest);VIS.audio={ac,dest}}
     await VIS.audio.ac.resume();VIS.audio.dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t))}catch(_){}
-  let rec;try{rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:8e6}:{videoBitsPerSecond:8e6})}catch(e){toast("Ce navigateur ne sait pas créer de vidéo. Utilise le calque transparent.");return}
+  let rec;try{rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:12e6}:{videoBitsPerSecond:12e6})}catch(e){toast("Ce navigateur ne sait pas créer de vidéo. Utilise le calque transparent.");return}
   const parts=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
   const dur=Math.min(90,vd.duration||90);VIS.rec=rec;VIS.out=null;visActs();
-  rec.onstop=()=>{vd.ontimeupdate=null;vd.onended=null;vd.loop=true;vd.muted=true;vd.play().catch(()=>{});const type=(rec.mimeType||mime||"video/webm").split(";")[0];
+  rec.onstop=()=>{VIS.rvfc=false;VIS.track=null;VIS.ovOk=false;visLoop();vd.ontimeupdate=null;vd.onended=null;vd.loop=true;vd.muted=true;vd.play().catch(()=>{});const type=(rec.mimeType||mime||"video/webm").split(";")[0];
     VIS.out={blob:new Blob(parts,{type}),ext:type.includes("mp4")?"mp4":"webm"};VIS.rec=null;visActs();if(VIS.out.ext==="webm")$("#visNote").textContent="Vidéo prête en WEBM, le format de ce navigateur. Si Instagram la refuse, crée-la depuis ton iPhone : il donne du MP4."};
   vd.pause();vd.loop=false;vd.currentTime=0;vd.muted=false;
   await new Promise(r=>{vd.onseeked=()=>{vd.onseeked=null;r()};setTimeout(r,800)});
+  if(typeof vd.requestVideoFrameCallback==="function"){VIS.rvfc=true;visStopLoop();const cb=()=>{if(!VIS.rec||VIS.vid!==vd)return;visTick();vd.requestVideoFrameCallback(cb)};vd.requestVideoFrameCallback(cb)}
   rec.start(500);vd.play().catch(()=>{});
   vd.ontimeupdate=()=>{const p=$("#visPct");if(p)p.textContent=Math.min(100,Math.round(vd.currentTime/dur*100))+" %";if(vd.currentTime>=dur&&rec.state==="recording")rec.stop()};
   vd.onended=()=>{if(rec.state==="recording")rec.stop()}}
