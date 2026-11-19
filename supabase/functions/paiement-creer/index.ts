@@ -217,6 +217,37 @@ Deno.serve(async (req: Request) => {
         lotLigne.forEach((v, i) => remiseLigne[i] = v);
         promo = { type: "lot", lots: Math.floor(nbB / lotT), taille: lotT, ...(lotP > 0 ? { pct: lotP } : {}) };
       }
+      // remise sur les lots déjà composés (ex. Pixie Curly 18″ + 18″ + 20″) : seulement pour un lot complet
+      const lotsR = num(R?.lotsRemise);
+      const lotsC: any[] = Array.isArray(R?.lotsCompo) ? R.lotsCompo : [];
+      if (lotsR > 0 && lotsC.length) {
+        const dispo = base.map((x) => (isB(x.p) ? x.qte : 0));
+        const part = base.map(() => 0);
+        let nLots = 0;
+        for (const L of lotsC) {
+          const lgs = (Array.isArray(L?.lg) ? L.lg : []).map(num).filter((v: number) => v > 0);
+          if (!lgs.length) continue;
+          for (let garde = 0; garde < 20; garde++) {
+            const pris = base.map(() => 0);
+            let ok = true;
+            for (const lg of lgs) {
+              const k = base.findIndex((x, j) =>
+                isB(x.p) && (x.p.modele || "") === L.m && num(x.p.longueur) === lg && dispo[j] - pris[j] > 0
+              );
+              if (k < 0) { ok = false; break; }
+              pris[k]++;
+            }
+            if (!ok) break;
+            pris.forEach((q, j) => { dispo[j] -= q; part[j] += q * lotsR / lgs.length; });
+            nLots++;
+          }
+        }
+        const lotsLigne = base.map((_, i) => Math.min(r2(part[i]), room[i]));
+        if (nLots > 0 && somme(lotsLigne) > somme(remiseLigne)) {
+          lotsLigne.forEach((v, i) => remiseLigne[i] = v);
+          promo = { type: "lot", lots: nLots, taille: lotT, compo: true, ...(R?.lotsNom ? { nom: String(R.lotsNom) } : {}) };
+        }
+      }
       // 3) lignes Stripe
       const lines: any[] = [], resv: any[] = [], details: any[] = [];
       base.forEach(({ p, qte, prix: prixInitial }, i) => {
@@ -226,7 +257,7 @@ Deno.serve(async (req: Request) => {
           ? (promo.type === "cagnotte"
             ? ` · cagnotte −${fr(remise)} €`
             : promo.type === "lot"
-            ? (promo.pct ? ` · −${promo.pct} % dès ${promo.taille} bundles` : ` · remise lot de ${promo.taille} bundles`)
+            ? (promo.compo ? ` · ${promo.nom ? promo.nom + " : " : ""}remise lot` : promo.pct ? ` · −${promo.pct} % dès ${promo.taille} bundles` : ` · remise lot de ${promo.taille} bundles`)
             : ` · code ${promo.code} −${promo.pct} %`)
           : "";
         const t = titre(p);

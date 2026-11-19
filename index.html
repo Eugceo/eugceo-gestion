@@ -1350,31 +1350,40 @@ function lotsDef(){const R=S.reglages||{};return Array.isArray(R.lotsCompo)?R.lo
 function eurLot(v){return v>0?(Math.abs(v-Math.round(v))<0.005?String(Math.round(v)):v.toFixed(2).replace(".",","))+" €":"—"}
 function lotInfo(L,i){const R=S.reglages||{};const lg=[...L.lg].map(n).filter(x=>x>0).sort((a,b)=>a-b);
   const ps=lg.map(x=>S.produits.find(p=>isBundle(p)&&p.statut!=="Archivé"&&(p.modele||"")===L.m&&n(p.longueur)===x)||null);const ok=ps.every(Boolean);
-  const tot=ps.reduce((a,p)=>a+(p?prixBaseDe(p):0),0);const t=n(R.lotBundleTaille)||3;const pc=promoForcee()?n(R.lotBundlePct):lotPctActif();let px=tot;
-  if(lg.length>=t)px=pc?tot*(1-pc/100):tot-Math.floor(lg.length/t)*n(R.lotBundleRemise);px=Math.round(px*100)/100;
+  const tot=ps.reduce((a,p)=>a+(p?prixBaseDe(p):0),0);const rl=lotsRemiseActive()||promoForcee()?n(R.lotsRemise):0;let px=Math.round(Math.max(0,tot-(ok?rl:0))*100)/100;
   const need={};ps.forEach(p=>{if(p)need[p.id]=(need[p.id]||0)+1});const poss=ok&&lg.length?Math.min(...Object.entries(need).map(([id,k])=>Math.floor(Math.max(0,stockQty(prod(id)))/k))):0;
   return{i,m:L.m,lg,ps,ok,tot,px,poss,lab:lg.map(x=>x+"″").join(" + ")}}
-function promoProchaine(){const R=S.reglages||{};return n(R.lotBundlePct)>0&&(!R.lotPctFin||R.lotPctFin>=today())}
+/* remise sur les lots déjà composés : active quand la case est cochée, et entre les dates si elles sont remplies */
+function lotsRemiseActive(j){const R=S.reglages||{};j=j||today();if(!R.lotsActif||!(n(R.lotsRemise)>0))return 0;if(R.lotsDebut&&j<R.lotsDebut)return 0;if(R.lotsFin&&j>R.lotsFin)return 0;return n(R.lotsRemise)}
+function lotsDates(){const R=S.reglages||{};return R.lotsDebut||R.lotsFin?(R.lotsDebut?" du "+dfr(R.lotsDebut).slice(0,5):"")+(R.lotsFin?" au "+dfr(R.lotsFin).slice(0,5):""):""}
+function promoProchaine(){const R=S.reglages||{};return!!R.lotsActif&&n(R.lotsRemise)>0&&(!R.lotsFin||R.lotsFin>=today())&&!lotsRemiseActive()}
 function promoForcee(){return!!(VIS.promo&&promoProchaine())}
-function promoCase(){const R=S.reglages||{};if(!promoProchaine()||(lotPctActif()&&true))return"";return`<label class="chk"><input type="checkbox" id="fpPromo"> Afficher les prix ${esc(R.lotPctNom||"de la promotion")} (−${n(R.lotBundlePct)} %${R.lotPctDebut?", du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):""})</label>`}
+function promoCase(){const R=S.reglages||{};if(!promoProchaine())return"";return`<label class="chk"><input type="checkbox" id="fpPromo"> Afficher les prix des lots ${esc(R.lotsNom?R.lotsNom+" ":"")}(−${eurLot(n(R.lotsRemise))}${esc(lotsDates())})</label>`}
 function lotsInfos(){return lotsDef().map(lotInfo)}
 function lotParId(id){const m=/^lot:(\d+)$/.exec(id||"");if(!m)return null;const L=lotsDef()[+m[1]];return L?lotInfo(L,+m[1]):null}
 function visTextesLot(x){const p=x.ps.find(Boolean)||{};return{titre:"Lot "+x.m,l1:[x.lab,p.cheveux].filter(Boolean).join(" · "),l2:[x.px<x.tot?"Au lieu de "+eurLot(x.tot):"",p.couleur].filter(Boolean).join(" · "),prix:eurLot(x.px),sur:x.poss>0?"Disponible":"Sur commande"}}
 function lotsBundleOpts(){const b=S.produits.filter(p=>isBundle(p)&&p.statut!=="Archivé");return{ms:[...new Set(b.map(p=>p.modele||"").filter(Boolean))].sort(),lgs:[...new Set(b.map(p=>n(p.longueur)).filter(Boolean))].sort((a,c)=>a-c)}}
 function lotRow(L){const{ms,lgs}=lotsBundleOpts();const t=Math.max(n((S.reglages||{}).lotBundleTaille)||3,(L.lg||[]).length);const m=L.m||ms[0]||"";
   return`<div class="lotrow" style="--n:${t}"><select class="lotM" aria-label="Modèle">${[...new Set([...ms,m].filter(Boolean))].map(x=>`<option${x===m?" selected":""}>${esc(x)}</option>`).join("")}</select>${Array.from({length:t},(_,j)=>{const v=n((L.lg||[])[j]);return`<select class="lotL" aria-label="Longueur ${j+1}"><option value="">—</option>${[...new Set([...lgs,v].filter(Boolean))].sort((a,c)=>a-c).map(x=>`<option value="${x}"${x===v?" selected":""}>${x}″</option>`).join("")}</select>`}).join("")}<button type="button" class="iconbtn" data-act="lot-del" aria-label="Retirer ce lot">✕</button></div>`}
-function openLots(){const ro=!(db&&canWrite);current={col:"lots"};const sh=$("#sheet");const L=lotsDef();
+function openLots(){const ro=!(db&&canWrite);current={col:"lots"};const sh=$("#sheet");const L=lotsDef();const R=S.reglages||{};
   sh.innerHTML=`<div class="sheet-head"><div class="wrap"><button class="linkbtn" data-act="close">Annuler</button><h2>Lots de bundles</h2></div></div>
   <div class="wrap"><form class="f" id="form" novalidate>
-   <p class="note">Pour chaque lot : le modèle, puis la longueur de chaque bundle. Le prix du lot se calcule tout seul (somme des prix, moins la remise lot en cours : ${esc(lotTexte()||"aucune")}). Les lots servent dans la fiche de prix et le visuel pour les réseaux.</p>
+   <fieldset><legend>Remise sur ces lots</legend>
+    <label class="chk"><input type="checkbox" id="lotsActif"${R.lotsActif?" checked":""}> Remise active</label>
+    <div class="two">${F("lotsRemise","Remise par lot (€)",`<input id="lotsRemise" inputmode="decimal" value="${esc(R.lotsRemise??15)}">`)}${F("lotsNom","Nom de l'offre (facultatif)",`<input id="lotsNom" value="${esc(R.lotsNom||"")}" placeholder="ex. Black Friday">`)}</div>
+    <div class="two">${F("lotsDebut","Du (facultatif)",`<input id="lotsDebut" type="date" value="${esc(R.lotsDebut||"")}">`)}${F("lotsFin","Au, inclus (facultatif)",`<input id="lotsFin" type="date" value="${esc(R.lotsFin||"")}">`)}</div>
+    <p class="note">La remise ne s'applique que si la cliente prend un lot complet de la liste ci-dessous, sur le site comme dans les visuels. Case décochée = pas de remise. Dates vides = tant que la case est cochée.</p></fieldset>
+   <p class="note">Pour chaque lot : le modèle, puis la longueur de chaque bundle. Le prix du lot se calcule tout seul (somme des prix, moins la remise si elle est active). Les lots servent sur le site, dans la fiche de prix et dans le visuel pour les réseaux.</p>
    <div id="lotRows">${L.map(lotRow).join("")}</div>
    ${ro?"":`<button type="button" class="btn ghost small" data-act="lot-add">+ Ajouter un lot</button>`}
    <p class="err" id="formErr" hidden></p>
    ${ro?"":`<button class="btn" type="submit">Enregistrer</button>`}
   </form></div>`;
-  sh.hidden=false;document.body.style.overflow="hidden";if(ro)sh.querySelectorAll("select,button[data-act^=lot]").forEach(e=>e.disabled=true)}
+  sh.hidden=false;document.body.style.overflow="hidden";if(ro)sh.querySelectorAll("select,input,button[data-act^=lot]").forEach(e=>e.disabled=true)}
 async function saveLots(){const arr=[...document.querySelectorAll("#lotRows .lotrow")].map(r=>({m:r.querySelector(".lotM").value,lg:[...r.querySelectorAll(".lotL")].map(x=>n(x.value)).filter(x=>x>0).sort((a,b)=>a-b)})).filter(L=>L.m&&L.lg.length);
-  try{await db.doc("reglages/prix").set({...S.reglages,lotsCompo:arr,modifieLe:new Date().toISOString()});S.reglages={...S.reglages,lotsCompo:arr};closeSheet();toast("Lots enregistrés");visListe()}
+  const o={lotsCompo:arr,lotsActif:!!$("#lotsActif").checked,lotsRemise:n($("#lotsRemise").value),lotsNom:$("#lotsNom").value.trim(),lotsDebut:$("#lotsDebut").value,lotsFin:$("#lotsFin").value};
+  if(o.lotsDebut&&o.lotsFin&&o.lotsFin<o.lotsDebut){const eb=$("#formErr");eb.textContent="La date de fin est avant la date de début.";eb.hidden=false;return}
+  try{await db.doc("reglages/prix").set({...S.reglages,...o,modifieLe:new Date().toISOString()});S.reglages={...S.reglages,...o};closeSheet();toast("Lots enregistrés");visListe()}
   catch(e){const eb=$("#formErr");eb.textContent=dbErr(e);eb.hidden=false}}
 /* ---------- fiche de prix : choisir ce qu'on montre ---------- */
 function fpGroupes(){
@@ -1412,7 +1421,7 @@ function fpCompose(){
        const tx=prochaine?((R.lotPctNom?R.lotPctNom+" : ":"")+"−"+n(R.lotBundlePct)+" % dès "+(n(R.lotBundleTaille)||3)+" bundles"+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):"")):(lotPctActif()&&R.lotPctNom?R.lotPctNom+" : ":"")+lotTexte();
        if(tx&&!notes.includes(tx))notes.push(tx)}}
     else if(g.lots){const M={};its.forEach(i=>(M[i.lot.m]=M[i.lot.m]||[]).push(i.lot));for(const [m,xs] of Object.entries(M))sections.push({t:"Lots "+m,c0:"Lot",cols:["Au lieu de","Prix du lot"],rows:xs.map(x=>[x.lab,x.px<x.tot?"~"+eurLot(x.tot):"",eurLot(x.px)])});
-      {const R=S.reglages||{};const tx=(lotPctActif()||promoForcee())&&R.lotPctNom?R.lotPctNom+(R.lotPctDebut?" du "+dfr(R.lotPctDebut).slice(0,5)+" au "+dfr(R.lotPctFin).slice(0,5):""):"";if(tx&&!notes.includes(tx))notes.push(tx)}}
+      {const R=S.reglages||{};const tx=(lotsRemiseActive()||promoForcee())&&(R.lotsNom||lotsDates())?((R.lotsNom||"Offre")+lotsDates()):"";if(tx&&!notes.includes(tx))notes.push(tx)}}
     else if(g.opt)sections.push({t:g.t,cols:["Perruque","Bundle"],rows:its.map(i=>[i.l,i.a?e(i.a):"—",i.b?e(i.b):"—"])});
     else if(g.prest){sections.push({t:"Prestations",cols:[],rows:its.map(i=>[i.l,i.txt])});notes.push("À Cesson-Sévigné ou chez vous, sur rendez-vous")}
     else sections.push({t:g.t,cols:[],rows:its.map(i=>[i.l,e(i.px)])})}
