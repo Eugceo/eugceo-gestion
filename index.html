@@ -1336,6 +1336,12 @@ function pVisuel(){
     ${F("visZoom","Taille de la photo ou vidéo (plus petite ↔ plus grande)",`<input type="range" id="visZoom" name="visZoom" min="40" max="200" value="100">`,"Au milieu = elle remplit tout le cadre. Plus petite : un fond flouté complète les bords.")}
     <div class="two">${F("visX","Position (gauche ↔ droite)",`<input type="range" id="visX" name="visX" min="0" max="100" value="50">`)}${F("visY","Position (haut ↔ bas)",`<input type="range" id="visY" name="visY" min="0" max="100" value="50">`)}</div>
     <div class="two">${F("visLogo","Logo EC EUGCEO",`<select id="visLogo" name="visLogo"><option value="hc">En haut, au centre</option><option value="hg">En haut, à gauche</option><option value="hd">En haut, à droite</option><option value="bd">En bas, à droite</option><option value="non">Pas de logo</option></select>`)}${F("visLogoT","Taille du logo",`<input type="range" id="visLogoT" name="visLogoT" min="50" max="150" value="100">`)}</div>
+    <details class="vis-fx"><summary>Petit logo transparent</summary>
+     <label class="chk"><input type="checkbox" id="visWm"> Afficher le petit logo EUGCEO transparent</label>
+     <div class="two">${F("visWmX","Position (gauche ↔ droite)",`<input type="range" id="visWmX" min="0" max="100" value="85">`)}${F("visWmY","Position (haut ↔ bas)",`<input type="range" id="visWmY" min="0" max="100" value="88">`)}</div>
+     <div class="two">${F("visWmT","Taille",`<input type="range" id="visWmT" min="40" max="250" value="100">`)}${F("visWmO","Transparence (plus léger ↔ plus visible)",`<input type="range" id="visWmO" min="10" max="100" value="45">`)}</div>
+     ${F("visWmC","Couleur",`<select id="visWmC"><option value="#FFFFFF">Blanc</option><option value="#111111">Noir</option><option value="#C4A046">Or</option></select>`)}
+    </details>
     <details class="vis-fx"><summary>Annonce et effets</summary>
      ${F("visAnn","Annonce (facultatif)",inp("visAnn","",'placeholder="ex. BLACK FRIDAY · −15 € SUR LES LOTS"'),"Un texte mis en avant pour une offre ou une nouvelle. Vide = pas d'annonce.")}
      <div class="two">${F("visAnnStyle","Forme",`<select id="visAnnStyle" name="visAnnStyle"><option value="bandeau">Bandeau</option><option value="pastille">Pastille ronde</option><option value="etiquette">Étiquette en coin</option></select>`)}${F("visAnnPos","Position",`<select id="visAnnPos" name="visAnnPos"><option value="haut">En haut</option><option value="milieu">Au milieu</option><option value="bas">En bas</option><option value="coin-d">Coin droit</option><option value="coin-g">Coin gauche</option></select>`)}</div>
@@ -1497,7 +1503,16 @@ function visFxTexte(c,t,x,y,W,v,col,fx){fx=fx===undefined?v("visFx"):fx;c.save()
   if(fx==="contour"){c.shadowColor="transparent";c.lineWidth=Math.max(1.5,W*0.0025);c.strokeStyle="#D9B45A";c.strokeText(t,x,y)}
   c.restore()}
 function visClair(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||"");if(!m)return false;const v=parseInt(m[1],16);const r=v>>16&255,g=v>>8&255,b=v&255;return(0.299*r+0.587*g+0.114*b)>165}
-function visFin(c,W,H,v,AN){c.restore();const txt=v("visAnn").trim();if(!txt)return;
+function visFiligrane(c,W,H,v){const on=$("#visWm");if(!on||!on.checked)return;
+  const x=(n(v("visWmX"))/100)*W,y=(n(v("visWmY"))/100)*H,s0=(n(v("visWmT"))||100)/100,al=(n(v("visWmO"))||45)/100,col=v("visWmC")||"#FFFFFF";
+  const eh=W*0.04*s0,sc=eh/25,ew=42*sc,fs=Math.round(W*0.017*s0),sp=W*0.011*s0;const bh=eh+W*0.03*s0;
+  /* le petit logo reste toujours entier dans l'image */
+  c.save();c.font=`500 ${fs}px "Cormorant Garamond"`;const tw=[..."EUGCEO"].reduce((a,ch)=>a+c.measureText(ch).width,0)+sp*5;const bw=Math.max(ew,tw);
+  const cx=Math.min(W-bw/2-W*0.02,Math.max(bw/2+W*0.02,x)),cy=Math.min(H-bh-W*0.02,Math.max(W*0.02,y-bh/2));
+  c.globalAlpha=al;c.shadowColor=col==="#111111"?"rgba(255,255,255,.25)":"rgba(0,0,0,.3)";c.shadowBlur=W*0.006;
+  const ecPath=document.querySelector("#ec path");if(ecPath){if(!VIS.P)VIS.P=new Path2D(ecPath.getAttribute("d"));c.save();c.translate(cx-ew/2,cy);c.scale(sc,sc);c.translate(-29,-39);c.fillStyle=col;c.fill(VIS.P);c.restore()}
+  c.fillStyle=col;c.textBaseline="alphabetic";visSpaced(c,"EUGCEO",cx,cy+eh+W*0.03*s0,sp,"center");c.restore()}
+function visFin(c,W,H,v,AN){c.restore();visFiligrane(c,W,H,v);const txt=v("visAnn").trim();if(!txt)return;
   const st=v("visAnnStyle")||"bandeau",pos=v("visAnnPos")||"haut",col=v("visAnnCol")||"#B3261E",tc=visClair(col)?"#141210":"#fff";const story=H/W>1.6;const fx0=v("visFx");const fxA=visClair(col)&&(fx0==="contour"||fx0==="dore"||fx0==="lueur")?"":fx0;
   c.save();c.globalAlpha=AN.anim==="fondu"||AN.anim==="glisse"?AN.a:1;
   const pulse=AN.anim==="pulse"&&AN.t?1+0.045*Math.sin(AN.t*5):1;
@@ -2328,7 +2343,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.id==="visFile"){const f=e.target.files&&e.target.files[0];if(f&&!VIS.rec){document.querySelectorAll(".vis-th").forEach(x=>x.classList.remove("on"));e.target.closest(".vis-th").classList.add("on");visCharger(URL.createObjectURL(f),/^video\//.test(f.type)?"video":"image")}return}
-  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
+  if(e.target.id==="visProd"||e.target.id==="visFmt"||e.target.id==="visMode"||e.target.id==="visLogo"||e.target.id==="visTheme"||e.target.id==="fpFond"||e.target.id==="visMise"||["visAnnStyle","visAnnPos","visFx","visAnim","visAnnColSel","visWm","visWmC"].includes(e.target.id)){if(e.target.id==="visAnnColSel"&&e.target.value){const ci=$("#visAnnCol");if(ci)ci.value=e.target.value}if(e.target.id==="visProd"){S.pageId=e.target.value;delete e.target.form.dataset.dirty;$("#view").dataset.page="";doRender()}else{if(!VIS.rec)VIS.out=null;visDraw();visActs()}return}
   if(e.target.id==="utiliserCagnotte"){toggleCagnotte(e.target.checked);return}
   if(e.target.id==="prixTTC"&&current&&current.col==="ventes"){prixSousBase();return}
   if(e.target.id==="produitId"&&current&&current.col==="ventes"&&n(($("#remisePrix")||{}).value))remisePrixSet(0);
